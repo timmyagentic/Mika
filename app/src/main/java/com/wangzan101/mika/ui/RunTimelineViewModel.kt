@@ -79,7 +79,7 @@ sealed interface TimelineUi {
 
 /** 一次运行的只读时间线。[load] 读盘,要在后台线程调。 */
 class RunTimelineViewModel(
-    private val store: RunStore, private val runId: String,
+    private val store: RunStore, val runId: String,
     private val toolLabels: ToolLabels = ToolLabels(knownTools()),
     private val resolveMemory: (List<String>) -> List<String> = { emptyList() },
 ) {
@@ -107,6 +107,8 @@ class RunTimelineViewModel(
     }
 
     fun screen(screenshotId: Int): File? = store.screen(runId, screenshotId)
+
+    fun usageLog(): String = store.usageLog(runId)
 
     companion object {
         const val SAID_MAX = 80

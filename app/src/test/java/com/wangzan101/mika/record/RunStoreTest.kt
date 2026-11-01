@@ -1,6 +1,10 @@
 package com.wangzan101.mika.record
 
 import com.wangzan101.mika.core.record.RunEvent
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,6 +23,56 @@ class RunStoreTest {
     private var clock = 1_760_000_000_000L
     private fun store(keep: Int = 30, external: File? = null, encode: (ByteArray) -> ByteArray? = { png -> png + byteArrayOf(9) }) =
         RunStore(tmp.root.resolve("files"), { external }, keep, { clock }, encode)
+
+    @Test fun exportsUsageAndCompactionFromExistingRunInRecordedOrder() {
+        val id = "20250102-030405-abc123"
+        val dir = tmp.root.resolve("files/runs/$id").also { it.mkdirs() }
+        val events = dir.resolve("events.jsonl")
+        val log = buildString {
+            appendLine("""{"type":"task_started","atMs":1,"goal":"private goal","model":"main"}""")
+            for (step in 1..78) {
+                if (step == 42) {
+                    appendLine("""{"type":"compressed","atMs":420,"foldedSteps":16}""")
+                    appendLine("""{"type":"model_reply","atMs":421,"step":42,"role":"light_rejected","text":"private reply","inputTokens":null,"cachedTokens":null}""")
+                }
+                appendLine("""{"type":"model_reply","atMs":${step * 10 + 2},"step":$step,"inputTokens":200,"cachedTokens":${if (step == 1) 0 else 128},"outputTokens":4,"argsJson":"private arguments"}""")
+            }
+            appendLine("""{"type":"tool_result","atMs":783,"step":78,"resultJson":"private content","screenshotId":1}""")
+            appendLine("""{"type":"compressed","atMs":784,"foldedSteps":20}""")
+            appendLine("""{"type":"task_ended","atMs":785,"outcome":"cancelled","answerOrReason":"private answer"}""")
+        }
+        events.writeText(log)
+
+        val exported = store().usageLog(id)
+        val rows = exported.lineSequence().filter { it.isNotEmpty() }.map { Json.parseToJsonElement(it).jsonObject }.toList()
+        val replies = rows.filter { it["type"]?.jsonPrimitive?.content == "model_reply" }
+        assertEquals((1..42).toList() + (42..78).toList(), replies.map { it.getValue("step").jsonPrimitive.content.toInt() })
+        assertEquals("0", replies.first().getValue("cachedTokens").jsonPrimitive.content)
+        assertEquals(JsonNull, replies[41]["inputTokens"])
+        assertEquals(JsonNull, replies[41]["cachedTokens"])
+        assertEquals("light_rejected", replies[41].getValue("role").jsonPrimitive.content)
+        assertEquals("128", replies.last().getValue("cachedTokens").jsonPrimitive.content)
+        assertEquals("200", replies.last().getValue("inputTokens").jsonPrimitive.content)
+        assertEquals(Json.parseToJsonElement("""{"type":"compressed","atMs":420,"foldedSteps":16}"""), rows[42])
+        assertEquals(Json.parseToJsonElement("""{"type":"compressed","atMs":784,"foldedSteps":20}"""), rows[rows.lastIndex - 1])
+        assertFalse(exported.contains("private"))
+        assertFalse(exported.contains("screenshotId"))
+        assertEquals(log, events.readText())
+    }
+
+    @Test fun usageLogMarksADamagedLineAndPreservesMissingCounters() {
+        val s = store()
+        val id = s.open("g").also { it.close() }.runId
+        tmp.root.resolve("files/runs/$id/events.jsonl").writeText("""
+            {"type":"model_reply","atMs":1,"step":1,"inputTokens":50}
+            {"type":"tool_result","private":
+            {"type":"compressed","atMs":3,"foldedSteps":1}
+        """.trimIndent())
+        val rows = s.usageLog(id).trimEnd().lines().map { Json.parseToJsonElement(it).jsonObject }
+        assertFalse(rows[0].containsKey("cachedTokens"))
+        assertEquals(Json.parseToJsonElement("""{"type":"unreadable_event","line":2}"""), rows[1])
+        assertEquals("compressed", rows[2].getValue("type").jsonPrimitive.content)
+    }
 
     @Test fun writesRunJsonEventsAndScreens() {
         val s = store()

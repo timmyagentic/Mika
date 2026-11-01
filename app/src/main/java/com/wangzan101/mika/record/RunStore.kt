@@ -10,9 +10,14 @@ import com.wangzan101.mika.core.record.RunMetricsStore
 import com.wangzan101.mika.core.record.RunEvent
 import com.wangzan101.mika.core.record.RunSink
 import com.wangzan101.mika.core.record.RunSummary
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -72,6 +77,32 @@ class RunStore internal constructor(
         return f.readLines().filter { it.isNotBlank() }.mapNotNull { runCatching { RunEvent.decode(it) }.getOrNull() }
     }
 
+    /** 从已有 JSONL 按原顺序取用量字段。旧记录的空值、同一步的多次回复和没有步号的压缩事件原样保留。 */
+    fun usageLog(runId: String): String {
+        val dir = dirOf(runId) ?: throw FileNotFoundException("Run is unavailable")
+        return File(dir, EVENTS).useLines { lines ->
+            buildString {
+                for ((index, line) in lines.withIndex()) {
+                    if (line.isBlank()) continue
+                    val event = try {
+                        RunEvent.json.parseToJsonElement(line) as? JsonObject
+                    } catch (_: SerializationException) { null }
+                    val type = event?.get("type") as? JsonPrimitive
+                    if (event == null || type == null) {
+                        // 进程中断可能留下一行没写完的记录。标出缺口，保留其余事件。
+                        appendLine("""{"type":"unreadable_event","line":${index + 1}}""")
+                        continue
+                    }
+                    val fields = USAGE_FIELDS[type.content] ?: continue
+                    val metadata = event.filter { (key, value) ->
+                        value is JsonPrimitive && (key == "type" || key == "atMs" || key in fields)
+                    }
+                    appendLine(JsonObject(metadata).toString())
+                }
+            }.ifEmpty { throw IOException("No run usage events") }
+        }
+    }
+
     /**
      * 运行记录关上之后补记一个事件(交出回答后判的结局):追加到 events.jsonl,并计入 run.json 的概要。
      * 记录已被清掉或写盘失败只记日志,不影响任务。
@@ -122,6 +153,14 @@ class RunStore internal constructor(
     companion object {
         internal const val RUN_JSON = "run.json"
         internal const val EVENTS = "events.jsonl"
+        private val USAGE_FIELDS = mapOf(
+            "task_started" to setOf("model"),
+            "model_reply" to setOf("step", "model", "role", "tool", "inputTokens", "cachedTokens",
+                "outputTokens", "repliedAtMs", "latencyMs", "retryWaitMs"),
+            "compressed" to setOf("foldedSteps"),
+            "model_calls" to setOf("calls", "unreported", "inputTokens", "cachedTokens", "outputTokens"),
+            "task_ended" to setOf("outcome", "kind"),
+        )
         private const val ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
         private val ID_RE = Regex("""\d{8}-\d{6}-[a-z0-9]{6}""")
 

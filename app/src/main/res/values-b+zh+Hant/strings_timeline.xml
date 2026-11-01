@@ -79,4 +79,8 @@
     <string name="timeline_hide_screen">收起畫面</string>
     <string name="timeline_show_screen">看當時的畫面</string>
     <string name="timeline_step_screen">第 %1$d 步的畫面</string>
+    <string name="timeline_export">匯出本次執行記錄</string>
+    <string name="timeline_export_hint">將每次模型回覆的 Token 用量、快取命中和上下文壓縮事件儲存為 JSONL。</string>
+    <string name="timeline_exported">已儲存本次執行記錄</string>
+    <string name="timeline_export_failed">無法匯出本次執行記錄，請檢查記錄是否仍在、所選位置能否寫入。</string>
 </resources>

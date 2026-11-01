@@ -3,8 +3,12 @@ package com.wangzan101.mika.ui
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.trPlural
 import androidx.compose.ui.res.stringResource
+import android.content.ActivityNotFoundException
 import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +62,7 @@ import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -67,6 +74,19 @@ fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     val ui by produceState<TimelineUi>(TimelineUi.Loading, vm) { value = withContext(Dispatchers.IO) { vm.load() } }
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val saveLog = rememberLauncherForActivityResult(CreateDocument("application/x-ndjson")) { uri ->
+        if (uri != null) scope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                runCatching {
+                    val log = vm.usageLog()
+                    checkNotNull(context.contentResolver.openOutputStream(uri, "wt")).bufferedWriter().use { it.write(log) }
+                }.isSuccess
+            }
+            Toast.makeText(context, if (saved) R.string.timeline_exported else R.string.timeline_export_failed, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     PageBackground {
         Column(Modifier.fillMaxSize()) {
@@ -78,7 +98,15 @@ fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottom + 16.dp),
                 ) {
-                    item("header") { HeaderGroup(u.header) }
+                    item("header") {
+                        HeaderGroup(u.header) {
+                            try {
+                                saveLog.launch("mika-${vm.runId}.jsonl")
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, R.string.timeline_export_failed, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                     if (u.steps.isNotEmpty()) {
                         item("label") { GroupLabel(trPlural(R.plurals.timeline_total_steps, u.steps.size)) }
                         item("steps") {
@@ -98,7 +126,7 @@ fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun HeaderGroup(h: TimelineHeader) {
+private fun HeaderGroup(h: TimelineHeader, onExport: () -> Unit) {
     val c = MikaTheme.colors
     var more by rememberSaveable { mutableStateOf(false) }
     GroupCard {
@@ -119,6 +147,7 @@ private fun HeaderGroup(h: TimelineHeader) {
         if (h.verdict != stringResource(R.string.verify_none)) ListRow(null, stringResource(R.string.timeline_check)) { RowValue(h.verdict) }
         // 小结那一行已经写了用时
         if (h.metrics == null) h.duration?.let { d -> ListRow(null, stringResource(R.string.timeline_duration)) { RowValue(d) } }
+        ListRow(null, stringResource(R.string.timeline_export), stringResource(R.string.timeline_export_hint), onClick = onExport) { RowChevron() }
         ListRow(null, stringResource(R.string.timeline_more), onClick = { more = !more }) {
             RowValue(if (more) stringResource(R.string.collapse) else stringResource(R.string.expand))
             RowChevron()
