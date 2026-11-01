@@ -581,12 +581,12 @@ class CapsuleController(
      * 空闲卡片也改成接着这个对话(新开的对话标题就是这句话)。
      */
     private fun startIn(conversationId: String, text: String) {
-        TaskService.start(context, text, conversationId, queue = true)
+        TaskService.start(context, text, conversationId)
         follow = conversationId
         idle = idle?.let { CardView.Chat(conversationId, title = if (it.target == conversationId) it.title else ScreenCopy.plain(text)) }
     }
 
-    /** 点开空闲图标:先读最近那段对话是哪个、标题是什么,再展开(来回由 [updateThread] 读)。 */
+    /** 点开空闲图标:先读用户此刻在哪个对话([loadIdle]),再展开(来回由 [updateThread] 读)。 */
     private fun openIdle() {
         scope.launch {
             idle = loadIdle()
@@ -595,11 +595,18 @@ class CapsuleController(
         }
     }
 
-    /** 空闲卡片接着的那段对话:最近的那个(没有任何对话时开新对话)。 */
+    /**
+     * 空闲卡片接着的那段对话:用户在 App 里所在的那个,没有记录时接着最近那个(见 [CapsuleIdle]);一个都没有时开新对话。
+     * 不按对话文件的时间猜:新开的对话还没有文件,猜到的是上一个。
+     */
     private suspend fun loadIdle(): CardView.Chat = withContext(Dispatchers.IO) {
         runCatching {
-            val last = ConversationStore.shared(context).list().firstOrNull()
-            CardView.Chat(last?.id, title = last?.title?.let(ScreenCopy::plain))
+            val store = ConversationStore.shared(context)
+            val recent = store.list().firstOrNull()?.let { CardView.Chat(it.id, title = it.title?.let(ScreenCopy::plain)) }
+            CapsuleIdle.chat(store.currentChat(), recent) { id ->
+                // 和侧栏一样:用户起的名字或第一句话
+                (store.title(id) ?: store.turns(id).firstOrNull()?.userText)?.let(ScreenCopy::plain)
+            }
         }.getOrElse { CardView.Chat(null) }
     }
 
@@ -1081,13 +1088,21 @@ class CapsuleController(
         }
     }
 
-    /** 展开卡片(空闲图标是空闲卡片)。 */
+    /** 展开卡片(空闲图标是空闲卡片)。每次展开都按用户此刻在哪个对话重读一次空闲卡片,不拿上次那份。 */
     private fun expand() {
         val v = view ?: return
-        if (v.kind == CapsuleKind.Idle) openIdle()
-        else {
-            open()
-            refresh()
+        if (v.kind == CapsuleKind.Idle) {
+            openIdle()
+            return
+        }
+        open()
+        refresh()
+        scope.launch {
+            val fresh = loadIdle()
+            if (fresh != idle) {
+                idle = fresh
+                refresh()
+            }
         }
     }
 

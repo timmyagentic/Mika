@@ -87,6 +87,21 @@ class DiagnosticsTest {
         assertTrue(t.contains("update available: 0.1.8"))
     }
 
+    /** 语音转文字一段:选择、自带识别的情况、手机上登记的识别服务(组件名、开不开放、要的权限);在模型之后。 */
+    @Test
+    fun speechSectionListsRecognitionServices() {
+        val speech = DiagnosticsSnapshot.Speech(
+            choice = "auto", systemAvailable = true, onDevice = false, silent = true, remembered = null,
+            services = listOf("com.example.voice/.Recognizer (not exported) needs android.permission.BIND_VOICE_INTERACTION"),
+        )
+        val t = Diagnostics.render(snapshot().copy(speech = speech))
+        val sections = t.lines().filter { it.startsWith("[") }
+        assertEquals(listOf("[App]", "[Device]", "[Phone control]", "[Recovery]", "[Models]", "[Speech]", "[Recent runs]", "[Update]"), sections)
+        assertTrue(t, t.contains("speech to text: auto"))
+        assertTrue(t, t.contains("built-in recognition: present, marked no response"))
+        assertTrue(t, t.contains("recognition services: 1\n- com.example.voice/.Recognizer (not exported) needs android.permission.BIND_VOICE_INTERACTION"))
+    }
+
     /** 引导页那几项来自同一个状态机:失败在连接一步,用户确认过无线调试。 */
     @Test
     fun phoneControlReadsTheSetupFlow() {

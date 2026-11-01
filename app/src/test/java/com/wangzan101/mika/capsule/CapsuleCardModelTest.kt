@@ -207,4 +207,23 @@ class CapsuleCardModelTest {
         // 有任务时不显示空闲卡片
         assertTrue(CapsuleCards.of(listOf(card("a", running)), null, idle = idle) is CardView.Detail)
     }
+
+    /**
+     * 用户此刻在的对话比别的对话里已结束、还挂着的那件优先:否则在对话页新开一个对话以后,点开胶囊还是那个旧对话的结果卡片。
+     * 同一对话里刚结束的照旧算它的,进行中的任务照旧优先。
+     */
+    @Test fun idleCardOfTheConversationOnScreenBeatsAnEndedRunFromAnother() {
+        val ended = card("a", TaskState.Succeeded("好了"), CapsuleKind.Done)
+        val fresh = CardView.Chat(null, fresh = true, current = true)
+        assertEquals(fresh, CapsuleCards.of(listOf(ended), null, idle = fresh))
+        // 新对话发出去了、正在跑:任务卡片照旧
+        assertTrue(CapsuleCards.of(listOf(card("r", running)), null, idle = fresh) is CardView.Detail)
+        // 同一对话里刚结束的那件:显示它(带结果),不换成空卡片
+        assertEquals("a", keyOf(CapsuleCards.of(listOf(ended), null, idle = CardView.Chat("c-a", current = true))))
+        // 兜底那张「最近对话」不抢:它不是用户此刻在的
+        assertEquals("a", keyOf(CapsuleCards.of(listOf(ended), null, idle = CardView.Chat("c-z", title = "别的"))))
+        // 没有任务、后台还留着一页:照旧是那一页的卡片,不被空闲卡片顶掉
+        val kept = KeptPage(3, "c-k", "r-k", "播放课程", "course.example.com", null, null, 0, 7_200_000)
+        assertEquals(CardView.Kept(kept), CapsuleCards.of(emptyList(), null, idle = fresh, kept = kept))
+    }
 }

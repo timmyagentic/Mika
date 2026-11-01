@@ -6,8 +6,11 @@ import com.wangzan101.mika.core.model.ChatModel
 import com.wangzan101.mika.core.model.ListFailure
 import com.wangzan101.mika.core.model.ListedModel
 import com.wangzan101.mika.core.model.Message
+import com.wangzan101.mika.core.model.ModelEndpoint
 import com.wangzan101.mika.core.model.ModelError
+import com.wangzan101.mika.core.model.ModelHttp
 import com.wangzan101.mika.core.model.ModelListResult
+import com.wangzan101.mika.core.model.ModelProtocol
 import com.wangzan101.mika.core.model.ModelReply
 import com.wangzan101.mika.core.model.ModelRole
 import com.wangzan101.mika.core.model.Part
@@ -222,6 +225,144 @@ class ModelSetupViewModelTest {
                 "主模型用了测试通过的「deepseek/deepseek-v4.1-flash」。",
             s.probeNote,
         )
+    }
+
+    /**
+     * 列表写明了某个模型不走当前接口类型(如聚合服务把只支持 /messages 的模型排在前面):不试它,直接试下一个。
+     * 试了也必然失败,而每次失败要等满 PROBE_TIMEOUT_MS。
+     */
+    @Test fun modelOnAnotherProtocolIsSkippedWithoutProbing() = runTest {
+        val url = "https://api.commandcode.ai/provider/v1"
+        listing[url] = ModelListResult.Ok(listOf(
+            ListedModel("claude-sonnet-5-5", protocols = listOf(ModelProtocol.Messages)),
+            ListedModel("deepseek/deepseek-v4-flash", protocols = listOf(ModelProtocol.ChatCompletions, ModelProtocol.Responses)),
+        ))
+        reply = { ModelReply(listOf(Part.ToolCall("c1", "get_time", "{}")), StopReason.ToolUse, null) }
+        val store = store()
+        val vm = vm(store)
+        vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("sk"); vm.testAndSave(); runCurrent()
+        assertEquals(listOf("deepseek/deepseek-v4-flash"), built.map { it.first })
+        val s = vm.state.value
+        assertFalse(s.showForm)
+        assertNull(s.probeNote)
+        assertEquals("deepseek/deepseek-v4-flash", store.configFor(ModelRole.Main)?.model)
+    }
+
+    /**
+     * 列表给某个模型单独指定了接口(见 [ListedModel.endpoint]):调用按它自己说的协议走,与这里选的接口类型无关,
+     * 不能因为 `supported_endpoints` 里没有当前接口类型就筛掉。
+     */
+    @Test fun modelWithItsOwnEndpointIsProbedWhateverTheKindIs() = runTest {
+        val url = "https://api.commandcode.ai/provider/v1"
+        listing[url] = ModelListResult.Ok(listOf(
+            ListedModel(
+                "claude-sonnet-5-5",
+                endpoint = ModelEndpoint(ModelProtocol.Messages, "https://api.commandcode.ai/provider/v1"),
+                protocols = listOf(ModelProtocol.Messages),
+            ),
+        ))
+        reply = { ModelReply(listOf(Part.ToolCall("c1", "get_time", "{}")), StopReason.ToolUse, null) }
+        val store = store()
+        val vm = vm(store)
+        vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("sk"); vm.testAndSave(); runCurrent()
+        assertEquals(listOf("claude-sonnet-5-5"), built.map { it.first })
+        assertEquals("claude-sonnet-5-5", store.configFor(ModelRole.Main)?.model)
+    }
+
+    /** 列表里的模型全都写明不走当前接口类型:一个都不试,照旧存下服务商,并说清为什么。 */
+    @Test fun allModelsOnAnotherProtocolSaveWithAReason() = runTest {
+        val url = "https://api.commandcode.ai/provider/v1"
+        listing[url] = ModelListResult.Ok(listOf(
+            ListedModel("claude-sonnet-5-5", protocols = listOf(ModelProtocol.Messages)),
+            ListedModel("claude-sonnet-5", protocols = listOf(ModelProtocol.Messages)),
+        ))
+        reply = { throw AssertionError("不该试调用:这些模型不走 OpenAI 兼容") }
+        val store = store()
+        val vm = vm(store)
+        vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("sk"); vm.testAndSave(); runCurrent()
+        assertTrue("不该试调用", built.isEmpty())
+        val p = store.providers.value.single()
+        val s = vm.state.value
+        assertFalse(s.showForm)
+        // 一个都没通过:服务商照旧存下、说清原因,并请用户自己从列表里选(可能要换个接口类型)。
+        // 这两个模型一次都没试,所以不能出现「试了 X、Y」那一行。
+        assertEquals(p.id, s.pickToProbe)
+        assertEquals(
+            "服务商已连上，但「claude-sonnet-5-5」没测试通过：它不走你选的接口类型，请求到不了它。" +
+                "从列表里选一个你开通了的模型。",
+            s.probeNote,
+        )
+    }
+
+    /**
+     * 列表没写 `supported_endpoints`、排头的模型只走另一套接口:服务商回 400 unsupported_model。经适配器同一套错误映射,
+     * 这算那个模型的问题,接着试下一个,通过的当主模型,提示里带上服务商的原话。
+     */
+    @Test fun endpointMismatchOnTheFirstCandidateFallsBackToTheNext() = runTest {
+        val url = "https://relay.example.com/provider/v1"
+        listing[url] = ModelListResult.Ok(listOf(ListedModel("vendor/shape-a"), ListedModel("vendor/shape-b")))
+        val said = "Model 'vendor/shape-a' must be called via /provider/v1/messages."
+        reply = {
+            val m = built.last().first
+            if (m == "vendor/shape-a") {
+                throw ModelHttp.openAiError(400, null, """{"error":{"message":"$said","param":"model","code":"unsupported_model"}}""", m)
+            }
+            ModelReply(listOf(Part.ToolCall("c1", "get_time", "{}")), StopReason.ToolUse, null)
+        }
+        val store = store()
+        val vm = vm(store)
+        vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("sk"); vm.testAndSave(); runCurrent()
+        assertEquals(listOf("vendor/shape-a", "vendor/shape-b"), built.map { it.first })
+        assertEquals("vendor/shape-b", store.configFor(ModelRole.Main)?.model)
+        assertEquals(
+            "先试的 vendor/shape-a 没测试通过：这个账号没开通或没权限用这个模型（服务商说：Model 'vendor/shape-a' must be called via /provider/v1/messages.）。" +
+                "主模型用了测试通过的「vendor/shape-b」。",
+            vm.state.value.probeNote,
+        )
+    }
+
+    /** 两样一起:写明不走当前接口类型的先筛掉、不试;剩下的第一个回接口不对的 400,接着试下一个。 */
+    @Test fun listedProtocolsFilterFirstThenEndpointMismatchFallsThrough() = runTest {
+        val url = "https://relay.example.com/provider/v1"
+        listing[url] = ModelListResult.Ok(listOf(
+            ListedModel("vendor/messages-only", protocols = listOf(ModelProtocol.Messages)),
+            ListedModel("vendor/unknown"),
+            ListedModel("vendor/chat", protocols = listOf(ModelProtocol.ChatCompletions)),
+        ))
+        reply = {
+            val m = built.last().first
+            if (m == "vendor/unknown") throw ModelHttp.openAiError(400, null, """{"error":{"code":"unsupported_model","param":"model"}}""", m)
+            ModelReply(listOf(Part.ToolCall("c1", "get_time", "{}")), StopReason.ToolUse, null)
+        }
+        val store = store()
+        val vm = vm(store)
+        vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("sk"); vm.testAndSave(); runCurrent()
+        assertEquals("写明只走 /messages 的不试", listOf("vendor/unknown", "vendor/chat"), built.map { it.first })
+        assertEquals("vendor/chat", store.configFor(ModelRole.Main)?.model)
+    }
+
+    /**
+     * Key 的问题不能被当成「这个模型走不了这个接口」:401,或 403 说的是 Key 不能用这个接口,
+     * 第一个候选就挡住整次保存,给出真实原因,什么都不存。
+     */
+    @Test fun keyErrorsThatMentionTheEndpointStillBlockTheSave() = runTest {
+        val url = "https://relay.example.com/provider/v1"
+        for ((status, body) in listOf(
+            401 to """{"error":{"message":"Invalid API key","code":"unsupported_model"}}""",
+            403 to """{"error":{"message":"Your API key is not supported for this endpoint"}}""",
+        )) {
+            listing[url] = ModelListResult.Ok(listOf(ListedModel("vendor/a"), ListedModel("vendor/b")))
+            built.clear()
+            reply = { throw ModelHttp.openAiError(status, null, body, built.last().first) }
+            val store = store()
+            val vm = vm(store)
+            vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("sk"); vm.testAndSave(); runCurrent()
+            assertEquals("HTTP $status:只试第一个", listOf("vendor/a"), built.map { it.first })
+            val failed = vm.state.value.form.test as ListState.Failed
+            assertTrue(failed.message, failed.message.contains("API Key 无效"))
+            assertTrue(store.providers.value.isEmpty())
+            assertNull(vm.state.value.pickToProbe)
+        }
     }
 
     /** 试的几个都是 5xx:多半整家不可用(地址对、但服务没起来),照旧不存。 */

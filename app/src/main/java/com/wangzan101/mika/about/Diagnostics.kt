@@ -31,6 +31,8 @@ data class DiagnosticsSnapshot(
     val models: Models,
     val runs: List<Run>,
     val update: Update,
+    /** 语音转文字:选了什么、手机自带识别的情况;旧的调用处不给就不写这一段。 */
+    val speech: Speech? = null,
 ) {
     data class App(val versionName: String, val build: String, val installer: String?, val language: String)
 
@@ -99,6 +101,19 @@ data class DiagnosticsSnapshot(
     data class Run(val startedAtMs: Long, val outcome: String, val failKind: String?, val judged: String?, val steps: Int, val model: String?)
 
     data class Update(val status: String, val latest: String?, val available: String?)
+
+    /**
+     * [choice] 是用户的选择(auto、system、off,或服务商模型「模型 @ 地址」);[systemAvailable]、[onDevice] 是系统说的能力,
+     * [silent] 是记成了不响应;[remembered] 是点名试通过的识别服务;[services] 是手机上登记的识别服务,每个一行。
+     */
+    data class Speech(
+        val choice: String,
+        val systemAvailable: Boolean,
+        val onDevice: Boolean,
+        val silent: Boolean,
+        val remembered: String?,
+        val services: List<String>,
+    )
 }
 
 /** 把 [DiagnosticsSnapshot] 写成一段纯文本:分段顺序固定,英文键,发到微信或 GitHub 都好读。最后整段再过一遍脱敏。 */
@@ -151,6 +166,15 @@ object Diagnostics {
         m.accountLastFailure?.let { f ->
             line("account last sign-in failure", "${ago(s.generatedAtMs - f.atMs)}: ${f.kind}" +
                 (f.code?.let { " (code $it)" } ?: "") + f.detail.takeIf { it.isNotBlank() }?.let { " — ${it.take(MAX_ERROR)}" }.orEmpty())
+        }
+
+        s.speech?.let { v ->
+            section("Speech")
+            line("speech to text", v.choice)
+            line("built-in recognition", if (!v.systemAvailable) "none" else "present" + (if (v.onDevice) ", on-device" else "") + (if (v.silent) ", marked no response" else ""))
+            v.remembered?.let { line("recognition service used", it) }
+            line("recognition services", if (v.services.isEmpty()) "none" else "${v.services.size}")
+            v.services.forEach { appendLine("- $it") }
         }
 
         section("Recent runs")
@@ -212,7 +236,7 @@ object Diagnostics {
         line("attention channel", importance(p.attentionChannelImportance))
         line("Wi-Fi", when (p.wifiConnected) { true -> "connected"; false -> "not connected"; null -> "unknown" })
         line("last error", p.lastError?.takeIf { it.isNotBlank() }?.take(MAX_ERROR) ?: "none")
-        line("adb key", p.adbKey ?: "unknown")
+        line("adb key status", p.adbKey ?: "unknown")
         line("app copies", p.appCopies ?: "unknown")
         p.appsAfterTask?.let { line("apps after task", it) }
     }

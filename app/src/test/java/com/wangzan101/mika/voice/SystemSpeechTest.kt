@@ -49,4 +49,29 @@ class SystemSpeechTest {
         val english = com.wangzan101.mika.i18n.AppLanguage.English
         assertEquals("en-GB", SystemSpeech.speechTag(english, java.util.Locale.forLanguageTag("en-Latn-GB")))
     }
+
+    private fun svc(name: String, open: Boolean = true) = RecognizerService("a.b/.$name", open, null)
+
+    /** 只有一个识别服务时它就是默认的:只试默认的,不点名再试一遍白等。 */
+    @Test
+    fun aSingleServiceIsOnlyTriedAsTheDefault() {
+        assertEquals(listOf<String?>(null), SystemSpeech.attempts(listOf(svc("One")), remembered = null))
+        assertEquals(listOf<String?>(null), SystemSpeech.attempts(emptyList(), remembered = null))
+    }
+
+    /** 默认的不回话时,再点名试其余的,对别的 App 开放的在前;总数有上限。 */
+    @Test
+    fun otherServicesFollowTheDefaultOpenOnesFirst() {
+        val services = listOf(svc("Closed", open = false), svc("Open"), svc("Third"))
+        assertEquals(listOf(null, "a.b/.Open", "a.b/.Third"), SystemSpeech.attempts(services, remembered = null))
+        assertEquals(SystemSpeech.MAX_ATTEMPTS, SystemSpeech.attempts(services + svc("Fourth"), null).size)
+    }
+
+    /** 之前点名试通的排最前、不重复;它已经不在手机上了就不管它。 */
+    @Test
+    fun theServiceThatAnsweredBeforeGoesFirst() {
+        val services = listOf(svc("One"), svc("Two"))
+        assertEquals(listOf("a.b/.Two", null, "a.b/.One"), SystemSpeech.attempts(services, remembered = "a.b/.Two"))
+        assertEquals(listOf(null, "a.b/.One", "a.b/.Two"), SystemSpeech.attempts(services, remembered = "a.b/.Gone"))
+    }
 }

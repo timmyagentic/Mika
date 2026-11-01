@@ -7,8 +7,11 @@ import com.wangzan101.mika.core.memory.NoteKind
 import com.wangzan101.mika.core.skills.SkillNote
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -38,6 +41,45 @@ class ConversationStore(private val dir: File) {
 
     /** 删掉的对话编号:[delete] 时发一次([changes] 也照发)。悬浮胶囊据此拿掉这个对话刚结束的任务、卡片不再接着它。 */
     val deletions: SharedFlow<String> = _deletions.asSharedFlow()
+
+    /**
+     * 用户此刻在哪个对话,见 [CurrentChat]。存在对话目录里的 `current` 文件(不是 `.json`,不进 [list]);
+     * 进程重启后照样读得回来,胶囊不必等对话文件写下来才知道新开的是哪个。
+     */
+    private val _current = MutableStateFlow(readCurrent())
+
+    val current: StateFlow<CurrentChat?> = _current.asStateFlow()
+
+    fun currentChat(): CurrentChat? = _current.value
+
+    /** 记下用户此刻在哪个对话;删掉的对话记不住。写进去了发一次 [current]。 */
+    @Synchronized
+    fun setCurrent(chat: CurrentChat?) {
+        val target = when (chat) {
+            is CurrentChat.Open -> if (safe(chat.id) in deleted) null else chat
+            else -> chat
+        }
+        if (target == _current.value) return
+        dir.mkdirs()
+        runCatching {
+            when (target) {
+                null -> currentFile().delete()
+                CurrentChat.Fresh -> currentFile().writeText(CURRENT_FRESH)
+                is CurrentChat.Open -> currentFile().writeText(safe(target.id))
+            }
+        }
+        _current.value = target
+    }
+
+    private fun readCurrent(): CurrentChat? {
+        val f = currentFile().takeIf { it.isFile } ?: return null
+        val text = runCatching { f.readText().trim() }.getOrNull().orEmpty()
+        return when {
+            text.isEmpty() -> null
+            text == CURRENT_FRESH -> CurrentChat.Fresh
+            else -> safe(text).takeIf(String::isNotEmpty)?.let(CurrentChat::Open)
+        }
+    }
 
     /**
      * 对话列表,最近改过的在前;[ConversationSummary.title] 是标题(用户改的或起好的),没有时是第一句话;
@@ -78,6 +120,8 @@ class ConversationStore(private val dir: File) {
                 f.name == pageFile(conversationId).name)
         }
             .orEmpty().forEach { it.delete() }
+        // 删掉的正是用户此刻在的那个:不再指着它,胶囊回落到最近那个
+        if (_current.value == CurrentChat.Open(safe(conversationId))) setCurrent(null)
         _changes.tryEmit(conversationId)
         _deletions.tryEmit(conversationId)
     }
@@ -268,6 +312,9 @@ class ConversationStore(private val dir: File) {
     companion object {
         /** App 进程里共用的那一份(读写都在它的锁里串行)。 */
         fun shared(context: Context): ConversationStore = (context.applicationContext as com.wangzan101.mika.MikaApp).conversations
+
+        /** `current` 文件里表示「新开还没说话的对话」的那个值(对话编号只会是字母数字、`-`、`_`,不会撞上)。 */
+        private const val CURRENT_FRESH = "fresh"
     }
 
     // id 来自 newConversation 或外部传入,只留安全字符,免得拼出目录外的路径
@@ -275,10 +322,23 @@ class ConversationStore(private val dir: File) {
     private fun titleFile(id: String) = File(dir, "${safe(id)}.title")
     private fun pinFile(id: String) = File(dir, "${safe(id)}.pin")
     private fun pageFile(id: String) = File(dir, "${safe(id)}.page")
+
+    /** 用户此刻在哪个对话,见 [CurrentChat];不是 `.json`,不进 [list]。 */
+    private fun currentFile() = File(dir, "current")
     private fun safe(id: String) = id.filter { it.isLetterOrDigit() || it == '-' || it == '_' }
 }
 
 data class ConversationSummary(val id: String, val title: String, val updatedAt: Long, val pinnedAt: Long? = null, val page: PageOrigin? = null)
+
+/**
+ * 用户此刻在哪个对话:App 里新开、还没说过话的是 [Fresh],正在看的是 [Open];没有记录(没进过 Mika、旧版本)为 null。
+ * 悬浮胶囊据此接着该接的那个,而不是按「哪个对话文件最后被写过」去猜——新开的对话还没有文件,猜出来的会是上一个。
+ */
+sealed interface CurrentChat {
+    data object Fresh : CurrentChat
+
+    data class Open(val id: String) : CurrentChat
+}
 
 /** 对话从哪一页开始:网址、主机名、页面标题(没有为空串)。 */
 data class PageOrigin(val url: String, val host: String, val title: String = "")

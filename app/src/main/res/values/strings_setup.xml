@@ -65,6 +65,7 @@
     <string name="model_reason_not_available">this account hasn’t activated this model or has no access to it (the provider says: %1$s)</string>
     <string name="model_reason_not_found">the provider has no such model</string>
     <string name="model_reason_no_tools">it doesn’t call tools, and Mika needs a model that can call tools</string>
+    <string name="model_reason_wrong_protocol">it isn’t served over the interface type you picked, so the request never reaches it</string>
     <string name="model_reason_server">the server returned an error (%1$s)</string>
     <string name="model_probe_none_usable">The provider is connected, but “%1$s” didn’t pass the test: %2$s. Pick a model from the list that your account has activated.</string>
     <string name="model_probe_tried_unavailable">Tried %1$s; none of them is activated.</string>

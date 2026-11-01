@@ -67,7 +67,7 @@ object HelperHandoff {
 
     /**
      * 电脑经 USB 调试跑的启动脚本:起的是和 [command] 同一个助手、同样的参数,口令换成 [nonce](写在脚本里,见 [HandoffNonces.usbNonce])。
-     * adb shell 的会话一结束(命令跑完、拔线),adbd 就把它那一组进程杀掉:助手用 setsid 另起会话,放到后台的子 shell 里起
+     * adb shell 的会话一结束(命令跑完、拔线),adbd 就把它那一组进程杀掉:助手用 nohup 忽略挂断信号,再用 setsid 另起会话,放到后台的子 shell 里起
      * (子 shell 退出后它归 init 管),标准输出和错误丢掉,不再连着 adb 的流;脚本再等一会儿让 setsid 生效,
      * 看助手进程还在就说一句「正在启动」,不在(多半是口令过期或 Mika 不认)就请用户打开 Mika 再跑一次。
      * 只用安卓原版 sh 和 toybox 里有的命令。不是 shell 身份(没经 adb 跑)时不起:Mika 只收 shell 交来的助手。
@@ -87,7 +87,7 @@ object HelperHandoff {
             |  exit 1
             |fi
             |n=${quote(nonce)}
-            |(echo "${'$'}n" | CLASSPATH=${quote(apkPath)} setsid app_process /system/bin --nice-name=$name $HELPER_CLASS ${quote(packageName)} $appUid ${quote(certPin)} >/dev/null 2>&1 &)
+            |(echo "${'$'}n" | CLASSPATH=${quote(apkPath)} nohup setsid app_process /system/bin --nice-name=$name $HELPER_CLASS ${quote(packageName)} $appUid ${quote(certPin)} >/dev/null 2>&1 &)
             |sleep 2
             |if pidof $name >/dev/null 2>&1; then
             |  echo "Mika helper starting... Open Mika to confirm phone control is ready."

@@ -61,6 +61,81 @@ class ProviderStoreTest {
 
     // ---------- 用途的选择 ----------
 
+    @Test fun modelContextSurvivesPruningAndIsSharedOnlyWithinTheSameProviderAndModel() {
+        val s = store()
+        val first = connected(s)
+        val second = connected(s, "Other")
+        s.use(ModelRole.Main, first.id, "m1", none)
+        s.use(ModelRole.Vision, second.id, "m1", none)
+        val cfg = s.configFor(ModelRole.Main)!!
+        val saved = ModelContextSettings(1_000_000, 600_000)
+        assertTrue(s.setModelContext(cfg.id, saved))
+        for (role in listOf(ModelRole.Main, ModelRole.Light)) {
+            val caps = s.modelFor(role)!!.capabilities
+            assertEquals(1_000_000, caps.contextTokens)
+            assertEquals(600_000, caps.compactionTriggerTokens)
+        }
+        assertEquals(64_000, s.modelFor(ModelRole.Vision)!!.capabilities.contextTokens)
+        assertNull(s.modelFor(ModelRole.Vision)!!.capabilities.compactionTriggerTokens)
+        s.use(ModelRole.Main, first.id, "m2", none)
+        assertNull(s.modelFor(ModelRole.Main)!!.capabilities.compactionTriggerTokens)
+        assertFalse(s.setModelContext(cfg.id, ModelContextSettings()))
+        val reloaded = store()
+        reloaded.use(ModelRole.Main, first.id, "m1", none)
+        assertEquals(saved, reloaded.provider(first.id)!!.contextSettings["m1"])
+        assertEquals(600_000, reloaded.modelFor(ModelRole.Main)!!.capabilities.compactionTriggerTokens)
+        assertTrue(reloaded.setModelContext(reloaded.configFor(ModelRole.Main)!!.id, ModelContextSettings()))
+        assertNull(store().provider(first.id)!!.contextSettings["m1"])
+    }
+
+    @Test fun manualTriggerUsesCoreBoundsAndASmallerReselectedWindowKeepsTheStoredValue() {
+        val s = store()
+        val p = connected(s)
+        s.use(ModelRole.Main, p.id, "m1", none.copy(contextTokens = 1_000_000))
+        val id = s.configFor(ModelRole.Main)!!.id
+        for (value in listOf(500_000, 980_000, 950_000)) {
+            assertTrue(s.setModelContext(id, ModelContextSettings(triggerTokens = value)))
+        }
+        for (value in listOf(0, 499_999, 980_001)) {
+            assertFalse(s.setModelContext(id, ModelContextSettings(triggerTokens = value)))
+        }
+        assertFalse(s.setModelContext(id, ModelContextSettings(windowTokens = -1)))
+        s.use(ModelRole.Main, p.id, "m2", none)
+        s.use(ModelRole.Main, p.id, "m1", none.copy(contextTokens = 32_000))
+        val saved = store().provider(p.id)!!.contextSettings.getValue("m1")
+        assertEquals(950_000, saved.triggerTokens)
+        assertEquals(24_000, saved.limits(s.modelFor(ModelRole.Main)!!.capabilities.contextTokens).trigger)
+    }
+
+    @Test fun missingContextFieldsUseAutoAndMalformedEntriesDoNotDiscardOtherModels() {
+        val s = store()
+        val p = connected(s)
+        s.use(ModelRole.Main, p.id, "m1", none)
+        val file = File(tmp.root, "providers.json")
+        val original = file.readText()
+        assertNull(s.modelFor(ModelRole.Main)!!.capabilities.compactionTriggerTokens)
+        val entries = """{"m1":{"windowTokens":1000000},"m2":{"triggerTokens":600000},"bad":{"triggerTokens":{}}}"""
+        file.writeText(original.replace("\"services\":[{", "\"services\":[{\"contextSettings\":$entries,"))
+        assertEquals(mapOf("m1" to ModelContextSettings(1_000_000), "m2" to ModelContextSettings(triggerTokens = 600_000)),
+            store().provider(p.id)!!.contextSettings)
+    }
+
+    @Test fun failedContextSaveLeavesBothTheStoredAndActiveModelAloneAndCanBeRetried() {
+        val s = store()
+        val p = connected(s)
+        s.use(ModelRole.Main, p.id, "m1", none)
+        val id = s.configFor(ModelRole.Main)!!.id
+        val saved = ModelContextSettings(triggerTokens = 40_000)
+        val blocked = File(tmp.root, "providers.json.tmp")
+        assertTrue(blocked.mkdir())
+        assertFalse(s.setModelContext(id, saved))
+        assertNull(s.modelFor(ModelRole.Main)!!.capabilities.compactionTriggerTokens)
+        assertTrue(blocked.delete())
+        assertNull(store().provider(p.id)!!.contextSettings["m1"])
+        assertTrue(s.setModelContext(id, saved))
+        assertEquals(saved, store().provider(p.id)!!.contextSettings["m1"])
+    }
+
     @Test
     fun freshInstallHasNoMainVisionOffAndLightSameAsMain() {
         val s = store()

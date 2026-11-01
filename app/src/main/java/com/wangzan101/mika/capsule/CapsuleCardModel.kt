@@ -34,8 +34,8 @@ sealed interface CardView {
 
     /**
      * 对话卡片:[conversationId] 那个对话的来回(见 [ChatThread])。带着 [run] 时是那件事所在的对话,[content] 是它此刻的样子
-     * (要你回答、同意时按钮固定在对话下面)。不带任务时是空闲卡片:默认接着最近的对话([title] 是它的标题),
-     * [fresh] 时是新对话;没有任何对话时 [conversationId] 为 null,只能开新对话。
+     * (要你回答、同意时按钮固定在对话下面)。不带任务时是空闲卡片:接着用户此刻在的那个对话([current]),没有记录时接着最近的
+     * 那个([title] 是它的标题);[fresh] 时是新对话;没有任何对话时 [conversationId] 为 null,只能开新对话。
      */
     data class Chat(
         val conversationId: String?,
@@ -43,6 +43,11 @@ sealed interface CardView {
         val content: CardContent? = null,
         val title: String? = null,
         val fresh: Boolean = false,
+        /**
+         * 用户此刻在 App 里就在这个对话(见 [CapsuleIdle]):别的对话里已结束、还挂着的那件不把卡片抢过去。
+         * 兜底那张「接着最近对话」是 false。
+         */
+        val current: Boolean = false,
     ) : CardView {
         /** 卡片里列哪个对话、发出去的话进哪个对话:空闲卡片的新对话时为 null(由调用方新开一个)。 */
         val target: String? get() = if (fresh) null else conversationId
@@ -94,11 +99,18 @@ object CapsuleCards {
      * 否则按 [runs] 的先后取第一件——[CapsuleModel.cardRuns] 已排成要你处理(接管、同意、回答)在前,再是进行中的,
      * 最后是刚结束、还没消失的;一件都没有时,任务结束后留下的那一页还在后台运行([kept])就是它的卡片,
      * 再没有是 [idle](为 null 就收起)。选出的那件是任务卡片还是对话卡片见 [taskCard]。
+     *
+     * [idle] 是用户此刻在的那个对话([CardView.Chat.current])时,别的对话里已结束、还挂着的结果不把卡片抢过去:
+     * 否则在对话页新开一个对话,点开胶囊看到的还是上一个对话的结果卡片。
      */
     fun of(runs: List<CardRun>, follow: String? = null, idle: CardView.Chat? = null, kept: KeptPage? = null): CardView? {
         val pick = follow?.let { f ->
             runs.firstOrNull { it.run.conversationId == f && it.kind.active } ?: runs.firstOrNull { it.run.conversationId == f }
-        } ?: runs.firstOrNull() ?: return kept?.let(CardView::Kept) ?: idle
+        } ?: runs.firstOrNull()
+        // 只顶掉「别的对话里已结束、还挂着」的那件;一件都没有时留下来那页照旧是它的卡片(见 kept 一路)
+        val elsewhere = idle?.current == true && pick != null && !pick.kind.active && pick.run.conversationId != idle.conversationId
+        if (elsewhere) return idle
+        pick ?: return kept?.let(CardView::Kept) ?: idle
         return if (taskCard(pick)) CardView.Detail(pick, content(pick))
             else CardView.Chat(pick.run.conversationId, pick, content(pick))
     }

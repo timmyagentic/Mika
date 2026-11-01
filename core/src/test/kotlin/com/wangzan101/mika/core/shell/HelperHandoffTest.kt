@@ -198,11 +198,11 @@ class HelperHandoffTest {
     fun usbScriptStartsTheSameHelperDetachedWithTheNonceOnStdin() {
         val script = HelperHandoff.usbScript(apk, "com.wangzan101.mika", 10234, "ab'cd", "f00d", scriptPath)
         assertTrue(script.startsWith("#!/system/bin/sh\n"))
-        // 和无线调试同一个入口、同样的参数;指纹里的单引号转义好;另起会话、放到后台、输出丢掉
+        // 和无线调试同一个入口、同样的参数;指纹里的单引号转义好;忽略挂断信号、另起会话、放到后台、输出丢掉
         assertTrue(
             script,
             script.contains(
-                "(echo \"\$n\" | CLASSPATH='$apk' setsid app_process /system/bin --nice-name='com.wangzan101.mika:helper' " +
+                "(echo \"\$n\" | CLASSPATH='$apk' nohup setsid app_process /system/bin --nice-name='com.wangzan101.mika:helper' " +
                     "com.wangzan101.mika.shell.HelperMain 'com.wangzan101.mika' 10234 'ab'\\''cd' >/dev/null 2>&1 &)",
             ),
         )

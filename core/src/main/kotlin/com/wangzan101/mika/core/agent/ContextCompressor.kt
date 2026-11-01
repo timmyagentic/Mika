@@ -44,6 +44,7 @@ class ContextCompressor(
     private val keepRecent: Int = 12,
     private val structured: Boolean = false,
     private val diffScreens: Boolean = false,
+    private val triggerOverride: Int? = null,
 ) {
     /** 「真实 / 粗估」比值:每次用量回来就平滑更新([TokenEstimate.calibrated]);只决定什么时候压缩、压到哪一级,不改发过的内容。 */
     private var observed: Double? = null
@@ -85,7 +86,7 @@ class ContextCompressor(
         fixedOverhead: Int = 0,
         maxImages: Int = Int.MAX_VALUE,
     ): Compressed {
-        val limits = ContextLimits.of(contextTokens)
+        val limits = ContextLimits.of(contextTokens, triggerOverride)
         val last = views[contextTokens]
         val view = valid(last, history)
         val sent = sent(view, history)
@@ -107,7 +108,7 @@ class ContextCompressor(
      */
     fun overflow(history: List<Message>, contextTokens: Int, fixedOverhead: Int = 0): Boolean {
         val current = sent(valid(views[contextTokens], history), history)
-        val next = compact(history, ContextLimits.of(contextTokens), fixedOverhead, aggressive = true)
+        val next = compact(history, ContextLimits.of(contextTokens, triggerOverride), fixedOverhead, aggressive = true)
         if (next.estimate >= TokenEstimate.of(current)) return false
         views[contextTokens] = next
         return true

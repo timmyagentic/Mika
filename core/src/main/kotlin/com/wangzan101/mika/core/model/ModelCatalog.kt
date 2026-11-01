@@ -38,6 +38,11 @@ data class ListedModel(
      * 如 `adaptive`、`enabled`、`disabled`);null 表示没说。
      */
     val thinkingTypes: List<String>? = null,
+    /**
+     * 接口写明了这个模型能走哪几种协议(有的聚合服务用 `supported_endpoints` 给出,如 `/chat/completions`、
+     * `/messages`);null 表示没说。用不在其中的接口类型调用必然失败,见 [ModelProtocol.ofPath]。
+     */
+    val protocols: List<ModelProtocol>? = null,
 ) {
     val usable: Boolean get() = endpoint != null || unsupportedApis.isEmpty()
 }
@@ -55,6 +60,24 @@ enum class ModelProtocol(val wire: String) {
 
     companion object {
         fun of(wire: String?): ModelProtocol? = entries.firstOrNull { it.wire == wire }
+
+        /**
+         * 按端点路径认协议:有的聚合服务用 `supported_endpoints` 给每个模型能走哪些端点(`/chat/completions`、
+         * `/messages`、`/responses`、`/v1beta/models/{模型}:generateContent`),只写路径不写协议名。认不出为 null。
+         *
+         * 只认 `…:generateContent` 这一种 Gemini 生成端点:裸的 `/models`(或 `/v1/models`、`/provider/v1/models`)
+         * 是列模型的端点,列得出来不等于调得动,按它认定「能生成」会让不该试的模型被试一次,所以宁可认不出。
+         */
+        fun ofPath(path: String?): ModelProtocol? {
+            val p = path?.trim()?.trimEnd('/')?.lowercase() ?: return null
+            return when {
+                p.endsWith("/chat/completions") -> ChatCompletions
+                p.endsWith("/messages") -> Messages
+                p.endsWith("/responses") -> Responses
+                p.endsWith(":generatecontent") -> GenerateContent
+                else -> null
+            }
+        }
     }
 }
 
@@ -180,6 +203,11 @@ class ModelCatalog(private val http: OkHttpClient) {
                 ?.trim()?.takeIf { it.isNotEmpty() }
         }?.distinct()
         val api = o.obj("api")
+        // 有的聚合服务不给 `api` 表,改用 `supported_endpoints` 写这个模型能走哪几个端点
+        val protocols = (o["supported_endpoints"] as? JsonArray)
+            ?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.let(ModelProtocol::ofPath) }
+            ?.distinct()
+            ?.takeIf { it.isNotEmpty() }
         // 一个模型可能写了几种协议:按 Chat Completions、Messages、generateContent、Responses 的次序取第一种会说的
         val endpoint = api?.let { a ->
             ModelProtocol.entries.firstNotNullOfOrNull { p ->
@@ -202,6 +230,7 @@ class ModelCatalog(private val http: OkHttpClient) {
             endpoint = endpoint,
             reasoningEfforts = efforts,
             unsupportedApis = if (endpoint == null) api?.keys?.toList().orEmpty() else emptyList(),
+            protocols = protocols,
             chat = when (o.str("type")?.lowercase()) {
                 in CHAT_TYPES -> true
                 in NON_CHAT_TYPES -> false

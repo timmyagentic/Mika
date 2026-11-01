@@ -83,4 +83,8 @@
     <string name="timeline_hide_screen">Hide screen</string>
     <string name="timeline_show_screen">See the screen at the time</string>
     <string name="timeline_step_screen">Screen at step %1$d</string>
+    <string name="timeline_export">Export usage records</string>
+    <string name="timeline_export_hint">Save the token usage of each model reply and context compaction events as JSONL.</string>
+    <string name="timeline_exported">Usage records saved</string>
+    <string name="timeline_export_failed">Couldn’t export the usage records. Check that the record is available and the destination is writable.</string>
 </resources>

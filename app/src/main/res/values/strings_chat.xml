@@ -14,6 +14,7 @@
     <string name="chat_example_creator">Open Xiaohongshu and summarize the posts of creator 王赞不赞</string>
     <string name="chat_working_on">Working in %1$s</string>
     <string name="chat_working">Working</string>
+    <string name="chat_wait_previous_task">Starts after the previous task finishes</string>
     <string name="chat_wait_unlock">Waiting for you to unlock</string>
     <string name="chat_waiting_for_you">Waiting for you</string>
     <string name="chat_paused">Paused</string>

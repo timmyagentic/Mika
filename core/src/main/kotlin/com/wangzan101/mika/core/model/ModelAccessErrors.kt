@@ -10,6 +10,9 @@ import kotlinx.serialization.json.contentOrNull
  * 各适配器共用:HTTP 400 / 403 / 404 的报错内容说的是「这个模型不行」,而不是 Key 或请求本身不对时,认出是哪一种。
  * 各家的报错格式、措辞不同,这里只看内容里有没有这几类说法(不分大小写):
  * - 不支持调用工具(「does not support tools」「function calling is not supported」「不支持工具」…)→ [ModelError.ToolsUnsupported];
+ * - 这个模型不能走当前这个接口(服务商要求另一套接口形状,如「Model … must be called via /messages」、
+ *   「unsupported_model」…,见 [ENDPOINT_MISMATCH])→ [ModelError.ModelNotAvailable],带上服务端的原话:
+ *   换一个模型或换接口类型才行,和「这个账号用不了它」一样处理,接着试下一个;
  * - 这个账号用不了这个模型(「not activated」「not authorized to access this model」「does not have access to the model」
  *   「Model.AccessDenied」「未开通」「无权限」…),或这个模型已经下线(「no longer available」「has been retired」
  *   「model … is deprecated」「已下线」…)→ [ModelError.ModelNotAvailable],带上服务端的原话;
@@ -41,6 +44,21 @@ object ModelAccessErrors {
         "已下线", "已停用", "已下架", "已停止服务",
     )
 
+    /**
+     * 说「这个模型不能走这个接口」的:一家服务商把模型按接口形状分开放(如某一系模型只挂在 `/messages`,
+     * 在 OpenAI 兼容的那条路上调用它一律 400 「must be called via /provider/v1/messages」),换一种接口类型、
+     * 或换下面一个模型才通。这不是 Key、地址或网络的问题,当这个模型用不了,接着试下一个。
+     * 只在报错说的是模型时才算(见 [aboutTheModel]):「Your API key is not supported for this endpoint」这类说的是 Key,
+     * 照旧交给调用方按状态码处理(403 是 Key 的问题,整次保存照旧挡住)。
+     */
+    private val ENDPOINT_MISMATCH = listOf(
+        "unsupported_model",
+        "must be called via",
+        "only supported in v1/",
+        "not supported for this endpoint",
+        "unsupported for this endpoint",
+    )
+
     /** 说「模型 … 已弃用 / 已下线」:单说 deprecated 也可能是某个参数弃用了,要和 model 连着说才算。 */
     private val MODEL_RETIRED = Regex("""\bmodels?\b[^;,\n]{0,80}?\b(?:is|has been|was)\s+(?:deprecated|retired)|\bdeprecated\s+models?\b""")
 
@@ -61,11 +79,16 @@ object ModelAccessErrors {
         if (status != 400 && status != 403 && status != 404) return null
         return when {
             TOOLS_UNSUPPORTED.any { it in lower } -> ModelError.ToolsUnsupported(model)
+            ENDPOINT_MISMATCH.any { it in lower } && aboutTheModel(lower, body, model) -> ModelError.ModelNotAvailable(model, detail(body))
             NOT_AVAILABLE.any { it in lower } || MODEL_RETIRED.containsMatchIn(lower) -> ModelError.ModelNotAvailable(model, detail(body))
             status != 404 && NOT_FOUND.any { it in lower } -> ModelError.ModelNotFound(model, jsonDetail(body))
             else -> null
         }
     }
+
+    /** 报错说的是模型本身:提到 model(含 `unsupported_model`、`"param":"model"`),或原话里直接点了请求的模型名。 */
+    private fun aboutTheModel(lower: String, body: String, model: String): Boolean =
+        "model" in lower || (model.isNotBlank() && model.lowercase() in (said(body) ?: body).lowercase())
 
     /** 服务端的原话:JSON 里的([said]),不是 JSON 就是整段;太长的截短([clip])。 */
     internal fun detail(body: String): String = clip(said(body) ?: body)

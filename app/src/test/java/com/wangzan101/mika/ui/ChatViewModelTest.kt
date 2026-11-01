@@ -4,6 +4,7 @@ import com.wangzan101.mika.i18n.ChineseTexts
 import com.wangzan101.mika.task.TaskGate
 
 import com.wangzan101.mika.chat.ConversationStore
+import com.wangzan101.mika.chat.CurrentChat
 import com.wangzan101.mika.confirm.ConfirmationNotifier
 import com.wangzan101.mika.core.agent.FailKind
 import com.wangzan101.mika.core.agent.QuoteMessage
@@ -498,6 +499,69 @@ class ChatViewModelTest {
         assertEquals(ExchangeStatus.Cancelled(), vm.ui.value.exchanges.single().status)
         assertEquals(ComposerMode.Idle, vm.ui.value.composer)
         assertFalse(vm.ui.value.pip.visible)
+    }
+
+    // 等着服务空下来时,那条消息下面说清在等前一个任务,不像卡住了;交给服务后换成任务自己的进展
+    @Test fun waitingMessageSaysItWaitsForThePreviousTask() = runTest {
+        val busy = MutableStateFlow(true)
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), busy)
+        runCurrent()
+        assertTrue(vm.send("下一个", ok))
+        runCurrent()
+        val waiting = vm.ui.value.exchanges.single()
+        assertEquals(ExchangeStatus.Working, waiting.status)
+        assertEquals("等前一个任务做完再开始", ChatCopy.progressLine(waiting))
+        busy.value = false
+        runCurrent()
+        assertEquals(listOf("start:下一个"), calls)
+        emit(TaskState.Running(1, "打开设置", reason = "打开设置"))
+        assertEquals("打开设置", ChatCopy.progressLine(vm.ui.value.exchanges.single()))
+    }
+
+    // 对话页看到服务空着就交过去,交到之前别处(定时、电脑)先开始了一个:服务把这条排在它后面(不丢),
+    // 对话里看得到在排队;那个任务收尾后这条照常开始、做完
+    private fun TestScope.raceVm(): ChatViewModel {
+        val vm = ChatViewModel(backgroundScope, state, stage, actions, ConversationStore(tmp.newFolder()), MutableStateFlow(false),
+            shownTask = shown, activeConversations = active).also { runCurrent() }
+        assertTrue(vm.send("订会议室", ok))
+        assertEquals(listOf("start:订会议室"), calls)
+        val mine = vm.ui.value.conversationId!!
+        // 别处的任务抢先开始、在服务里显示着:不接到这个对话里
+        active.value = listOf("remote")
+        shown.value = "remote" to TaskState.Running(3, "查快递")
+        emit(TaskState.Running(3, "查快递"))
+        assertEquals("订会议室", vm.ui.value.exchanges.single().goal)
+        assertEquals(ExchangeStatus.Working, vm.ui.value.exchanges.single().status)
+        // 这条排在它后面,服务显示它的排队状态
+        val queued = TaskState.Held(TaskGate.paused("排队中:前面还有 1 个任务"))
+        active.value = listOf("remote", mine)
+        shown.value = mine to queued
+        emit(queued)
+        return vm
+    }
+
+    @Test fun messageQueuedBehindATaskStartedElsewhereStartsAfterIt() = runTest {
+        val vm = raceVm()
+        val mine = vm.ui.value.conversationId!!
+        assertEquals(ExchangeStatus.Paused("排队中:前面还有 1 个任务"), vm.ui.value.exchanges.single().status)
+        assertEquals(ComposerMode.Busy, vm.ui.value.composer)
+        // 那个任务收尾,这条放出来开始跑,直到做完
+        active.value = listOf(mine)
+        shown.value = mine to TaskState.Running(1, "打开日历", reason = "打开日历")
+        emit(TaskState.Running(1, "打开日历", reason = "打开日历"))
+        assertEquals(ExchangeStatus.Working, vm.ui.value.exchanges.single().status)
+        shown.value = mine to TaskState.Succeeded("订好了")
+        emit(TaskState.Succeeded("订好了"))
+        assertEquals("订好了", (vm.ui.value.exchanges.single().status as ExchangeStatus.Done).answer)
+    }
+
+    // 排着队时点停止:只停这个对话的那条,不发不带编号的停止(那会停掉服务显示着的、别处开始的任务)
+    @Test fun stopWhileQueuedInServiceCancelsOnlyThisMessage() = runTest {
+        val vm = raceVm()
+        val mine = vm.ui.value.conversationId!!
+        vm.cancel()
+        assertEquals("cancel@$mine", calls.last())
+        assertFalse("cancel" in calls)
     }
 
     @Test fun historyLoadsWhenOpeningConversation() = runTest {
@@ -1746,5 +1810,38 @@ class ChatViewModelTest {
         assertEquals(listOf(joined) to listOf(received, pending), steersAroundDraft(listOf(joined, received, pending)))
         assertEquals(listOf(joined) to emptyList<SteerNote>(), steersAroundDraft(listOf(joined)))
         assertEquals(emptyList<SteerNote>() to listOf(received), steersAroundDraft(listOf(received)))
+    }
+
+    // ---------- 胶囊接着哪个对话 ----------
+    // 胶囊不看对话文件最后被谁写过,而是看界面此刻在哪个对话:这三处改动各告诉它一次。
+
+    @Test fun newChatTellsTheCapsuleItIsAFreshOne() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val vm = vm(store)
+        assertEquals(null, store.currentChat())
+        vm.newConversation()
+        assertEquals(CurrentChat.Fresh, store.currentChat())
+    }
+
+    @Test fun openingAConversationTellsTheCapsuleWhichOne() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        store.append("c-old", Turn("查天气", "晴", "succeeded"))
+        val vm = vm(store)
+        vm.openConversation("c-old")
+        assertEquals(CurrentChat.Open("c-old"), store.currentChat())
+    }
+
+    /** 新对话里说的第一句话定下编号:胶囊之后接着这个对话,不是上一个。 */
+    @Test fun theFirstMessageInANewChatTellsTheCapsuleItsId() = runTest {
+        val store = ConversationStore(tmp.newFolder())
+        val vm = vm(store)
+        vm.newConversation()
+        assertTrue(vm.send("查天气", ok))
+        val id = vm.ui.value.conversationId
+        assertTrue(id != null)
+        assertEquals(CurrentChat.Open(id!!), store.currentChat())
+        emit(TaskState.Succeeded("晴"))
+        // 结束后还是它:胶囊不会跳回上一个对话
+        assertEquals(CurrentChat.Open(id), store.currentChat())
     }
 }

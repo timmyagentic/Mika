@@ -147,9 +147,13 @@ class Adb:
         return result.stdout.strip()
 
     def devices(self):
-        return [{"device": columns[0], "state": columns[1]}
-                for line in self.run("devices").splitlines()
-                if len(columns := line.split()) >= 2 and columns[0] != "List"]
+        devices = []
+        for line in self.run("devices").splitlines():
+            # ADB uses a tab after the serial. Wireless service names can contain spaces.
+            columns = line.split("\t", 1) if "\t" in line else line.split(maxsplit=1)
+            if len(columns) == 2 and columns[0] != "List" and columns[1].strip():
+                devices.append({"device": columns[0], "state": columns[1].split()[0]})
+        return devices
 
     def select(self):
         if not self.device:
@@ -244,6 +248,17 @@ def task_snapshot(result, client, *, mutation=False, task_id=None):
     return result
 
 
+def recent_tasks(client, limit):
+    result = client.request("GET", "/tasks?limit=" + str(limit))
+    if not isinstance(result.get("tasks"), list):
+        raise CliError("protocol", "Mika returned an invalid task list.")
+    for task in result["tasks"]:
+        if not isinstance(task, dict):
+            raise CliError("protocol", "Mika returned an invalid task list.")
+        task_snapshot(task, client)
+    return result
+
+
 def execute(args, secrets):
     # Validate inputs before opening a connection or invoking the bootstrap script.
     if args.command == "task":
@@ -274,14 +289,7 @@ def execute(args, secrets):
                 body["conversation"] = args.conversation
             return task_snapshot(client.request("POST", path, body, mutation=True), client, mutation=True)
         if action == "list":
-            result = client.request("GET", path + "?limit=" + str(args.limit))
-            if not isinstance(result.get("tasks"), list):
-                raise CliError("protocol", "Mika returned an invalid task list.")
-            for task in result["tasks"]:
-                if not isinstance(task, dict):
-                    raise CliError("protocol", "Mika returned an invalid task list.")
-                task_snapshot(task, client)
-            return result
+            return recent_tasks(client, args.limit)
         if action in {"status", "wait"}:
             result = task_snapshot(client.request("GET", path), client, task_id=args.task_id)
             if action == "status":
@@ -340,6 +348,8 @@ def parser():
                             ("doctor", "Read connection and phone state without starting a task"),
                             ("devices", "List ADB devices")]:
         sub.add_parser(name, help=help_text, parents=[common])
+    ui = sub.add_parser("ui", help="Open the phone owner's local task desk", parents=[common])
+    ui.add_argument("--no-open", action="store_true", help="Print the desk URL instead of opening a browser")
     task = sub.add_parser("task", help="Run and inspect phone tasks", parents=[common])
     actions = task.add_subparsers(dest="action", required=True)
     run = actions.add_parser("run", parents=[common], help="Submit once; return the task ID immediately")
@@ -370,6 +380,20 @@ def main(argv=None):
         for key, default in {"device": None, "url": None, "token_file": None, "adb": "adb", "request_timeout": 15}.items():
             if not hasattr(args, key):
                 setattr(args, key, default)
+        if args.command == "ui":
+            if compact:
+                raise CliError("arguments", "The desk is interactive. Use mika ui without --json.")
+            if bool(args.url) != bool(args.token_file) or (args.url and args.device):
+                raise CliError("arguments", "Choose one ADB device or use --url with --token-file.")
+            if args.url:
+                base_url(args.url)
+            try:
+                from mika_desk import serve
+            except ModuleNotFoundError:
+                # A copied Skill folder run as `python3 -I .../mika_cli.py` leaves this folder off sys.path.
+                sys.path.append(str(Path(__file__).resolve().parent))
+                from mika_desk import serve
+            return serve(args)
         result = execute(args, secrets)
         if isinstance(result.get("status"), str) and result["status"] in {"failed", "cancelled"}:
             code = 1

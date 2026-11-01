@@ -202,6 +202,8 @@ class TaskRun(
     }
     private val _steers = Mirrored<List<SteerNote>>(emptyList(), service.taskState._steers)
     private val _displayId = Mirrored(-1, env.agentDisplayId)
+    /** 虚拟屏上打开过 App:画中画据此才出来(只建了空屏、没打开过 App 时没有画面)。 */
+    private val _appShown = Mirrored(false, env.agentAppShown)
     /** 正在用内置浏览器:画中画改显示网页画面。 */
     private val _webOpen = Mirrored(false, env.webScreenOpen)
 
@@ -213,14 +215,14 @@ class TaskRun(
     val frames: StateFlow<Bitmap?> = _frames.flow
     /** 本任务到此刻的活动(实际做过的事);悬浮胶囊的卡片按任务取,不只看显示中的那个。 */
     val activities: StateFlow<List<RunEvent.Activity>> = _activities.flow
-    /** 本任务的虚拟屏编号;屏到第一次 launch_app 才建,之前和释放之后为 -1。 */
+    /** 本任务的虚拟屏编号;屏到用到系统命令、事件工具或第一次打开 App 时才建,之前和释放之后为 -1。 */
     val displayId: StateFlow<Int> = _displayId.flow
     /** 此刻在用内置浏览器(工具的界面是网页);没用、任务结束后为 false。 */
     val webOpen: StateFlow<Boolean> = _webOpen.flow
     /** 本任务进行中插的话和它们的去向;悬浮胶囊的对话卡片按任务取。 */
     val steers: StateFlow<List<SteerNote>> = _steers.flow
     // 带对话编号的那份先写:收不带编号的状态时读到的编号就已经是这个任务的(界面据此不把别的对话的状态接到屏上)
-    private val mirrored = listOf(_runId, _sharedFiles, _tagged, _state, _takeoverStage, _frames, _displayId, _webOpen, _activities, _steers)
+    private val mirrored = listOf(_runId, _sharedFiles, _tagged, _state, _takeoverStage, _frames, _displayId, _appShown, _webOpen, _activities, _steers)
 
     private fun setState(s: TaskState) = synchronized(service.taskState.shownLock) {
         _tagged.value = conversationId to s
@@ -887,6 +889,7 @@ class TaskRun(
             }
             // 屏释放后、对外报结束前清掉:界面看到任务结束时已经没有屏了
             _displayId.value = -1
+            _appShown.value = false
             if (connection != null) phoneServices.sharedShell.release()
         }
     }
@@ -953,6 +956,7 @@ class TaskRun(
         }
         side.launch(Dispatchers.IO) {
             p.screen.target.filterNotNull().collectLatest { t ->
+                _appShown.value = true
                 if (handoverRef?.handedOver != true) p.audio.opened(t.packageName, copyUser(t.userId))
                 // 有目标 App 就说明 launch_app 已经建好了屏
                 val displayId = p.display.current?.displayId

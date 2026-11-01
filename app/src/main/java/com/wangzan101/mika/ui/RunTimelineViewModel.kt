@@ -108,6 +108,8 @@ class RunTimelineViewModel(
 
     fun screen(screenshotId: Int): File? = store.screen(runId, screenshotId)
 
+    fun usageLog(): String = store.usageLog(runId)
+
     companion object {
         const val SAID_MAX = 80
 

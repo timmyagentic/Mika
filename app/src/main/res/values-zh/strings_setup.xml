@@ -65,6 +65,7 @@
     <string name="model_reason_not_available">这个账号没开通或没权限用这个模型（服务商说：%1$s）</string>
     <string name="model_reason_not_found">服务商那里没有这个模型</string>
     <string name="model_reason_no_tools">它不会调用工具，Mika 干活需要会调用工具的模型</string>
+    <string name="model_reason_wrong_protocol">它不走你选的接口类型，请求到不了它</string>
     <string name="model_reason_server">服务端出错（%1$s）</string>
     <string name="model_probe_none_usable">服务商已连上，但「%1$s」没测试通过：%2$s。从列表里选一个你开通了的模型。</string>
     <string name="model_probe_tried_unavailable">试了 %1$s，都没开通。</string>

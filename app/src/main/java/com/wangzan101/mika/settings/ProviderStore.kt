@@ -1,6 +1,7 @@
 package com.wangzan101.mika.settings
 
 import android.content.Context
+import com.wangzan101.mika.core.agent.ContextLimits
 import com.wangzan101.mika.core.chatgpt.ChatGptAuth
 import com.wangzan101.mika.core.chatgpt.ChatGptSession
 import com.wangzan101.mika.core.chatgpt.ChatGptTokens
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.boolean
@@ -84,6 +86,19 @@ data class ProviderConfig(
     enum class Kind {
         OpenAiCompat, Anthropic, Gemini, OpenAiResponses, ChatGpt, Xai;
 
+        /**
+         * 这个接口类型发请求走哪种协议。用它筛掉接口写明了不支持的模型,见 [com.wangzan101.mika.ui.ModelSetupViewModel]
+         * 的试调用。账号登录的两家(ChatGpt、Xai)都走 Responses;这两家不走那张表单的试调用(登录时已经核对过),
+         * 所以这里只求写对,不影响筛谁。
+         */
+        val protocol: ModelProtocol
+            get() = when (this) {
+                OpenAiCompat -> ModelProtocol.ChatCompletions
+                Anthropic -> ModelProtocol.Messages
+                Gemini -> ModelProtocol.GenerateContent
+                OpenAiResponses, ChatGpt, Xai -> ModelProtocol.Responses
+            }
+
         companion object {
             /** 模型单独指定的协议用哪种接口类型的适配器。 */
             fun of(protocol: ModelProtocol): Kind = when (protocol) {
@@ -122,8 +137,18 @@ data class Provider(
      * 标了的服务商详情里是账号登录的样子(退出登录、到对方页面删 Key),不是「更换 Key」。
      */
     val signIn: String? = null,
+    /** 按模型名保留，用途切换后也能找回。 */
+    val contextSettings: Map<String, ModelContextSettings> = emptyMap(),
 ) {
     val key: String get() = ProviderConnection.keyOf(kind, baseUrl, name)
+}
+
+/** 留空的窗口沿用所选模型配置，留空的触发点交给核心自动计算。 */
+data class ModelContextSettings(val windowTokens: Int? = null, val triggerTokens: Int? = null) {
+    fun limits(modelWindow: Int): ContextLimits = ContextLimits.of(windowTokens ?: modelWindow, triggerTokens)
+
+    fun validFor(modelWindow: Int): Boolean = (windowTokens == null || windowTokens > 0) &&
+        (triggerTokens == null || (triggerTokens > 0 && triggerTokens == limits(modelWindow).trigger))
 }
 
 /** 一个用途选了什么:一个具体模型、用主模型,或不用(只有看图可以不用)。 */
@@ -437,6 +462,23 @@ class ProviderStore(
         return true
     }
 
+    @Synchronized
+    fun setModelContext(configId: String, settings: ModelContextSettings): Boolean {
+        val cfg = _configs.value.firstOrNull { it.id == configId } ?: return false
+        val p = provider(cfg.providerId) ?: return false
+        if (!settings.validFor(cfg.capabilities.contextTokens)) return false
+        val saved = if (settings == ModelContextSettings()) p.contextSettings - cfg.model
+            else p.contextSettings + (cfg.model to settings)
+        val updated = _providers.value.map { if (it.id == p.id) p.copy(contextSettings = saved) else it }
+        try {
+            writeAtomically(configFile, configJson(updated))
+        } catch (_: Exception) {
+            return false
+        }
+        _providers.value = updated
+        return true
+    }
+
     /** 看图模型的「看图定位已验证」(开发者选项里改);看图用主模型时改的是主模型那条配置。没有看图模型时不动。 */
     @Synchronized
     fun setVisionGroundingVerified(verified: Boolean) {
@@ -467,7 +509,12 @@ class ProviderStore(
         val p = provider(cfg.providerId)
         val source = UsageSource(cfg.providerId, p?.name ?: cfg.name, cfg.model, UsagePurpose.of(role))
         val listed = listedOf(cfg)
-        modelFactory(cfg, apiKey(cfg.id), listed?.endpoint, ClientSetup(
+        val settings = p?.contextSettings?.get(cfg.model)
+        val configured = if (settings == null) cfg else cfg.copy(capabilities = cfg.capabilities.copy(
+            contextTokens = settings.windowTokens ?: cfg.capabilities.contextTokens,
+            compactionTriggerTokens = settings.triggerTokens,
+        ))
+        modelFactory(configured, apiKey(cfg.id), listed?.endpoint, ClientSetup(
             headers(p?.sessionHeader, session), reasoningEffort = _roles.value.reasoningEffort(role),
             thinkingTypes = listed?.thinkingTypes,
         )).metered(source, usage)
@@ -806,6 +853,11 @@ class ProviderStore(
         sessionHeader = o["sessionHeader"]?.jsonPrimitive?.content ?: ProviderPresets.forBaseUrl(o.str("baseUrl"))?.sessionHeader,
         signIn = o["signIn"]?.jsonPrimitive?.content,
         verifiedModels = o["verifiedModels"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty(),
+        contextSettings = (o["contextSettings"] as? JsonObject).orEmpty().mapNotNull { (model, raw) ->
+            val entry = raw as? JsonObject ?: return@mapNotNull null
+            val settings = ModelContextSettings(entry.positiveInt("windowTokens"), entry.positiveInt("triggerTokens"))
+            if (settings == ModelContextSettings()) null else model to settings
+        }.toMap(),
         typedModels = o["typedModels"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty(),
         models = o["models"]?.jsonArray?.map { e ->
             val m = e.jsonObject
@@ -825,6 +877,7 @@ class ProviderStore(
                     }
                 },
                 unsupportedApis = m["unsupportedApis"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty(),
+                protocols = m["protocols"]?.jsonArray?.mapNotNull { ModelProtocol.of(it.jsonPrimitive.content) }?.takeIf { it.isNotEmpty() },
             )
         },
     )
@@ -866,18 +919,25 @@ class ProviderStore(
     }
 
     private fun JsonObject.str(k: String) = this[k]!!.jsonPrimitive.content
+    private fun JsonObject.positiveInt(k: String) = (this[k] as? JsonPrimitive)?.intOrNull?.takeIf { it > 0 }
 
     private fun writeConfig() = writeAtomically(configFile, configJson())
 
-    private fun configJson(): String {
+    private fun configJson(providers: List<Provider> = _providers.value): String {
         val root = buildJsonObject {
             putJsonArray("services") {
-                _providers.value.forEach { p ->
+                providers.forEach { p ->
                     addJsonObject {
                         put("id", p.id); put("name", p.name); put("kind", p.kind.name); put("baseUrl", p.baseUrl)
                         p.sessionHeader?.let { put("sessionHeader", it) }
                         p.signIn?.let { put("signIn", it) }
                         if (p.verifiedModels.isNotEmpty()) putJsonArray("verifiedModels") { p.verifiedModels.forEach { add(it) } }
+                        if (p.contextSettings.isNotEmpty()) putJsonObject("contextSettings") {
+                            for ((model, settings) in p.contextSettings) putJsonObject(model) {
+                                settings.windowTokens?.let { put("windowTokens", it) }
+                                settings.triggerTokens?.let { put("triggerTokens", it) }
+                            }
+                        }
                         if (p.typedModels.isNotEmpty()) putJsonArray("typedModels") { p.typedModels.forEach { add(it) } }
                         p.models?.let { models ->
                             putJsonArray("models") {
@@ -899,6 +959,7 @@ class ProviderStore(
                                             }
                                         }
                                         if (m.unsupportedApis.isNotEmpty()) putJsonArray("unsupportedApis") { m.unsupportedApis.forEach { add(it) } }
+                                        m.protocols?.takeIf { it.isNotEmpty() }?.let { ps -> putJsonArray("protocols") { ps.forEach { add(it.wire) } } }
                                     }
                                 }
                             }

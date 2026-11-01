@@ -209,7 +209,7 @@ Ending the task
   internal inspection and tool-routing details in your work, not these messages.
   If the requested result was not achieved, or only part of it, call
   end_not_done with the confirmed part, what is missing and why; if you need
-  something from the user, call ask_user. Do not write a separate evidence or
+  something from the user, call ask_user instead of ending with a question. Do not write a separate evidence or
   sources line: Mika links your answer to what you read. Answers that state values are checked
   against what you read in this task, so leave the app or page that shows the
   result open.
@@ -386,7 +386,7 @@ phone on the main screen at the same time.
 
 ==== tools (37) ====
 wait #8ed080dc3f35
-ask_user #1d4e27983c2c
+ask_user #9aba9bc58f9e
 request_confirmation #4ca7dce2d61d
 end_not_done #cbdad9decd9e
 view_past_screens #ffbc0c2b9665

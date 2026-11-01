@@ -97,7 +97,7 @@ The Apache Software Foundation (https://www.apache.org/).
 
 ## OpenTelemetry
 
-- Project: https://github.com/open-telemetry/opentelemetry-java
+- Project: https://github.com/open-telemetry/opentelemetry-proto-java
 - Artifacts: OTLP trace, common, resource and collector schemas from `io.opentelemetry.proto:opentelemetry-proto:1.11.1-alpha` (build-time only).
 - License: Apache-2.0
 - Usage: Generate lite OTLP trace messages.

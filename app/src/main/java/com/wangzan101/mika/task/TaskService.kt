@@ -72,7 +72,7 @@ private const val QUIET_GROUP = "com.wangzan101.mika.quiet"
 
 /**
  * 前台服务:在 Agent 虚拟屏上跑任务,单个任务的状态与执行在 [TaskRun],运行中的任务登记在 [TaskRegistry]。
- * 开关 parallelTasks 关着时同一时间只跑一个(M1 行为:跑着时新的 start 被忽略);
+ * 开关 parallelTasks 关着时同一时间只跑一个,别的对话交来的任务排在后面(不论从哪里交来,都不丢);
  * 打开时不同对话的任务可以同时跑,各占一块虚拟屏,上限见 [ParallelCapability],超出的排队。
  * 每个任务各有一组通知(编号与按钮请求码按 [TaskRun.slot] 分开,按钮带着对话编号),
  * 前台常驻通知是其中一个任务的进度通知,同时有几个任务时注明「n 个任务进行中」。
@@ -132,7 +132,7 @@ class TaskService : Service() {
 
     /** 这个对话空着就当场开始;还有任务就留着,它收尾时([onRunEnded])交出来。查与留在同一把锁里。 */
     internal fun deferMessage(threadId: String, text: String) {
-        if (center.deferOrStart(threadId, text)) start(this, text, threadId, queue = true)
+        if (center.deferOrStart(threadId, text)) start(this, text, threadId)
     }
 
     internal fun interaction(threadId: String) = ChannelInteraction(outbox, localChannel,
@@ -179,14 +179,14 @@ class TaskService : Service() {
         val run = if (intent?.hasExtra(EXTRA_RUN) == true) intent.getStringExtra(EXTRA_RUN)?.let(center::byKey) else taskState.shownRun
         when (intent?.action) {
             ACTION_START -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
-                allowQueue = intent.getBooleanExtra(EXTRA_QUEUE, false), messageId = intent.getStringExtra(EXTRA_MESSAGE_ID))
+                messageId = intent.getStringExtra(EXTRA_MESSAGE_ID))
             ACTION_START_TRIGGER -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
-                allowQueue = true, provenance = RunProvenance(RunOrigin.Trigger, Attendance.Unattended),
+                provenance = RunProvenance(RunOrigin.Trigger, Attendance.Unattended),
                 triggerKey = intent.getStringExtra(EXTRA_TRIGGER_KEY),
                 triggerActionGoal = intent.getStringExtra(EXTRA_TRIGGER_ACTION),
                 triggerThreadId = intent.getStringExtra(EXTRA_TRIGGER_THREAD))
             ACTION_START_MCP -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
-                allowQueue = true, provenance = RunProvenance(RunOrigin.Mcp,
+                provenance = RunProvenance(RunOrigin.Mcp,
                     Attendance.entries.firstOrNull { it.name == intent.getStringExtra(EXTRA_ATTENDANCE) } ?: Attendance.Unattended),
                 mcpExternalId = intent.getStringExtra(EXTRA_MCP_ID))
             ACTION_CANCEL_MCP -> intent.getStringExtra(EXTRA_MCP_ID)?.let { id -> center.runs().firstOrNull { it.mcpExternalId == id } }
@@ -213,7 +213,7 @@ class TaskService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun begin(newGoal: String, requestedConversation: String?, allowQueue: Boolean = false,
+    private fun begin(newGoal: String, requestedConversation: String?,
         provenance: RunProvenance = RunProvenance(), triggerKey: String? = null,
         triggerActionGoal: String? = null, triggerThreadId: String? = null, mcpExternalId: String? = null, messageId: String? = null) {
         parallel = FeatureFlags.get(this).speedFlags().parallelTasks
@@ -236,11 +236,8 @@ class TaskService : Service() {
             keepForeground()
             return
         }
-        // startForegroundService 之后必须尽快进入前台,哪怕这次请求会被忽略
-        if (!allowQueue && !parallel && taskState._busy.value) {
-            keepForeground()
-            return
-        }
+        // 别的对话的任务正在跑、并行关着(或已到上限)时不丢:登记处让它排在后面,那个任务收尾时放出来。
+        // 对话页先等服务空下来再交过来,但查完到交到之间别处(定时、电脑)可能先开始了一个,这里同样排上
         val store = ConversationStore.shared(this)
         val conversationId = requestedConversation ?: store.newConversation()
         // 定时和电脑交来的任务不丢:这个对话还有任务时排在它后面
@@ -417,7 +414,7 @@ class TaskService : Service() {
         val ready = center.takeReady()
         if (center.runs().isEmpty()) {
             if (ready.isNotEmpty()) {
-                ready.forEach { (threadId, message) -> begin(message, threadId, allowQueue = true) }
+                ready.forEach { (threadId, message) -> begin(message, threadId) }
                 return
             }
             // 还留着一页在后台运行:前台通知换成它的,服务不退(进程靠它撑着);关掉时由 [onKeptPage] 退出
@@ -451,7 +448,7 @@ class TaskService : Service() {
         }
         center.queued().forEachIndexed { i, q -> q.queue(i + 1) }
         center.running().forEach(::refreshNotifications)
-        ready.forEach { (threadId, message) -> begin(message, threadId, allowQueue = true) }
+        ready.forEach { (threadId, message) -> begin(message, threadId) }
     }
 
     /** 排队中的任务被取消(已移出队伍):没开跑,直接记为已取消。 */
@@ -816,7 +813,6 @@ class TaskService : Service() {
         const val ACTION_DECLINE = "com.wangzan101.mika.task.DECLINE"
         private const val EXTRA_GOAL = "goal"
         private const val EXTRA_MESSAGE_ID = "message_id"
-        private const val EXTRA_QUEUE = "queue"
         private const val EXTRA_CONVERSATION = "conversation"
         private const val EXTRA_TRIGGER_KEY = "trigger_key"
         private const val EXTRA_TRIGGER_ACTION = "trigger_action"
@@ -860,14 +856,13 @@ class TaskService : Service() {
         /** 循环的状态里哪些可以由发布写出去。 */
         internal fun loopMayPublish(state: TaskState) = state.isActive()
 
-        /** 开始一个任务;已有任务在跑时忽略。[conversationId] 为空表示新开一个对话(编号见 [conversationId])。 */
-        /** [messageId] 给了时这是任务进行中插的话,界面按它跟这句话的去向;[queue] 为 true 时别的任务在跑也排上(留下的话)。 */
-        fun start(context: Context, goal: String, conversationId: String? = null, messageId: String? = null, queue: Boolean = false) {
+        /** 开始一个任务;别的对话的任务在跑而不能同时跑时排在它后面。[conversationId] 为空表示新开一个对话(编号见 [conversationId])。 */
+        /** [messageId] 给了时这是任务进行中插的话,界面按它跟这句话的去向。 */
+        fun start(context: Context, goal: String, conversationId: String? = null, messageId: String? = null) {
             context.startForegroundService(
                 Intent(context, TaskService::class.java).setAction(ACTION_START).putExtra(EXTRA_GOAL, goal)
                     .apply { if (conversationId != null) putExtra(EXTRA_CONVERSATION, conversationId) }
-                    .apply { if (messageId != null) putExtra(EXTRA_MESSAGE_ID, messageId) }
-                    .apply { if (queue) putExtra(EXTRA_QUEUE, true) },
+                    .apply { if (messageId != null) putExtra(EXTRA_MESSAGE_ID, messageId) },
             )
         }
 

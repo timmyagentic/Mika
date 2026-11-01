@@ -250,9 +250,9 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             conversations,
             taskState.busy,
             appLabel = { ConfirmationNotifier.appLabel(app, it) },
-            // 手机的虚拟屏建好了,或在用内置浏览器:画中画都有画面可看
-            screenOpen = combine(tasks.agentDisplayId, tasks.webScreenOpen) { d, w -> d >= 0 || w }
-                .stateIn(scope, SharingStarted.Eagerly, tasks.agentDisplayId.value >= 0 || tasks.webScreenOpen.value),
+            // 虚拟屏上打开过 App,或在用内置浏览器:画中画才有画面可看(只建了空屏的不算)
+            screenOpen = tasks.previewOpen
+                .stateIn(scope, SharingStarted.Eagerly, tasks.agentAppShown.value || tasks.webScreenOpen.value),
             endedRunId = taskState.endedRunId,
             endedRunIds = taskState.endedRunIds,
             parallelFlag = { FeatureFlags.get(app).speedFlags().parallelTasks },

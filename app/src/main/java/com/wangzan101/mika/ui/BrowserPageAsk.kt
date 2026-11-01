@@ -231,7 +231,7 @@ class PageChat(private val context: Context, private val browser: UserBrowser, p
         val id = target ?: store.newConversation()
         val origin = PageConversations.origin(page.url, page.title)
         browser.lend(id)
-        TaskService.start(context, AttachedPage.compose(page.copy(selection = sel), words), id, queue = true)
+        TaskService.start(context, AttachedPage.compose(page.copy(selection = sel), words), id)
         if (origin != null) scope.launch(Dispatchers.IO) { runCatching { store.setPageOrigin(id, origin) } }
         draft = ""
         selection = null

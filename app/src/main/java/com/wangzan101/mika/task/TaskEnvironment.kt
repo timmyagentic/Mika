@@ -5,17 +5,23 @@ import com.wangzan101.mika.core.model.ChatModel
 import com.wangzan101.mika.core.model.ModelRole
 import com.wangzan101.mika.core.model.ModelSession
 import com.wangzan101.mika.settings.ProviderStore
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 
 /**
  * 任务从 App 拿的:模型从哪来、评测钩子、显示中的任务此刻有没有屏幕画面。整个进程一份,由 App 给出;
  * 测试换掉里面的模型来源与钩子。
  */
 class TaskEnvironment {
-    /** 显示中的任务的虚拟屏编号;没有任务、或任务还没打开过 App(屏到第一次 launch_app 才建)时为 -1。 */
+    /** 显示中的任务的虚拟屏编号;没有任务、或还没建过屏(用到系统命令、事件工具或第一次打开 App 时才建)时为 -1。 */
     val agentDisplayId = MutableStateFlow(-1)
+    /** 显示中的任务已经在虚拟屏上打开过 App(屏建好了不算:只跑系统命令时屏是空的)。 */
+    val agentAppShown = MutableStateFlow(false)
     /** 显示中的任务正在用内置浏览器(画中画要显示网页画面)。 */
     val webScreenOpen = MutableStateFlow(false)
+    /** 画中画有画面可看:虚拟屏上打开过 App,或在用内置浏览器。只建了空屏的任务不算。 */
+    val previewOpen: Flow<Boolean> = combine(agentAppShown, webScreenOpen) { app, web -> app || web }
 
     // 三个工厂的 ModelSession 是这次调用属于的对话(ModelSession.of(对话 id)):同一段对话里建的模型都给同一个,
     // 服务商要会话号的就照它路由、复用缓存

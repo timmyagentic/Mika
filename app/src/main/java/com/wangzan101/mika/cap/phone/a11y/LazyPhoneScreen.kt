@@ -20,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
 class PhoneUnavailable(val hint: String) : Exception(hint)
 
 /**
- * 用到时才接上的手机端口:第一次 launch_app / open_link 时才调 [acquire](连内置助手、等无障碍、备好虚拟屏);
+ * 用到时才接上的手机端口:第一次 launch_app / open_link,或系统命令、事件工具时才调 [acquire](连内置助手、等无障碍、备好虚拟屏;屏在这些动作用到时才建);
  * 只用网页或沙箱的任务从头到尾不需要内置助手和无障碍。没接上之前读屏是一块空屏、其余动作报 no_app_open,
  * 和接上后还没打开 App 时一样。接不上时这次动作报 phone_unavailable(附怎么弄好),下次再试。
  * 装了哪些 App 只问包管理器([listApps]),不用接上;另一份用户里的 App 没接上时问 [appCopies](内置助手已连着才有,不为它去接)。

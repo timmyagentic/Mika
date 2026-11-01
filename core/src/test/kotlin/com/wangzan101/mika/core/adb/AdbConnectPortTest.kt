@@ -63,15 +63,55 @@ class AdbConnectPortTest {
         assertEquals(listOf(4000, 6000), attempts)
     }
 
+    /** 前 [rejectFirst] 次连 [port] 时 TLS 被拒([reason]),之后连得上;别的端口照 [rest]。 */
+    private fun flaky(port: Int, rejectFirst: Int, rest: (String, Int) -> String, reason: Reason = Reason.UNAUTHORIZED): (String, Int) -> String {
+        var left = rejectFirst
+        return { host, p ->
+            if (p == port && left > 0) {
+                attempts += p
+                left--
+                throw AdbConnectionException(reason, "tls")
+            }
+            rest(host, p)
+        }
+    }
+
     @Test
-    fun unauthorizedStopsTheChain() = runTest {
+    fun tlsRejectionOnceIsRetriedOnTheSamePort() = runTest {
+        // 有的系统让另一个服务先接住第一次 TLS 握手、对谁的证书都拒;紧接着再连就落到 adbd
+        val cache = Cache()
+        assertEquals("conn@4000", chain(4000, 5000, cache).connect(flaky(4000, 1, opener(4000))))
+        assertEquals(listOf(4000, 4000), attempts)
+        assertEquals(4000, cache.port)
+        attempts.clear()
+        assertEquals("conn@4000", chain(4000, null, Cache()).connect(flaky(4000, 1, opener(4000), Reason.TLS_FAILED)))
+        assertEquals(listOf(4000, 4000), attempts)
+    }
+
+    @Test
+    fun aCandidateThatKeepsRejectingDoesNotStopTheOthers() = runTest {
+        val cache = Cache()
+        assertEquals("conn@5001", chain(null, null, cache, mdnsAll = listOf(5000, 5001)).connect(opener(5001, unauthorized = 5000)))
+        assertEquals(listOf(5000, 5000, 5001), attempts)
+        assertEquals(5001, cache.port)
+    }
+
+    @Test
+    fun rejectedEverywhereIsUnauthorized() = runTest {
+        // 唯一一个回话的端口试两次都拒,其余是旧端口:钥匙确实不被认,要重新配对;不再扫本机端口
+        val scanner = FakeScanner(mapOf("127.0.0.1" to listOf(41000)), setOf(AdbEndpoint("127.0.0.1", 41000)))
+        val port = AdbConnectPort(
+            { 4000 }, { _, _ -> listOf(5000) }, Cache(3000),
+            scan = LocalPortScan(scanner, { listOf("127.0.0.1") }),
+        )
         try {
-            chain(4000, 5000, Cache(3000)).connect(opener(5000, 6000, unauthorized = 4000))
+            port.connect(opener(41000, unauthorized = 4000))
             fail("expected UNAUTHORIZED")
         } catch (e: AdbConnectionException) {
             assertEquals(Reason.UNAUTHORIZED, e.reason)
         }
-        assertEquals(listOf(3000, 4000), attempts)
+        assertEquals(listOf(3000, 4000, 4000, 5000), attempts)
+        assertTrue(scanner.swept.isEmpty())
     }
 
     @Test

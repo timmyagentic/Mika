@@ -1,5 +1,6 @@
 package com.wangzan101.mika.voice
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -7,11 +8,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.speech.RecognitionListener
+import android.speech.RecognitionService
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import com.wangzan101.mika.i18n.AppLanguage
 import kotlinx.coroutines.flow.Flow
 import java.util.Locale
+
+/** 手机上登记的一个识别服务,见 [SystemSpeech.services]。[component] 是「包名/类名」的短写。 */
+data class RecognizerService(val component: String, val open: Boolean, val permission: String?)
 
 /** 手机自带识别:能力检测、错误码怎么归类、识别用的语言。 */
 object SystemSpeech {
@@ -69,6 +74,32 @@ object SystemSpeech {
     fun afterSilence(answered: Boolean): Outcome =
         if (answered) Outcome.Finish else Outcome.Fail(SpeechFailure.Unavailable(SpeechEngineSpec.Why.SystemNoResponse))
 
+    /**
+     * 手机上登记的识别服务(声明了 RecognitionService 的组件)。[RecognizerService.open] 是它对别的 App 开放(exported);
+     * [RecognizerService.permission] 是绑定它要的权限。给诊断信息和 [attempts] 用。
+     */
+    fun services(context: Context): List<RecognizerService> = runCatching {
+        context.packageManager.queryIntentServices(Intent(RecognitionService.SERVICE_INTERFACE), 0).map { r ->
+            val s = r.serviceInfo
+            RecognizerService(ComponentName(s.packageName, s.name).flattenToShortString(), s.exported, s.permission)
+        }
+    }.getOrDefault(emptyList())
+
+    /**
+     * 一次会话依次去试的识别服务,null 是系统默认的那个(不点名,由系统挑)。
+     * 之前点名试过、回了话的([remembered],还在手机上)排最前;默认的一个回调都不给时,再点名试其余的,对别的 App 开放的先试。
+     * 手机上只有一个服务时它就是默认的,不再点名重试;最多试 [MAX_ATTEMPTS] 个,免得按着的人干等。
+     */
+    fun attempts(services: List<RecognizerService>, remembered: String?): List<String?> {
+        val known = remembered?.takeIf { r -> services.any { it.component == r } }
+        val others = if (services.size < 2) emptyList() else
+            services.filter { it.component != known }.sortedBy { !it.open }.map { it.component }
+        return (listOfNotNull(known) + listOf(null) + others).take(MAX_ATTEMPTS)
+    }
+
+    /** 一次会话最多试几个识别服务(含默认的)。 */
+    const val MAX_ATTEMPTS = 3
+
     /** 本机识别说这个语言用不了(没装语言包等):换成联网识别再试。 */
     internal fun languageMissing(code: Int) = code == ERROR_LANGUAGE_NOT_SUPPORTED || code == ERROR_LANGUAGE_UNAVAILABLE
 
@@ -101,15 +132,18 @@ object SystemSpeech {
  * 手机自带识别的一次会话。[SpeechRecognizer] 只能在主线程建和调,所以这里所有对它的操作都投到主线程。
  * 按着期间识别服务自己结束一段(出最终结果或「没听到」)就立刻重开,各段由 [Segments] 拼起来;
  * 松开后 stopListening,最多等 [FINAL_WAIT_MS] 拿最终结果,等不到就用最后一次中间结果。
- * 每次 startListening 后 [NO_RESPONSE_MS] 内服务一个回调都没有,按 [SystemSpeech.afterSilence] 收尾;
- * 从没回过话时调 [onNoResponse],回过话时调一次 [onAnswered]:设置据此数连着几次不响应,够了才记下。
+ * 每次 startListening 后 [NO_RESPONSE_MS] 内服务一个回调都没有:手还按着、[attempts] 里还有没试的服务,就换下一个去听;
+ * 都试过了按 [SystemSpeech.afterSilence] 收尾。从没回过话时调 [onNoResponse],回过话时调一次 [onAnswered] 并带上回话的服务
+ * (null 是系统默认的):设置据此数连着几次不响应,够了才记下,也记住点名试通的那个。
  */
 class SystemSpeechSession(
     context: Context,
     private val onDevice: Boolean,
     private val languageTag: String,
     private val onNoResponse: () -> Unit = {},
-    private val onAnswered: () -> Unit = {},
+    private val onAnswered: (String?) -> Unit = {},
+    /** 依次去试的识别服务,见 [SystemSpeech.attempts];null 是系统默认的。 */
+    private val attempts: List<String?> = listOf(null),
 ) : SpeechSession {
     private val context = context.applicationContext
     private val main = Handler(Looper.getMainLooper())
@@ -121,6 +155,8 @@ class SystemSpeechSession(
     // 下面这些只在主线程读写
     private var recognizer: SpeechRecognizer? = null
     private var usingOnDevice = false
+    /** 正在试 [attempts] 里的第几个。 */
+    private var attempt = 0
     private var holding = true
     private val restarts = Restarts()
     private var restartPending = false
@@ -132,6 +168,12 @@ class SystemSpeechSession(
     private val timeout = Runnable { if (answered) finish(SpeechEvent.Final(segments.full())) }
     private val silence = Runnable {
         if (done()) return@Runnable
+        if (!answered && holding && attempt + 1 < attempts.size) {
+            // 这个服务一个回调都没给:手还按着,换下一个服务接着听
+            attempt++
+            open(preferOnDevice = false)
+            return@Runnable
+        }
         when (val o = SystemSpeech.afterSilence(answered)) {
             is SystemSpeech.Outcome.Fail -> {
                 onNoResponse()
@@ -146,7 +188,7 @@ class SystemSpeechSession(
     }
 
     init {
-        onMain { open(onDevice) }
+        onMain { open(onDevice && attempts.firstOrNull() == null) }
     }
 
     override fun release() = onMain {
@@ -181,7 +223,9 @@ class SystemSpeechSession(
             null
         }
         usingOnDevice = r != null
-        val rec = r ?: runCatching { SpeechRecognizer.createSpeechRecognizer(context) }.getOrNull()
+        // 点名的服务用它;没点名(或名字认不出)交给系统默认的
+        val named = attempts.getOrNull(attempt)?.let(ComponentName::unflattenFromString)
+        val rec = r ?: runCatching { SpeechRecognizer.createSpeechRecognizer(context, named) }.getOrNull()
         if (rec == null) {
             finish(SpeechEvent.Failed(SpeechFailure.Unavailable(SpeechEngineSpec.Why.SystemGone)))
             return
@@ -233,7 +277,7 @@ class SystemSpeechSession(
         main.removeCallbacks(silence)
         if (!reported) {
             reported = true
-            onAnswered()
+            onAnswered(if (usingOnDevice) null else attempts.getOrNull(attempt))
         }
     }
 

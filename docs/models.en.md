@@ -32,6 +32,12 @@ Signing out only clears the sign-in on this phone.
 
 Models on ChatGPT sign-in, xAI sign-in, and the Responses API can adjust **Reasoning effort** below each role card; OpenAI-compatible, Anthropic Messages, and Gemini models can too when the provider's model list states the levels for that model. The default leaves the choice to the provider. "Use main model" inherits its effort; explicitly picking the same model lets each role use a different effort. Options come from the provider's model list when available (the Anthropic model list states each model's levels; models that only take a thinking budget get none). Without listed levels, only Responses models get generic manual options, subject to server support; OpenAI-compatible, Anthropic, and Gemini models are not guessed. Higher effort usually takes longer and uses more tokens.
 
+## Context window and compaction
+
+Open **Context and compaction** under a role in **Settings › Models**. Leave the window blank to use the selected model’s window. Leave the trigger blank for automatic compaction, or enter an absolute token count. The trigger counts the whole request, including the system prompt, tools, and messages. A window of 1,000,000 tokens has an automatic trigger of 967,000. Enter 600,000 to compact earlier. Use digits only in the fields. The dialog shows the allowed range and effective values. After compaction, the request can grow by a margin before it triggers again.
+
+The settings apply on the next task and are shared by roles using the same provider and model. Choose **Reset** and save to restore both defaults. If reselecting a model gives it a smaller window, the effective trigger stays within its new bounds. A window override sets the local budget. The provider still enforces its own context limit.
+
 ## Models on your own computer or LAN
 
 When adding a provider choose "Custom" (自定义); the base URL may start with `http://`, e.g. `http://192.168.1.10:11434/v1` (with the phone on the same Wi-Fi). Local and LAN addresses show no warning; an unencrypted address outside your LAN shows a short warning, since your API key and chats could be seen by others on the network. Use `https://` when you can.

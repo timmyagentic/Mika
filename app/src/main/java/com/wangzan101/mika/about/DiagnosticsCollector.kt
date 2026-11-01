@@ -29,6 +29,8 @@ import com.wangzan101.mika.record.RunStore
 import com.wangzan101.mika.settings.AccessibilityState
 import com.wangzan101.mika.settings.SystemStatus
 import com.wangzan101.mika.task.TaskService
+import com.wangzan101.mika.voice.SpeechChoice
+import com.wangzan101.mika.voice.SystemSpeech
 
 /** 引导页的输入:由系统状态加上引导页自己记的几项(用户确认过的、跳过的、回头重做的)组成。引导页和诊断信息共用这一份。 */
 fun SystemStatus.setupInputs(
@@ -98,6 +100,7 @@ object DiagnosticsCollector {
             update = app.updates.state.value.let { u ->
                 DiagnosticsSnapshot.Update(u.status.name, u.latest?.version, u.update?.version)
             },
+            speech = speech(app),
         )
     }
 
@@ -155,6 +158,28 @@ object DiagnosticsCollector {
             accountLastFailure = app.chatGptSignIn.lastAccountFailure,
         )
     }
+
+    /** 语音转文字:选择、手机自带识别的能力和记号、手机上登记的识别服务(组件名、开不开放、要的权限)。 */
+    private fun speech(app: MikaApp): DiagnosticsSnapshot.Speech? = runCatching {
+        val settings = app.speech
+        val cap = SystemSpeech.capability(app, settings.systemSilent.value)
+        val choice = when (val c = settings.choice.value) {
+            SpeechChoice.Auto -> "auto"
+            SpeechChoice.System -> "system"
+            SpeechChoice.Off -> "off"
+            is SpeechChoice.Provider -> c.model + (app.providers.providers.value.firstOrNull { it.id == c.providerId }?.let { " @ ${Diagnostics.host(it.baseUrl)}" } ?: " (provider removed)")
+        }
+        DiagnosticsSnapshot.Speech(
+            choice = choice,
+            systemAvailable = cap.available,
+            onDevice = cap.onDevice,
+            silent = settings.systemSilent.value,
+            remembered = settings.systemService,
+            services = SystemSpeech.services(app).map { svc ->
+                svc.component + (if (svc.open) "" else " (not exported)") + (svc.permission?.let { " needs $it" } ?: "")
+            },
+        )
+    }.getOrNull()
 
     /** 最近几次运行:结局和步数取小结,模型取概要;目标、回答、失败原话都不取。 */
     private fun runs(app: MikaApp): List<DiagnosticsSnapshot.Run> = runCatching {

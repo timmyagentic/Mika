@@ -14,6 +14,7 @@
     <string name="chat_example_creator">開啟小紅書，幫我總結一下博主王赞不赞的內容</string>
     <string name="chat_working_on">正在操作%1$s</string>
     <string name="chat_working">正在處理</string>
+    <string name="chat_wait_previous_task">等前一個任務做完再開始</string>
     <string name="chat_wait_unlock">等你解鎖手機</string>
     <string name="chat_waiting_for_you">等你處理</string>
     <string name="chat_paused">已暫停</string>

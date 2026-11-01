@@ -151,6 +151,31 @@ class ModelCatalogTest {
         assertEquals(listOf(false, false, true, false, false, null, null), list.map { it.chat })
     }
 
+    /** 接口用 `supported_endpoints` 写明模型能走哪几种端点:记下来,试调用时据此跳过调不了的。 */
+    @Test fun openAiCompatReadsSupportedEndpoints() = runTest {
+        server.enqueue(ok("""{"data":[
+            {"id":"claude-sonnet-5-5","supported_endpoints":["/provider/v1/messages"]},
+            {"id":"deepseek-v4-flash","supported_endpoints":["/provider/v1/chat/completions","/provider/v1/responses"]},
+            {"id":"glm-5.3-flash","supported_endpoints":["/provider/v1/chat/completions"]},
+            {"id":"gemini-4","supported_endpoints":["/v1beta/models/gemini-4:generateContent"]},
+            {"id":"list-only","supported_endpoints":["/provider/v1/models"]},
+            {"id":"plain"}
+        ]}"""))
+        val list = models(catalog.openAiCompat(base, null))
+        assertEquals(
+            listOf(
+                listOf(ModelProtocol.Messages),
+                listOf(ModelProtocol.ChatCompletions, ModelProtocol.Responses),
+                listOf(ModelProtocol.ChatCompletions),
+                listOf(ModelProtocol.GenerateContent),
+                // 裸的 /models 是列模型的端点,列得出来不等于调得动:认不出,照旧去试
+                null,
+                null,
+            ),
+            list.map { it.protocols },
+        )
+    }
+
     @Test fun chatGptModelListKeepsListedSlugsInServerOrder() = runTest {
         server.enqueue(ok("""{"models":[
             {"slug":"gpt-b","display_name":"GPT B","visibility":"list","input_modalities":["text","image"],

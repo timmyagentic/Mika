@@ -26,12 +26,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,11 +58,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wangzan101.mika.core.model.ModelRole
+import com.wangzan101.mika.settings.ModelContextSettings
 import com.wangzan101.mika.settings.ModelOption
 import com.wangzan101.mika.settings.ModelOptions
 import com.wangzan101.mika.settings.ProviderConfig
 import com.wangzan101.mika.settings.ProviderPresets
 import com.wangzan101.mika.settings.ProviderStore
+import com.wangzan101.mika.settings.RoleChoice
 import com.wangzan101.mika.ui.components.ButtonKind
 import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.CapabilityTag
@@ -190,6 +195,7 @@ fun ModelSetupScreen(
                     openProvider = { openProvider = it; allModels = false }, pickRole = { picking = it }, next = onDone, openSpeech = onOpenSpeech,
                     openSignIn = { signInSheet = it },
                     setReasoningEffort = vm::setReasoningEffort,
+                    setModelContext = vm::setModelContext,
                 ),
                 onBack,
             )
@@ -240,6 +246,7 @@ class ModelSetupActions(
     /** 打开一家账号登录的说明面板。 */
     val openSignIn: (SignInKind) -> Unit = {},
     val setReasoningEffort: (ModelRole, String?) -> Unit = { _, _ -> },
+    val setModelContext: (String, ModelContextSettings) -> Boolean = { _, _ -> false },
 )
 
 /**
@@ -267,7 +274,7 @@ fun ModelSetupContent(ui: ModelSetupUi, onboarding: Boolean, actions: ModelSetup
                     RolesSection(ui, onPick, actions.setReasoningEffort, null)
                     FooterNote(ModelSetupCopy.ONBOARDING_NOTE)
                 } else {
-                    RolesSection(ui, onPick, actions.setReasoningEffort, actions.openSpeech)
+                    RolesSection(ui, onPick, actions.setReasoningEffort, actions.openSpeech, actions.setModelContext)
                     ProvidersSection(ui, actions)
                 }
                 Spacer(Modifier.height(16.dp))
@@ -478,7 +485,9 @@ internal object SignInPage {
 
 /** 用途:主模型、看图模型、轻量模型各一张卡,点开是选择页。 */
 @Composable
-private fun RolesSection(ui: ModelSetupUi, onPick: (ModelRole) -> Unit, onReasoning: (ModelRole, String?) -> Unit, onSpeech: (() -> Unit)?) {
+private fun RolesSection(ui: ModelSetupUi, onPick: (ModelRole) -> Unit, onReasoning: (ModelRole, String?) -> Unit,
+    onSpeech: (() -> Unit)?, onContext: ((String, ModelContextSettings) -> Boolean)? = null,
+) {
     GroupLabel(ModelsCopy.ROLES)
     GroupCard {
         ModelRole.entries.forEachIndexed { i, role ->
@@ -486,12 +495,71 @@ private fun RolesSection(ui: ModelSetupUi, onPick: (ModelRole) -> Unit, onReason
                 onPick(role)
             }
             ReasoningControl(ui, role) { onReasoning(role, it) }
+            if (onContext != null) ModelContextControl(ui, role, onContext)
         }
         // 第四个用途:语音转文字(不是对话模型,点开是单独的选择页)
         if (onSpeech != null) {
             RoleCard(ModelsCopy.SPEECH_ICON, ModelsCopy.SPEECH_LABEL, ModelsCopy.speechLine(ui), tag = "role-speech", onClick = onSpeech)
         }
     }
+}
+
+@Composable
+private fun ModelContextControl(ui: ModelSetupUi, role: ModelRole,
+    onSave: (String, ModelContextSettings) -> Boolean,
+) {
+    if (ui.roles[role] !is RoleChoice.Model) return
+    val cfg = ui.configFor(role) ?: return
+    val saved = ui.providerOf(cfg)?.contextSettings?.get(cfg.model) ?: ModelContextSettings()
+    var open by rememberSaveable(cfg.id) { mutableStateOf(false) }
+    TextButton(onClick = { open = true }, modifier = Modifier.padding(start = 8.dp).testTag("context-${role.name.lowercase()}")) {
+        Text(stringResource(R.string.model_context_title))
+    }
+    if (!open) return
+    var window by rememberSaveable(cfg.id) { mutableStateOf(saved.windowTokens?.toString().orEmpty()) }
+    var trigger by rememberSaveable(cfg.id) { mutableStateOf(saved.triggerTokens?.toString().orEmpty()) }
+    var saveFailed by remember { mutableStateOf(false) }
+    fun positiveInt(text: String) = text.trim().takeIf { it.all { c -> c in '0'..'9' } }?.toIntOrNull()?.takeIf { it > 0 }
+    val settings = ModelContextSettings(positiveInt(window), positiveInt(trigger))
+    val modelWindow = cfg.capabilities.contextTokens
+    val limits = settings.limits(modelWindow)
+    val badWindow = window.isNotBlank() && settings.windowTokens == null
+    val badTrigger = trigger.isNotBlank() && (settings.triggerTokens == null || (!badWindow && settings.triggerTokens != limits.trigger))
+    val keyboard = KeyboardOptions(keyboardType = KeyboardType.Number)
+    AlertDialog(
+        onDismissRequest = { open = false },
+        modifier = Modifier.imePadding(),
+        title = { Text(stringResource(R.string.model_context_title)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(cfg.model)
+                Text(stringResource(R.string.model_context_note))
+                OutlinedTextField(window, { window = it; saveFailed = false },
+                    modifier = Modifier.fillMaxWidth().testTag("context-window"), singleLine = true, keyboardOptions = keyboard,
+                    label = { Text(stringResource(R.string.model_context_window)) },
+                    placeholder = { Text(stringResource(R.string.model_context_auto, modelWindow)) },
+                    supportingText = if (badWindow) ({ Text(stringResource(R.string.model_context_integer)) }) else null,
+                    isError = badWindow)
+                OutlinedTextField(trigger, { trigger = it; saveFailed = false },
+                    modifier = Modifier.fillMaxWidth().testTag("context-trigger"), singleLine = true, keyboardOptions = keyboard,
+                    label = { Text(stringResource(R.string.model_context_trigger)) },
+                    placeholder = { Text(stringResource(R.string.model_context_auto, limits.trigger)) },
+                    supportingText = {
+                        if (!badWindow && limits.usable > 0) Text(stringResource(R.string.model_context_range,
+                            limits.minTrigger.coerceAtLeast(1), limits.usable))
+                        else if (badTrigger) Text(stringResource(R.string.model_context_integer))
+                    }, isError = badTrigger)
+                if (!badWindow && (trigger.isBlank() || settings.triggerTokens != null)) Text(stringResource(R.string.model_context_effective, limits.window, limits.trigger),
+                    modifier = Modifier.testTag("context-effective"))
+                TextButton(onClick = { window = ""; trigger = ""; saveFailed = false }) { Text(stringResource(R.string.reset)) }
+                if (saveFailed) Text(stringResource(R.string.model_context_save_failed), color = MikaTheme.colors.bad)
+            }
+        },
+        confirmButton = { TextButton(onClick = {
+            if (onSave(cfg.id, settings)) open = false else saveFailed = true
+        }, enabled = !badWindow && !badTrigger, modifier = Modifier.testTag("context-save")) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = { open = false }) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** 模型的能力标签;[accent] 为假时一律中性色(列表行里强调色留给「在用」的胶囊)。 */

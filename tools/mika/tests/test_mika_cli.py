@@ -272,6 +272,15 @@ else:
             self.assertEqual(["-s", "phone-a", "forward", "--remove", "tcp:" + str(server.server_port)], calls()[-1])
             self.assertTrue(any(c[2:4] == ["shell", "sh"] for c in calls()))
 
+    def test_unique_wireless_device_can_have_spaces_in_its_service_name(self):
+        serial = "test-phone (2)._adb-tls-connect._tcp"
+        with api() as server:
+            adb, env, _, calls = self.fake_adb(server, devices="List of devices attached\n" + serial + "\tdevice\n")
+            result, body = self.invoke("doctor", "--adb", str(adb), env=env)
+            self.assertEqual(0, result.returncode, body)
+            self.assertEqual(serial, body["device"])
+            self.assertIn(["-s", serial, "get-state"], calls())
+
     def test_multiple_phones_need_explicit_device(self):
         with api() as server:
             adb, env, _, calls = self.fake_adb(server, devices="List of devices attached\nphone-a\tdevice\nphone-b\tdevice\n")

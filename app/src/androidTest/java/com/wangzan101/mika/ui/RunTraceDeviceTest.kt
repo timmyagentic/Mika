@@ -99,6 +99,7 @@ class RunTraceDeviceTest {
                 compose.waitUntil(30_000) { compose.onAllNodesWithText("查看过程").fetchSemanticsNodes().isNotEmpty() }
                 compose.onNodeWithText("查看过程").performSemanticsAction(SemanticsActions.OnClick)
                 compose.waitUntil(15_000) { compose.onAllNodesWithText("运行过程").fetchSemanticsNodes().isNotEmpty() }
+                compose.onNodeWithText("导出用量记录").assertExists()
                 compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("详细 Trace"))
                 compose.onNodeWithText("部分记录").assertExists()
                 compose.onNodeWithText("详细 Trace").performScrollTo().performClick()

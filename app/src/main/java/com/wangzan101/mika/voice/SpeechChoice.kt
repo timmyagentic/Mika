@@ -70,9 +70,22 @@ class SpeechSettings(private val prefs: SharedPreferences) {
         if (strikes >= SILENT_STRIKES) _systemSilent.value = true
     }
 
-    /** 手机自带识别这次回了话:之前没响应的次数作废。 */
-    fun noteSystemAnswered() {
-        if (prefs.getInt(STRIKES, 0) != 0) prefs.edit().remove(STRIKES).apply()
+    /**
+     * 点名试通过的识别服务(系统默认的不回话、它回了),下次先试它;null 是没有,或者系统默认的就回话。
+     * 见 [SystemSpeech.attempts]。
+     */
+    val systemService: String? get() = prefs.getString(SERVICE, null)
+
+    /** 手机自带识别这次回了话([service] 是回话的那个,null 是系统默认的):之前没响应的次数作废,记住回话的服务。 */
+    fun noteSystemAnswered(service: String? = null) {
+        val edit = prefs.edit()
+        var changed = false
+        if (prefs.getInt(STRIKES, 0) != 0) { edit.remove(STRIKES); changed = true }
+        if (service != systemService) {
+            if (service == null) edit.remove(SERVICE) else edit.putString(SERVICE, service)
+            changed = true
+        }
+        if (changed) edit.apply()
     }
 
     private fun read(): SpeechChoice {
@@ -113,6 +126,7 @@ class SpeechSettings(private val prefs: SharedPreferences) {
         private const val TYPE = "type"
         private const val SILENT = "speech_system_silent"
         private const val STRIKES = "speech_system_silent_strikes"
+        private const val SERVICE = "speech_system_service"
 
         /** 连着这么多次不响应才记下。 */
         const val SILENT_STRIKES = 2

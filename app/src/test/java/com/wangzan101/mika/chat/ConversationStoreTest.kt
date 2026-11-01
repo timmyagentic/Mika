@@ -295,4 +295,33 @@ class ConversationStoreTest {
         assertFalse(java.io.File(dir, "$paged.page").exists())
         assertFalse(b.setPageOrigin(paged, PageOrigin("https://a.example/", "a.example")))
     }
+
+    /**
+     * 「用户此刻在哪个对话」也记下来:进程重启后胶囊据此接着那个对话,而不是靠文件时间猜最近的;
+     * 新开还没说话的对话记成 [CurrentChat.Fresh];删掉它时一起清掉;这个文件不进对话列表。
+     */
+    @Test fun remembersTheConversationOnScreen() {
+        val dir = tmp.newFolder("c")
+        val a = ConversationStore(dir)
+        val id = a.newConversation()
+        a.append(id, Turn("查天气", "晴", "succeeded"))
+        assertEquals(null, a.currentChat())
+
+        a.setCurrent(CurrentChat.Fresh)
+        assertEquals(CurrentChat.Fresh, a.currentChat())
+        // 新开的对话还没有对话文件,重启后照样读得回来
+        assertEquals(CurrentChat.Fresh, ConversationStore(dir).currentChat())
+        assertEquals(listOf(id), ConversationStore(dir).list().map { it.id })
+
+        a.setCurrent(CurrentChat.Open(id))
+        assertEquals(CurrentChat.Open(id), ConversationStore(dir).currentChat())
+        assertEquals(CurrentChat.Open(id), ConversationStore(dir).current.value)
+        // 记在旁边的 current 文件里,不动对话文件、不进列表
+        assertEquals(setOf("$id.json", "current"), dir.list()!!.toSet())
+        assertEquals(listOf(id), a.list().map { it.id })
+
+        // 删掉这个对话:指向它的记录一起清掉,胶囊回落到最近那个
+        a.delete(id)
+        assertEquals(null, ConversationStore(dir).currentChat())
+    }
 }

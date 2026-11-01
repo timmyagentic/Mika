@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="model_context_title">上下文与压缩</string>
+    <string name="model_context_note">留空使用自动值。同一服务商的同一模型在各用途间共用这份设置，下次任务生效。</string>
+    <string name="model_context_window">上下文窗口（token）</string>
+    <string name="model_context_trigger">压缩触发点（token）</string>
+    <string name="model_context_auto">自动 · %1$d</string>
+    <string name="model_context_integer">请输入正整数。</string>
+    <string name="model_context_range">可填 %1$d–%2$d 个 token</string>
+    <string name="model_context_effective">生效窗口 %1$d · 触发点 %2$d 个 token</string>
+    <string name="model_context_save_failed">未能保存设置，请重新打开模型再试。</string>
     <string name="models_lead">每件事用哪个模型，在「用途」里选；模型来自下面连好的服务商。</string>
     <string name="models_roles">用途</string>
     <string name="models_providers">服务商</string>

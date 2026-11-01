@@ -104,4 +104,13 @@ class SpeechSettingsTest {
             assertEquals(bad, SpeechChoice.Auto, SpeechSettings(prefs).choice.value)
         }
     }
+
+    /** 点名试通的服务记下来、重开 App 还在;之后系统默认的回了话,就不再记着点名的那个。 */
+    @Test fun theServiceThatAnsweredIsRemembered() {
+        val prefs = MemoryPrefs()
+        SpeechSettings(prefs).noteSystemAnswered("a.b/.Two")
+        assertEquals("a.b/.Two", SpeechSettings(prefs).systemService)
+        SpeechSettings(prefs).noteSystemAnswered(null)
+        assertEquals(null, SpeechSettings(prefs).systemService)
+    }
 }

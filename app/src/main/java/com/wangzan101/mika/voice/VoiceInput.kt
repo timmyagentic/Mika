@@ -45,6 +45,7 @@ class VoiceInput(
             is SpeechEngineSpec.System -> SystemSpeechSession(
                 context, spec.onDevice, tag,
                 onNoResponse = settings::noteSystemSilent, onAnswered = settings::noteSystemAnswered,
+                attempts = SystemSpeech.attempts(SystemSpeech.services(context), settings.systemService),
             )
             is SpeechEngineSpec.Provider -> {
                 val p = spec.provider
