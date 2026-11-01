@@ -42,7 +42,7 @@ class ContextCompressorTest {
             }
             val caller = ModelCaller(model, toolDispatcher(FakeScreen()), null, SpeedFlags.OFF, RetryPolicy.NONE, {}, { 0 })
             caller.reset("")
-            caller.ask(history, emptyList())
+            caller.ask(history, emptyList(), step = 1)
             return transport.requests.single()
         }
         assertEquals(history, sent(null))
