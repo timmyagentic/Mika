@@ -41,7 +41,7 @@ Each connection has its own switch and token, and both can be on at once. The co
 
 If you would rather not type commands, connect the phone and run `mika ui`. Your browser opens a task desk where you can start tasks, follow their steps, answer questions, add instructions and cancel tasks; recent tasks started from other entry points show up too. Reads pause while the tab is hidden and resume when you come back; steps that need you still have to be handled on the phone. The desk follows the browser's language: Simplified Chinese or English.
 
-The sidebar groups the latest 50 remote tasks by conversation. Read each turn in the center and use the composer to continue after a turn ends. Select **View process** on a turn to see the phone’s current report and the updates observed in this tab alongside your draft. Select **New chat** to start a separate conversation.
+The sidebar groups the latest 50 remote tasks by conversation. Read each turn in the center and use the composer to continue after a turn ends. Select **View process** to expand the phone’s report and the updates observed in this tab above that turn’s reply. Select **Hide process** to collapse it. The composer keeps your current draft. Select **New chat** to start a separate conversation.
 
 - With several ADB devices, choose one in the page or start with `mika ui --device SERIAL`; Wi-Fi / private VPN connections use the usual `--url` and `--token-file`.
 - With only the Skill installed, run `python3 <skills-directory>/mika/scripts/mika_cli.py ui`.

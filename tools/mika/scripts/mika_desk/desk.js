@@ -74,8 +74,9 @@ const STRINGS = {
   expandGoal: ["展开要求", "Show full request"],
   collapseGoal: ["收起要求", "Collapse request"],
   viewProcess: ["查看过程", "View process"],
-  closeProcess: ["收起过程", "Close process"],
+  closeProcess: ["收起过程", "Hide process"],
   process: ["执行过程", "Execution process"],
+  sidePanel: ["侧栏", "Side panel"],
   copyResult: ["复制结果", "Copy result"],
   copied: ["已复制结果。", "Result copied."],
   copyFailed: ["未能复制，可以直接选择答复文字。", "Could not copy. You can select the reply text instead."],
@@ -134,6 +135,9 @@ const STRINGS = {
 };
 
 const $ = id => document.getElementById(id);
+// Reattach the same detail view to its turn when a refresh rebuilds the transcript.
+const processContent = $("process-content");
+const processSlotId = id => "turn-process-" + id;
 const browserLanguage = navigator.languages?.[0] || navigator.language || "en";
 let lang;
 const t = (key, vars = {}) => STRINGS[key][lang].replace(/\{(\w+)\}/g, (_, name) => vars[name]);
@@ -437,11 +441,14 @@ function addTurn(task, index) {
     author.append(mark);
   } else if (task.status === "running" && task.step != null)
     author.append(el("span", "state", t("stepN", { n: task.step })));
-  const process = commandButton("process", t("viewProcess"), "process", id);
+  const process = commandButton("process", t("viewProcess"), "chevron", id);
   process.className = "turn-process";
-  process.setAttribute("aria-controls", "process-panel");
-  process.setAttribute("aria-expanded", String(inspectId === id));
-  node.append(author, process, el("p", "answer", taskMessage(task)));
+  const slot = el("div");
+  slot.id = processSlotId(id);
+  slot.hidden = true;
+  process.setAttribute("aria-controls", slot.id);
+  process.setAttribute("aria-expanded", "false");
+  node.append(author, process, slot, el("p", "answer", taskMessage(task)));
   if (task.status === "paused" && task.progress && task.waiting_for && task.progress !== task.waiting_for) {
     node.append(el("p", "guidance", t("waitingCondition") + " · " + task.waiting_for));
   }
@@ -477,7 +484,10 @@ function renderTurns() {
     [...expandedGoals],
     g?.turns.map(task => exchanges.get(task.task_id)?.length || 0)
   ]);
-  if (signature === transcriptSignature) return;
+  if (signature === transcriptSignature) {
+    renderProcess();
+    return;
+  }
   transcriptSignature = signature;
   const reset = transcriptKey !== groupKey;
   transcriptKey = groupKey;
@@ -485,6 +495,7 @@ function renderTurns() {
     focus = document.activeElement,
     ft = focus?.dataset.task,
     fa = focus?.dataset.action;
+  const focusedInProcess = processContent.contains(focus);
   container.replaceChildren();
   if (g) {
     g.turns.forEach((task, index) => container.append(addTurn(task, index)));
@@ -497,7 +508,13 @@ function renderTurns() {
     );
     container.append(empty);
   }
-  if (ft && fa)
+  renderProcess();
+  if (focusedInProcess && inspectId) {
+    const replacement = focus.isConnected
+      ? focus
+      : processContent.querySelector(focus.matches("summary") ? "summary" : '.event-choice[aria-pressed="true"]');
+    replacement?.focus({ preventScroll: true });
+  } else if (ft && fa)
     Array.from(container.querySelectorAll("button"))
       .find(b => b.dataset.task === ft && b.dataset.action === fa)
       ?.focus({ preventScroll: true });
@@ -515,14 +532,22 @@ function renderProcess() {
     task = byId(g?.turns, inspectId);
   if (inspectId && !task) inspectId = null;
   const open = !!task;
-  $("workspace").classList.toggle("with-process", open);
-  $("process-panel").hidden = !open;
   const toggle = $("toggle-process");
   toggle.hidden = !g;
+  const target = task || currentTask();
+  if (target) toggle.setAttribute("aria-controls", processSlotId(target.task_id));
+  else toggle.removeAttribute("aria-controls");
   toggle.setAttribute("aria-expanded", String(open));
   toggle.querySelector("span").textContent = t(open ? "closeProcess" : "viewProcess");
-  for (const b of $("transcript").querySelectorAll('[data-action="process"]'))
-    b.setAttribute("aria-expanded", String(open && b.dataset.task === inspectId));
+  for (const button of $("transcript").querySelectorAll('[data-action="process"]')) {
+    const expanded = open && button.dataset.task === inspectId;
+    const slot = $(button.getAttribute("aria-controls"));
+    button.setAttribute("aria-expanded", String(expanded));
+    button.querySelector("span").textContent = t(expanded ? "closeProcess" : "viewProcess");
+    slot.hidden = !expanded;
+    if (expanded && processContent.parentElement !== slot) slot.append(processContent);
+  }
+  processContent.hidden = !open;
   if (!open) {
     processSignature = "";
     return;
@@ -534,14 +559,13 @@ function renderProcess() {
   const sig = JSON.stringify([task, n, rows.length, rows.at(-1)?.at, hist?.trimmed, rows.indexOf(focusedRow)]);
   if (sig === processSignature) return;
   processSignature = sig;
-  const content = $("process-content"),
+  const content = processContent,
     keepDetails = content.dataset.id === inspectId && content.querySelector("details")?.open;
   const focusStep =
     content.contains(document.activeElement) && document.activeElement.hasAttribute("data-observation");
-  if (content.dataset.id !== inspectId) content.scrollTop = 0;
   content.dataset.id = inspectId;
+  content.setAttribute("aria-label", t("round", { n }) + " · " + t("process"));
   content.replaceChildren();
-  content.append(el("p", "process-meta", t("round", { n }) + " · " + t(task.status)));
   const timeline = el("div");
   if (rows.length) {
     const list = el("ol", "events");
@@ -596,12 +620,11 @@ function renderProcess() {
         )
       )
     );
-  if (task.started_at_ms)
-    content.append(processSection(t("startAt"), el("p", "process-value", date(task.started_at_ms))));
   const details = el("details", "process-facts");
   details.open = !!keepDetails;
   details.append(el("summary", "", t("original")));
   const fields = el("dl");
+  if (task.started_at_ms) fields.append(el("dt", "", t("startAt")), el("dd", "", date(task.started_at_ms)));
   fields.append(
     el("dt", "", t("taskGoal")),
     el("dd", "", task.goal || "—"),
@@ -613,13 +636,27 @@ function renderProcess() {
   if (focusStep) content.querySelector('.event-choice[aria-pressed="true"]')?.focus({ preventScroll: true });
 }
 
-function toggleProcess(id, forceClose = false) {
-  const pos = scrollAnchor();
-  inspectId = forceClose || inspectId === id ? null : id;
+function toggleProcess(id) {
+  const slot = $(processSlotId(id));
+  if (!slot) return;
+  const trigger = slot.previousElementSibling;
+  const scroller = $("scroll-thread");
+  const viewport = scroller.getBoundingClientRect();
+  const previousTop = trigger.getBoundingClientRect().top;
+  inspectId = inspectId === id ? null : id;
   selectedObservation = null;
   setNav(false);
   renderProcess();
-  restoreScroll(pos);
+  // Keep the clicked line in place when closing an earlier disclosure above it.
+  if (previousTop >= viewport.top && previousTop < viewport.bottom) {
+    scroller.scrollTop += trigger.getBoundingClientRect().top - previousTop;
+  }
+  if (inspectId) {
+    const triggerTop = trigger.getBoundingClientRect().top;
+    if (triggerTop < viewport.top || slot.getBoundingClientRect().bottom > viewport.bottom) {
+      scroller.scrollTop += triggerTop - viewport.top - 8;
+    }
+  }
 }
 
 function composeTarget() {
@@ -720,7 +757,6 @@ function render() {
   $("pick-device").disabled = busy;
   renderNav();
   renderTurns();
-  renderProcess();
   syncComposer();
 }
 
@@ -996,19 +1032,16 @@ $("pick").addEventListener("submit", ev => {
 });
 $("toggle-process").addEventListener("click", () => {
   const task = currentTask();
-  if (task) toggleProcess(inspectId || task.task_id, !!inspectId);
+  if (task) toggleProcess(inspectId || task.task_id);
 });
-function closeInspector() {
+function collapseProcess() {
   if (!inspectId) return;
   const old = inspectId;
-  toggleProcess(old, true);
-  const trigger = Array.from($("transcript").querySelectorAll('[data-action="process"]')).find(
-    b => b.dataset.task === old
-  );
-  (trigger || $("toggle-process")).focus({ preventScroll: true });
+  const returnFocus = processContent.contains(document.activeElement);
+  toggleProcess(old);
+  if (returnFocus) $(processSlotId(old))?.previousElementSibling?.focus({ preventScroll: true });
 }
-$("close-process").addEventListener("click", closeInspector);
-$("process-content").addEventListener("click", ev => {
+processContent.addEventListener("click", ev => {
   const b = ev.target.closest("button[data-observation]");
   if (!b) return;
   selectedObservation = observed.get(inspectId)?.rows[Number(b.dataset.observation)] || null;
@@ -1022,7 +1055,7 @@ document.addEventListener("keydown", e => {
   } else if ($("connection-details").open && $("connection-details").contains(document.activeElement)) {
     $("connection-details").open = false;
     $("connection-details").querySelector("summary").focus();
-  } else closeInspector();
+  } else collapseProcess();
 });
 $("transcript").addEventListener("click", async ev => {
   const b = ev.target.closest("button[data-action]");
