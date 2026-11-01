@@ -7,7 +7,7 @@ const labels = {
   done: ["已返回结果", "good"], failed: ["未能完成", "bad"], cancelled: ["已取消", ""],
 };
 const terminal = new Set(["done", "failed", "cancelled"]);
-const ticket = location.hash.slice(1) || sessionStorage.getItem("deskSession");
+let ticket = location.hash.slice(1) || sessionStorage.getItem("deskSession");
 if (location.hash) {
   sessionStorage.setItem("deskSession", ticket);
   sessionStorage.removeItem("selectedTask");
@@ -47,7 +47,7 @@ function choose(task) {
 
 function render() {
   const locked = busy || !online;
-  $("refresh").disabled = busy || !ticket;
+  $("refresh").disabled = busy;
   $("submit-goal").disabled = locked;
   $("pick-device").disabled = busy;
   $("submit-reply").disabled = locked;
@@ -157,7 +157,7 @@ async function call(action, fields = {}) {
 }
 
 const errors = {
-  session: "请用本次 mika ui 打开的专用链接访问任务台。",
+  session: "任务台会话已失效。请重新载入固定地址，或打开终端给出的专用链接。",
   device_selection: "请连接手机并刷新状态，或从已在线的设备中选择一台。",
   device_pinned: "本次任务台已选定手机，请刷新查看。",
   adb: "无法读取指定手机。请检查 ADB 连接，并确认已对这台手机运行 mika connect。",
@@ -170,6 +170,16 @@ const errors = {
 };
 
 async function refresh(deviceChoice) {
+  if (!ticket) {
+    let response;
+    try {
+      response = await fetch("/session", {method: "POST", headers: {"X-Mika-Desk": "open"}});
+    } catch {
+      throw {code: "desk_offline"};
+    }
+    if (!response.ok) throw {code: "session"};
+    ticket = (await response.json()).session;
+  }
   const next = deviceChoice === undefined ? await call("overview") : await call("select", {device: deviceChoice});
   $("pick").hidden = true;
   let task;
@@ -254,9 +264,4 @@ $("cancel").addEventListener("click", () => {
   });
 });
 
-if (ticket) work(refresh);
-else {
-  $("connection").textContent = "等待机主打开";
-  message("error", errors.session);
-  render();
-}
+work(refresh);
