@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.trace
 
+import com.wangzan101.mika.core.model.InferenceProtocol
 import com.wangzan101.mika.core.model.Message
 import com.wangzan101.mika.core.model.ModelReply
 import com.wangzan101.mika.core.model.Part
@@ -14,6 +15,8 @@ internal data class CapturedReply(val text: String, val truncation: String?)
 internal object TracePayload {
     const val MAX_BLOCK = 32_768
     private const val MASK = "[redacted]"
+    private val HIDDEN_TYPES = setOf("reasoning", "reasoning_content", "thinking", "redacted_thinking")
+    private val HIDDEN_FIELDS = setOf("encrypted_content", "reasoning_content", "thinking", "signature", "thoughtSignature", "thought_signature")
     private val headers = Regex("""(?im)\b(?:authorization|proxy-authorization|set-cookie|cookie)\s*:\s*[^\r\n]*""")
     private val url = Regex("""https?://[^\s"'<>]+""", RegexOption.IGNORE_CASE)
     private val userInfo = Regex("""(://)[^/?#\s]*@""")
@@ -34,7 +37,7 @@ internal object TracePayload {
         if (value.length <= 96) scrub(value).takeIf { it.matches(identifier) } ?: "other" else "other"
 
     /** Fingerprint the actual serialized blocks before redaction. Keep these digests in memory only. */
-    fun blocks(body: JsonObject, messages: List<Message>, verb: (String?) -> Verb?): List<RequestBlock> {
+    fun blocks(body: JsonObject, messages: List<Message>, verb: (String?) -> Verb?, protocol: InferenceProtocol): List<RequestBlock> {
         val images = messages.asSequence().flatMap { it.parts.asSequence() }.filterIsInstance<Part.Image>().iterator()
         val view = View(images, verb)
         return buildList {
@@ -44,10 +47,10 @@ internal object TracePayload {
                 val cleaned = view.clean(value).toString()
                 add(RequestBlock(path, digest, cleaned.take(MAX_BLOCK), view.reasonFor(cleaned)))
             }
-            for ((k, v) in body) if (k != "instructions" && k != "tools" && k != "input") block(k, v)
-            body["instructions"]?.let { block("instructions", it) }
+            for ((k, v) in body) if (k != protocol.instruction && k != "tools" && k != protocol.messages) block(k, v)
+            protocol.instruction?.let { path -> body[path]?.let { block(path, it) } }
             (body["tools"] as? JsonArray)?.forEachIndexed { i, v -> block("tools[$i]", v) }
-            (body["input"] as? JsonArray)?.forEachIndexed { i, v -> block("input[$i]", v) }
+            (body[protocol.messages] as? JsonArray)?.forEachIndexed { i, v -> block("${protocol.messages}[$i]", v) }
         }
     }
 
@@ -92,40 +95,63 @@ internal object TracePayload {
 
             fun str(key: String) = (v[key] as? JsonPrimitive)?.contentOrNull
             val type = str("type")
-            if (type == "input_image") {
+            val imageData = when (type) {
+                "input_image" -> str("image_url")
+                "image_url" -> (v["image_url"] as? JsonObject)?.text("url")
+                "image" -> (v["source"] as? JsonObject)?.text("data")
+                else -> (v["inlineData"] as? JsonObject)?.text("data")
+            }
+            if (imageData != null) {
                 val img = if (images.hasNext()) images.next() else null
                 return buildJsonObject {
-                    put("type", "input_image")
-                    put("width", img?.width ?: 0)
-                    put("height", img?.height ?: 0)
-                    put("sha256", str("image_url").orEmpty().encodeUtf8().sha256().hex())
+                    put("type", "input_image"); put("width", img?.width ?: 0); put("height", img?.height ?: 0)
+                    put("sha256", imageData.encodeUtf8().sha256().hex())
                 }
             }
-            if (type == "reasoning" || str("password") == "true" || str("isPassword") == "true" ||
-                type.equals("password", true)) return JsonPrimitive(MASK)
-            val callId = str("call_id")
-            if (type == "function_call" && callId != null) calls[callId] = verb(str("name"))
+            if (type in HIDDEN_TYPES || str("password") == "true" || str("isPassword") == "true" ||
+                type.equals("password", true) || str("thought") == "true") return JsonPrimitive(MASK)
+            fun arguments(name: String?, args: JsonElement): JsonElement {
+                val raw = (args as? JsonPrimitive)?.takeIf { it.isString }?.content ?: args.toString()
+                val safe = clean(parsed(Redactor.args(verb(name), raw, secretField = true)), depth + 1)
+                return if (args is JsonPrimitive && args.isString) encoded(raw, safe) else safe
+            }
+            fun result(op: Verb?, item: JsonElement): JsonElement {
+                val raw = (item as? JsonPrimitive)?.takeIf { it.isString }?.content
+                val value = raw?.let(::parsed) ?: item
+                val safe = when {
+                    op == Verb.AskUser -> JsonPrimitive(MASK)
+                    value is JsonObject -> clean(Redactor.result(op, value), depth + 1)
+                    else -> clean(value, depth + 1)
+                }
+                return if (raw == null) safe else encoded(raw, safe)
+            }
+            val callId = str("call_id") ?: str("id")
+            if (callId != null) {
+                val name = when (type) {
+                    "function_call", "tool_use" -> str("name")
+                    "function" -> (v["function"] as? JsonObject)?.text("name")
+                    else -> null
+                }
+                if (name != null) calls[callId] = verb(name)
+            }
             return JsonObject(v.mapValues { (key, item) ->
                 when {
-                    Redactor.secretName(key) || key == "encrypted_content" || key.contains("base64", ignoreCase = true) -> JsonPrimitive(MASK)
-                    key == "arguments" && type == "function_call" -> {
-                        val args = Redactor.args(calls[callId], str(key).orEmpty(), secretField = true)
-                        encoded(str(key).orEmpty(), clean(parsed(args), depth + 1))
-                    }
-                    key == "output" && type == "function_call_output" -> {
-                        val result = parsed(str(key).orEmpty())
-                        val operation = calls[callId]
-                        val safe = when {
-                            operation == Verb.AskUser -> JsonPrimitive(MASK)
-                            result is JsonObject -> clean(Redactor.result(operation, result), depth + 1)
-                            else -> clean(result, depth + 1)
-                        }
-                        encoded(str(key).orEmpty(), safe)
-                    }
+                    Redactor.secretName(key) || key in HIDDEN_FIELDS || key.contains("base64", ignoreCase = true) -> JsonPrimitive(MASK)
+                    key == "reasoning" && item !is JsonObject -> JsonPrimitive(MASK)
+                    key == "arguments" && (type == "function_call" || str("name") != null) -> arguments(str("name"), item)
+                    key == "input" && type == "tool_use" -> arguments(str("name"), item)
+                    key == "args" && str("name") != null -> arguments(str("name"), item)
+                    key == "output" && type == "function_call_output" -> result(calls[str("call_id")], item)
+                    key == "content" && type == "tool_result" -> result(calls[str("tool_use_id")], item)
+                    key == "content" && str("role") == "tool" -> result(calls[str("tool_call_id")], item)
+                    key == "response" && str("name") != null && item is JsonObject && "content" in item ->
+                        JsonObject(item.mapValues { (k, v) -> if (k == "content") result(verb(str("name")), v) else clean(v, depth + 1) })
                     else -> clean(item, depth + 1)
                 }
             })
         }
+
+        private fun JsonObject.text(key: String) = (get(key) as? JsonPrimitive)?.contentOrNull
 
         // Responses encodes arguments and tool output as strings, even when they contain JSON.
         private fun encoded(original: String, safe: JsonElement): JsonPrimitive {

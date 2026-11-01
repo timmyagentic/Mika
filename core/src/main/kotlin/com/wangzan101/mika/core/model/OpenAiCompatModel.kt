@@ -17,10 +17,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * OpenAI Chat Completions 兼容端点(DeepSeek/Qwen/Kimi/GLM/OpenRouter/本地服务等)。差异只放在 [capabilities]。
@@ -90,7 +88,7 @@ class OpenAiCompatModel(
         return stream.finish()
     }
 
-    private fun request(system: String, messages: List<Message>, tools: List<ToolSpec>, stream: Boolean, includeUsage: Boolean = true): Request {
+    private suspend fun request(system: String, messages: List<Message>, tools: List<ToolSpec>, stream: Boolean, includeUsage: Boolean = true): Request {
         val payload = buildJsonObject {
             put("model", model)
             reasoningEffort?.let { put("reasoning_effort", it) }
@@ -112,7 +110,7 @@ class OpenAiCompatModel(
             .withHeaders(headers)
             .header("Accept", if (stream) "text/event-stream" else "application/json")
             .apply { if (!apiKey.isNullOrEmpty()) header("Authorization", "Bearer $apiKey") }
-            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .postInference(InferenceProtocol.Chat, payload)
             .build()
     }
 
@@ -306,19 +304,7 @@ class OpenAiCompatModel(
         }
     }
 
-    private fun parseUsage(el: JsonElement?): Usage? {
-        val u = el as? JsonObject ?: return null
-        fun int(o: JsonObject?, k: String) = (o?.get(k) as? JsonPrimitive)?.intOrNull
-        // 兼容接口有两种命中字段名;按字段是否存在取值
-        val hit = int(u, "prompt_cache_hit_tokens")
-        val miss = int(u, "prompt_cache_miss_tokens")
-        val inT = int(u, "prompt_tokens") ?: if (hit != null && miss != null) hit + miss else return null
-        val outT = int(u, "completion_tokens") ?: 0
-        val cached = maxOf(int(u["prompt_tokens_details"] as? JsonObject, "cached_tokens") ?: 0, hit ?: 0).coerceAtMost(inT)
-        // completion_tokens 含思考;有的服务商在 completion_tokens_details.reasoning_tokens 里单独报
-        val reasoning = (int(u["completion_tokens_details"] as? JsonObject, "reasoning_tokens") ?: 0).coerceIn(0, outT)
-        return Usage(inT, outT, cached, reasoning)
-    }
+    private fun parseUsage(el: JsonElement?) = InferenceProtocol.Chat.usage(el)?.totals()
 }
 
 /** Chat Completions 的 delta 可以把同一个工具的名称与参数拆成多帧。 */
@@ -340,10 +326,11 @@ private class OpenAiStream(
     private var done = false
     private var chunks = 0
 
-    fun accept(data: String) {
+    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
         if (data == "[DONE]") { done = true; return }
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
+        parsed?.invoke(root)
         if (root["error"] != null) throw ModelError.BadResponse(root["error"].toString().take(200))
         chunks++
         usageOf(root["usage"])?.let { usage = it }

@@ -15,10 +15,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * Gemini generateContent 原生接口。
@@ -66,7 +64,7 @@ class GeminiModel(
         return stream.finish()
     }
 
-    private fun request(system: String, messages: List<Message>, tools: List<ToolSpec>, stream: Boolean): Request {
+    private suspend fun request(system: String, messages: List<Message>, tools: List<ToolSpec>, stream: Boolean): Request {
         val systemText = (listOf(system) + messages.filter { it.role == Role.System }
             .map { m -> m.parts.filterIsInstance<Part.Text>().joinToString("\n") { it.text } })
             .filter { it.isNotBlank() }.joinToString("\n\n")
@@ -97,7 +95,7 @@ class GeminiModel(
         return Request.Builder().url(if (stream) streamEndpoint else endpoint)
             .withHeaders(headers)
             .header("x-goog-api-key", apiKey)
-            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .postInference(InferenceProtocol.Gemini, payload)
             .build()
     }
 
@@ -234,14 +232,7 @@ class GeminiModel(
         }
     }
 
-    private fun parseUsage(el: JsonElement?): Usage? {
-        val u = el as? JsonObject ?: return null
-        fun n(k: String) = (u[k] as? JsonPrimitive)?.intOrNull
-        val inT = n("promptTokenCount") ?: return null
-        // promptTokenCount 已含缓存命中部分,与统一口径一致
-        val thoughts = n("thoughtsTokenCount") ?: 0
-        return Usage(inT, (n("candidatesTokenCount") ?: 0) + thoughts, n("cachedContentTokenCount") ?: 0, thoughts)
-    }
+    private fun parseUsage(el: JsonElement?) = InferenceProtocol.Gemini.usage(el)?.totals()
 }
 
 private class GeminiStream(
@@ -256,9 +247,10 @@ private class GeminiStream(
     private var usage: Usage? = null
     private var finishReason: String? = null
 
-    fun accept(data: String) {
+    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
+        parsed?.invoke(root)
         usageOf(root["usageMetadata"])?.let { usage = it }
         val candidate = (root["candidates"] as? JsonArray)?.firstOrNull() as? JsonObject ?: return
         (candidate["finishReason"] as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotEmpty)?.let { finishReason = it }

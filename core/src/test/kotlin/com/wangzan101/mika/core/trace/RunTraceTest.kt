@@ -10,9 +10,7 @@ import com.wangzan101.mika.core.tool.FakeScreen
 import com.wangzan101.mika.core.tool.Verb
 import com.wangzan101.mika.core.uistate.ScreenPort
 import io.opentelemetry.proto.trace.v1.Span
-import io.opentelemetry.proto.collector.trace.v1.ExportTracePartialSuccess
 import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest
-import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import okhttp3.OkHttpClient
@@ -85,22 +83,6 @@ class RunTraceTest {
             assertFalse(packet.toString().contains("PRIVATE_GOAL"))
             assertTrue(packet.toString().contains("gen_ai.usage.cache_read.input_tokens"))
 
-            server.enqueue(MockResponse().setResponseCode(200))
-            assertTrue(archive.send(server.url("/v1/traces").toString()))
-            val post = server.takeRequest()
-            assertEquals("POST", post.method)
-            assertEquals("/v1/traces", post.path)
-            assertEquals("application/x-protobuf", post.getHeader("Content-Type"))
-            assertNull(post.getHeader("Authorization"))
-            assertArrayEquals(binary, post.body.readByteArray())
-            val rejected = ExportTraceServiceResponse.newBuilder().setPartialSuccess(
-                ExportTracePartialSuccess.newBuilder().setRejectedSpans(1)).build()
-            server.enqueue(MockResponse().setBody(Buffer().write(rejected.toByteArray())))
-            assertFalse(archive.send(server.url("/v1/traces").toString()))
-            server.takeRequest()
-            server.enqueue(MockResponse().setResponseCode(403))
-            assertFalse(archive.send(server.url("/v1/traces").toString()))
-            server.takeRequest()
             val zip = ByteArrayOutputStream().also { archive.save(it, true) }.toByteArray()
             ZipInputStream(zip.inputStream()).use { stream ->
                 assertEquals("trace.pb", stream.nextEntry.name)
@@ -119,7 +101,7 @@ class RunTraceTest {
             {"type":"function_call","name":"phone_type_text","call_id":"c","arguments":"{\"text\":\"private_typed\"}"},
             {"type":"function_call_output","call_id":"c","output":"{\"password\":\"private_secret\",\"url\":\"https://bob:private_user@local/path?token=private_token\"}"},
             {"type":"message","content":[{"type":"input_image","image_url":"data:image/png;base64,aW1hZ2VkYXRh"}]}]}""").jsonObject
-        val blocks = TracePayload.blocks(body, messages) { Verb.TypeText }
+        val blocks = TracePayload.blocks(body, messages, { Verb.TypeText }, InferenceProtocol.Responses)
         val display = blocks.joinToString { it.text }
         for (secret in listOf("private_opaque","private_typed","private_secret","private_token","private_user","aW1hZ2VkYXRh"))
             assertFalse(secret, display.contains(secret))
@@ -137,7 +119,7 @@ class RunTraceTest {
             """{"input":["first"]}""", """{"input":["first","new"]}""", """{"input":["rewritten","new"]}"""
         ).withIndex()) {
             val span = request(n + 1, json)
-            completed += span.spanContext.spanId
+            completed += span.id
             trace.end(span, "ok", 100, 20, 5)
         }
         val pending = request(4, """{"input":["rewritten","new"]}""")
@@ -152,7 +134,7 @@ class RunTraceTest {
         assertEquals("partial", files.rows().first().status)
         assertEquals("partial", files.rows().last().status)
         assertEquals("call_wait", files.rows().last().toolCallId)
-        assertNull(files.rows().single { it.id == pending.spanContext.spanId }.cached)
+        assertNull(files.rows().single { it.id == pending.id }.cached)
     }
 
     @Test fun stopAndQuotaLeaveReadablePartialRunsAndLateCallbacksCannotResumeCapture() {
@@ -223,7 +205,7 @@ class RunTraceTest {
             file.writeBytes(b.build().toByteArray())
         }
         strip(File(dir, "case/root.pb"), "mika.trace.format_version")
-        val id = attempt.spanContext.spanId
+        val id = attempt.id
         strip(File(dir, "case/spans/$id.pb"), "mika.trace.reply_truncation")
         val manifest = File(dir, "case/requests/$id.json")
         manifest.writeText(JsonArray(Json.parseToJsonElement(manifest.readText()).jsonArray.map {

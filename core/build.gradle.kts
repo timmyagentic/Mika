@@ -1,4 +1,7 @@
+import com.google.protobuf.gradle.*
+
 plugins {
+    alias(libs.plugins.protobuf)
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
     // 沙箱路径契约测试放在 testFixtures,app 的 AndroidSandbox 也跑同一套
@@ -9,9 +12,25 @@ kotlin {
     jvmToolchain(17)
 }
 
+val traceSchemas by configurations.creating { isTransitive = false }
+val extractTraceSchemas by tasks.registering(Sync::class) {
+    from({ zipTree(traceSchemas.singleFile) }) {
+        include("opentelemetry/proto/common/v1/common.proto", "opentelemetry/proto/resource/v1/resource.proto",
+            "opentelemetry/proto/trace/v1/trace.proto", "opentelemetry/proto/collector/trace/v1/trace_service.proto")
+    }
+    into(layout.buildDirectory.dir("trace-schemas"))
+}
+sourceSets.main { proto.srcDir(extractTraceSchemas) }
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}" }
+    generateProtoTasks {
+        all().configureEach { builtins { named("java") { option("lite") } } }
+    }
+}
+
 dependencies {
-    implementation(libs.otel.sdk.trace)
-    implementation(libs.otel.proto)
+    implementation(libs.protobuf.lite)
+    traceSchemas(libs.otel.proto)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)

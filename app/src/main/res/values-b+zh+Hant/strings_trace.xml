@@ -20,11 +20,6 @@
     <string name="trace_attach">附帶脫敏正文</string>
     <string name="trace_attach_hint">僅在本機 ZIP 中附帶，儲存前可在上方檢查正文。</string>
     <string name="trace_save">儲存本次 Trace</string>
-    <string name="trace_send">透過 OTLP/HTTP 傳送</string>
-    <string name="trace_endpoint">接收位址</string>
-    <string name="trace_network_hint">只傳送呼叫關係、耗時、用量和差異位置。</string>
     <string name="trace_saved">Trace 已儲存</string>
-    <string name="trace_sent">接收端已接受</string>
-    <string name="trace_rejected">接收端拒收了部分或全部記錄</string>
     <string name="trace_failed">Trace 匯出失敗</string>
 </resources>

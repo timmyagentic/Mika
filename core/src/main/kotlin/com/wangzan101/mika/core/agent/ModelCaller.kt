@@ -200,7 +200,7 @@ internal class ModelCaller(
                         else -> null
                     }
                     overflowRewrote = false
-                    trace.modelCall(step, using, tools::verb, change) { send() }
+                    trace.modelCall(step, using, tools::verb, change, sent.messages) { send() }
                 }
                 return reply.also { r ->
                     lastOverhead[using] = overhead

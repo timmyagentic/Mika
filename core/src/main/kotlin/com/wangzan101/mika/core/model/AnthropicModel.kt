@@ -14,10 +14,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -110,7 +108,7 @@ class AnthropicModel(
         return thinkingType != "disabled" && opaque !in staleThinking && SignedThinking.block(p, endpoint) != null
     }
 
-    private fun request(system: String, messages: List<Message>, tools: List<ToolSpec>, stream: Boolean): Request {
+    private suspend fun request(system: String, messages: List<Message>, tools: List<ToolSpec>, stream: Boolean): Request {
         val systemText = (listOf(system) + messages.filter { it.role == Role.System }
             .map { m -> m.parts.filterIsInstance<Part.Text>().joinToString("\n") { it.text } })
             .filter { it.isNotEmpty() }.joinToString("\n\n")
@@ -143,7 +141,7 @@ class AnthropicModel(
             .withHeaders(headers)
             .header("x-api-key", apiKey)
             .header("anthropic-version", "2023-06-01")
-            .post(payload.toString().toRequestBody("application/json".toMediaType()))
+            .postInference(InferenceProtocol.Anthropic, payload)
             .build()
     }
 
@@ -265,14 +263,7 @@ class AnthropicModel(
         }
     }
 
-    private fun parseUsage(el: JsonElement?): Usage? {
-        val u = el as? JsonObject ?: return null
-        fun n(k: String) = (u[k] as? JsonPrimitive)?.intOrNull
-        val inT = n("input_tokens") ?: return null
-        val cached = n("cache_read_input_tokens") ?: 0
-        // Anthropic 的 input_tokens 不含缓存部分;统一成总输入口径。output_tokens 含思考但不单独报,reasoningTokens 记 0
-        return Usage(inT + cached + (n("cache_creation_input_tokens") ?: 0), n("output_tokens") ?: 0, cached)
-    }
+    private fun parseUsage(el: JsonElement?) = InferenceProtocol.Anthropic.usage(el)?.totals()
 }
 
 private class AnthropicStream(
@@ -293,9 +284,10 @@ private class AnthropicStream(
     private var reason: String? = null
     private var stopped = false
 
-    fun accept(data: String) {
+    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
+        parsed?.invoke(root)
         when ((root["type"] as? JsonPrimitive)?.contentOrNull) {
             "message_start" -> usage = usageOf((root["message"] as? JsonObject)?.get("usage"))
             "content_block_start" -> {

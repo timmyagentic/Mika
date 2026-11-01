@@ -107,9 +107,6 @@ private fun TraceExportControls(archive: TraceArchive) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var includeBody by rememberSaveable(archive.runId) { mutableStateOf(false) }
-    var showEndpoint by remember { mutableStateOf(false) }
-    var endpoint by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
     var result by rememberSaveable(archive.runId) { mutableIntStateOf(0) }
     val zip = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) scope.launch {
@@ -126,25 +123,7 @@ private fun TraceExportControls(archive: TraceArchive) {
     ListRow(MikaIcons.Doc, stringResource(R.string.trace_save), onClick = {
         if (includeBody) zip.launch("mika-trace-${archive.runId}.zip") else proto.launch("mika-trace-${archive.runId}.pb")
     }) { RowChevron() }
-    ListRow(null, stringResource(R.string.trace_send), stringResource(R.string.trace_network_hint),
-        onClick = if (busy) null else ({ showEndpoint = true })) { RowChevron() }
     if (result != 0) Text(stringResource(result), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MikaType.Hint)
-    if (showEndpoint) AlertDialog(onDismissRequest = { showEndpoint = false },
-        title = { Text(stringResource(R.string.trace_send)) },
-        text = { OutlinedTextField(endpoint, { endpoint = it }, singleLine = true,
-            label = { Text(stringResource(R.string.trace_endpoint)) }, placeholder = { Text("https://…/v1/traces") }) },
-        confirmButton = { TextButton(enabled = endpoint.isNotBlank(), onClick = {
-            showEndpoint = false
-            busy = true
-            scope.launch {
-                try {
-                    result = if (archive.send(endpoint)) R.string.trace_sent else R.string.trace_rejected
-                } catch (e: CancellationException) { throw e }
-                catch (_: Exception) { result = R.string.trace_failed }
-                finally { busy = false }
-            }
-        }) { Text(stringResource(R.string.trace_send)) } },
-        dismissButton = { TextButton(onClick = { showEndpoint = false }) { Text(stringResource(R.string.cancel)) } })
 }
 
 private suspend fun saveTrace(archive: TraceArchive, includeBody: Boolean, open: () -> java.io.OutputStream?): Int =

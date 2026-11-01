@@ -20,10 +20,7 @@ import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import java.io.ByteArrayOutputStream
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,14 +36,9 @@ class RunTraceDeviceTest {
         val app = compose.activity.application as MikaApp
         val previous = app.detailedTraces.enabled
         val previousLimit = app.detailedTraces.limitMiB
-        val received = LinkedBlockingQueue<ByteArray>()
         MockWebServer().use { server ->
             server.dispatcher = object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
-                    if (request.path == "/v1/traces") {
-                        received.add(request.body.readByteArray())
-                        return MockResponse().setResponseCode(200).setHeader("Content-Type", "application/x-protobuf")
-                    }
                     return MockResponse().setHeader("Content-Type", "application/json")
                     .setBody("""{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"完成"}]}],"usage":{"input_tokens":1200,"input_tokens_details":{"cached_tokens":512},"output_tokens":2}}""")
                 }
@@ -97,14 +89,9 @@ class RunTraceDeviceTest {
                 compose.onNodeWithText("详细 Trace").performScrollTo().performClick()
                 compose.onNodeWithText("输入 1200 · 缓存读取 512 · 未命中 688", substring = true).performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithText("保存本次 Trace").assertExists()
-                compose.onNodeWithText("通过 OTLP/HTTP 发送").performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
-                compose.onNode(hasSetTextAction()).performTextReplacement(server.url("/v1/traces").toString())
-                compose.onNode(hasText("通过 OTLP/HTTP 发送") and hasClickAction() and hasAnyAncestor(isDialog()))
-                    .performSemanticsAction(SemanticsActions.OnClick)
                 val run = com.wangzan101.mika.record.RunStore(app).list().first { "TRACE_FIXTURE" in it.goal }
                 val bytes = ByteArrayOutputStream().also { app.detailedTraces.store.archive(run.id)!!.save(it, false) }.toByteArray()
-                assertArrayEquals(bytes, received.poll(10, TimeUnit.SECONDS))
-                compose.waitUntil(10_000) { compose.onAllNodesWithText("接收端已接受").fetchSemanticsNodes().isNotEmpty() }
+                assertTrue(bytes.isNotEmpty() && "TRACE_FIXTURE" !in bytes.decodeToString())
             } finally {
                 app.detailedTraces.setEnabled(previous)
                 app.detailedTraces.setLimitMiB(previousLimit)

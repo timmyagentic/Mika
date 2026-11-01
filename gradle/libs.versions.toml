@@ -1,4 +1,5 @@
 [versions]
+protobuf = "4.36.2"
 kotlin = "2.1.20"
 agp = "8.7.3"
 composeBom = "2024.12.01"
@@ -17,7 +18,7 @@ commonmark = "0.30.1"
 mlkitTextRecognition = "16.0.1"
 
 [libraries]
-otel-sdk-trace = { module = "io.opentelemetry:opentelemetry-sdk-trace", version = "1.67.0" }
+protobuf-lite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 otel-proto = { module = "io.opentelemetry.proto:opentelemetry-proto", version = "1.11.1-alpha" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
@@ -46,6 +47,7 @@ mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-c
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 
 [plugins]
+protobuf = { id = "com.google.protobuf", version = "0.9.5" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

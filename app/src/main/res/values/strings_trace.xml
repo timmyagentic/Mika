@@ -20,11 +20,6 @@
     <string name="trace_attach">Include redacted text</string>
     <string name="trace_attach_hint">Local ZIP only. Review the request text above before saving.</string>
     <string name="trace_save">Save this trace</string>
-    <string name="trace_send">Send via OTLP/HTTP</string>
-    <string name="trace_endpoint">Traces endpoint</string>
-    <string name="trace_network_hint">Send timing, usage and differences only.</string>
     <string name="trace_saved">Trace saved</string>
-    <string name="trace_sent">Trace accepted</string>
-    <string name="trace_rejected">Spans rejected by receiver</string>
     <string name="trace_failed">Trace export failed</string>
 </resources>

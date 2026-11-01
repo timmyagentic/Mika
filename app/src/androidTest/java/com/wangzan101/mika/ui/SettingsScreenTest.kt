@@ -45,6 +45,7 @@ class SettingsScreenTest {
         mainModel: String? = "DeepSeek",
         onProblem: (Problem) -> Unit = {},
         opened: MutableList<String> = mutableListOf(),
+        showDeveloper: Boolean = true,
         usageTokens: Long? = 123_000,
     ) {
         compose.setContent {
@@ -56,7 +57,7 @@ class SettingsScreenTest {
                 webSitesCount = 3, onOpenWebSites = { opened += "web" },
                 sandbox = SandboxStatus.Ready(network = false), onOpenSandbox = { opened += "sandbox" },
                 routes = 8, onOpenRoutes = { opened += "routes" }, onOpenRecovery = { opened += "recovery" },
-                onOpenDeveloper = { opened += "dev" },
+                showDeveloper = showDeveloper, onOpenDeveloper = { opened += "dev" },
                 versionName = "0.1.0", onOpenAbout = { opened += "about" },
             )
         }
@@ -110,20 +111,11 @@ class SettingsScreenTest {
         compose.onAllNodesWithText("Token 用量").assertCountEquals(0)
     }
 
+    /** 发布版不显示开发者选项。 */
     @Test
-    fun releaseDeveloperOptionsOnlyOffersTrace() {
-        var enabled by mutableStateOf(false)
-        compose.setContent {
-            DeveloperOptionsScreen(SpeedFlags.OFF, onSpeed = {}, onBack = {}, showDebugOptions = false,
-                grounding = GroundingSetting("vision", true), onOpenRunStats = {},
-                traceEnabled = enabled, onTrace = { enabled = it })
-        }
-        for (title in listOf(AutonomyCopy.TITLE, "速度", "实验", GroundingCopy.TITLE, RunMetricsCopy.STATS_TITLE)) {
-            compose.onNodeWithText(title).assertDoesNotExist()
-        }
-        compose.onNodeWithTag("dev-trace").assertIsOff()
-        compose.onNodeWithText("记录详细 Trace").performClick()
-        compose.onNodeWithTag("dev-trace").assertIsOn().performClick().assertIsOff()
+    fun developerRowHiddenInRelease() {
+        home(showDeveloper = false)
+        compose.onAllNodesWithText("开发者选项").assertCountEquals(0)
     }
 
     /** 有问题时状态卡变成提示,按钮把问题交给 onProblem。 */
