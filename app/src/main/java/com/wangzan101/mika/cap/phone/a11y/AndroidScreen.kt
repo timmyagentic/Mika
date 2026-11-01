@@ -60,7 +60,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.take
@@ -103,6 +109,10 @@ class AndroidScreen(
     private val pacing: GesturePacing = GesturePacing.human(),
     /** 在这个包名的 App 里打字的节奏(见 [TypingPacing]);默认一次写入全文。 */
     private val typing: (String?) -> TypingPacing = { TypingPacing.Instant },
+    /** 发出启动之前:要开的是 [packageName](装在 [user] 那份用户里的;null 为本来那份)。任务服务据此先静上,开头就没声。 */
+    private val beforeOpen: (packageName: String, user: Int?) -> Unit = { _, _ -> },
+    /** 启动被拒、没开出来:撤回 [beforeOpen] 提前做的。 */
+    private val notOpened: (packageName: String, user: Int?) -> Unit = { _, _ -> },
 ) : ScreenPort {
     /** 屏还没建时为 -1;只在确认屏已建好之后用。 */
     private val displayId get() = display.current?.displayId ?: -1
@@ -177,6 +187,21 @@ class AndroidScreen(
         if (task < 0) return null
         return runCatching { shell.packageOfTask(task) }.getOrNull()?.takeIf { it.isNotBlank() }
     }
+
+    /**
+     * Mika 屏上最上面的那个 App(包名、任务、所属用户),每换一个给一次:订阅时先给一次,之后窗口一变(开了新页面、
+     * 从别的 App 里点开了另一个 App、另一份顶上来)就重读。屏还没建、没有任务时不给。在调用方的线程上问内置助手。
+     */
+    fun foregroundApps(): Flow<TargetApp> = flow {
+        emit(Unit)
+        emitAll(a11y.windowChanges())
+    }.conflate().mapNotNull {
+        if (!opened) return@mapNotNull null
+        val task = runCatching { shell.topTaskId(displayId) }.getOrDefault(-1)
+        if (task < 0) return@mapNotNull null
+        val pkg = runCatching { shell.packageOfTask(task) }.getOrNull()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+        TargetApp(pkg, task, userOf(task))
+    }.distinctUntilChanged { a, b -> a.packageName == b.packageName && a.userId == b.userId }
 
     override suspend fun screenshotPng(): ByteArray? = withContext(Dispatchers.IO) { display.current?.latestFramePng() }
 
@@ -621,6 +646,7 @@ class AndroidScreen(
         // 打开前最上面的窗口:之后冒出来的才可能是这次打开引起的选择框(上次没选、又打开一次时还是同一个选择框)
         val before = if (opened) topWindowPackage().takeIf { it != chooserPackage } else null
         val id = display.get().displayId
+        beforeOpen(packageName, user)
         fun launch() = when {
             user != null -> shell.startAppInUser(id, packageName, user, cold)
             cold -> shell.restartApp(id, packageName)
@@ -632,6 +658,7 @@ class AndroidScreen(
             delay(IN_USE_POLL_MS)
             code = launch()
         }
+        if (code != ShellService.START_OK && code != ShellService.START_OK_COLD_IGNORED) notOpened(packageName, user)
         when (code) {
             ShellService.START_OK, ShellService.START_OK_COLD_IGNORED -> Unit
             ShellService.START_IN_USE_ON_MAIN -> return@withContext ActionResult.Failed("app_in_use_by_user")
@@ -655,7 +682,10 @@ class AndroidScreen(
         }
         val before = if (opened) topWindowPackage().takeIf { it != chooserPackage } else null
         val id = display.get().displayId
-        when (runCatching { shell.startShare(id, packageName, text) }.getOrDefault(ShellService.START_ERROR)) {
+        beforeOpen(packageName, null)
+        val code = runCatching { shell.startShare(id, packageName, text) }.getOrDefault(ShellService.START_ERROR)
+        if (code != ShellService.START_OK) notOpened(packageName, null)
+        when (code) {
             ShellService.START_OK -> Unit
             ShellService.START_IN_USE_ON_MAIN -> return@withContext ActionResult.Failed("app_in_use_by_user")
             ShellService.START_IN_USE_BY_OTHER -> return@withContext IN_USE_BY_OTHER
@@ -805,7 +835,12 @@ class AndroidScreen(
         if (checkOtherTasks && expected != null && !reserve(expected)) return@withContext IN_USE_BY_OTHER
         val before = ScreenReader.topPackage(windows())
         val beforeTree = treeHash()
-        when (shell.startView(id, action, uri, packageName)) {
+        // 事先知道由谁打开的(指定了 App、设置页、只有一个 App 接的链接):启动前先静上
+        val early = expected ?: linkHandler(action, uri)
+        early?.let { beforeOpen(it, null) }
+        val code = shell.startView(id, action, uri, packageName)
+        if (code != ShellService.START_OK) early?.let { notOpened(it, null) }
+        when (code) {
             ShellService.START_OK -> Unit
             ShellService.START_IN_USE_ON_MAIN -> return@withContext ActionResult.Failed("app_in_use_by_user")
             ShellService.START_IN_USE_BY_OTHER -> return@withContext IN_USE_BY_OTHER
@@ -833,6 +868,13 @@ class AndroidScreen(
         }
         ok(hint = if (expected != null && top != expected) hintLinkElsewhere(top, expected) else null)
     }
+
+    /** 没指定 App 的链接由谁打开:系统直接定下的那一个;要问用户选(落在系统选择器)或读不到为 null。 */
+    private fun linkHandler(action: String?, uri: String?): String? = runCatching {
+        if (action != null || uri == null) return null
+        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri)).addCategory(Intent.CATEGORY_BROWSABLE)
+        a11y.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+    }.getOrNull()?.takeIf { it !in systemPickers }
 
     private fun hintLinkElsewhere(top: String?, expected: String) =
         "The link opened, but the screen shows ${top ?: "no app yet"} instead of $expected: a system chooser or a redirect page may have taken it. Observe before acting."
@@ -879,7 +921,11 @@ class AndroidScreen(
         val w = armSpillWatch()
         // 接手的页面要求的权限(设闹钟)shell 可能没有:备一个以 Mika 身份启动的
         val asMika = PendingIntent.getActivity(a11y, SYSTEM_ACTION_REQUEST, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        when (runCatching { shell.startSystemAction(id, intent, asMika) }.getOrDefault(ShellService.START_ERROR)) {
+        // 悄悄设好的(闹钟、计时器)不开界面,不去静它:时钟到点要响
+        if (!action.silent) beforeOpen(pkg, null)
+        val code = runCatching { shell.startSystemAction(id, intent, asMika) }.getOrDefault(ShellService.START_ERROR)
+        if (code != ShellService.START_OK && !action.silent) notOpened(pkg, null)
+        when (code) {
             ShellService.START_OK -> Unit
             ShellService.START_IN_USE_ON_MAIN -> return@withContext SystemActionResult(ActionResult.Failed("app_in_use_by_user"), pkg)
             ShellService.START_IN_USE_BY_OTHER -> return@withContext SystemActionResult(IN_USE_BY_OTHER, pkg)

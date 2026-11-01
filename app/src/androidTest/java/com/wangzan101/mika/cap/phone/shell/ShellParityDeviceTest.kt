@@ -129,6 +129,7 @@ class ShellParityDeviceTest {
         assertNotNull("display ${s.id} still present", pollUntil(3_000) { true.takeIf { dm.getDisplay(s.id) == null } })
     }
 
+    /** 只释放屏(不经 finishDisplay 挪走留下的)时,屏上的任务随屏关掉;任务结束时的去留见 [AppsAfterTaskDeviceTest]。 */
     @Test
     fun releaseDisplayDestroysTasksOnIt() {
         val s = newScreen()

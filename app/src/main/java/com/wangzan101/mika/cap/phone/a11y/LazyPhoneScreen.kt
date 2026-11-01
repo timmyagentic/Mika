@@ -1,6 +1,7 @@
 package com.wangzan101.mika.cap.phone.a11y
 
 import com.wangzan101.mika.core.uistate.ActionResult
+import com.wangzan101.mika.core.uistate.AfterTaskMarks
 import com.wangzan101.mika.core.uistate.AppCopy
 import com.wangzan101.mika.core.uistate.ScreenCheck
 import com.wangzan101.mika.core.uistate.ScreenPort
@@ -33,6 +34,9 @@ class LazyPhoneScreen(
 ) : ScreenPort {
     private val lock = Mutex()
     @Volatile private var port: ScreenPort? = null
+
+    /** 模型标下的任务结束时各 App 的去留;收尾时由任务交给内置助手执行(没接上过手机就没有可处理的)。 */
+    override val afterTask = AfterTaskMarks()
 
     /** 本任务用过手机(已接上)。 */
     val acquired: Boolean get() = port != null

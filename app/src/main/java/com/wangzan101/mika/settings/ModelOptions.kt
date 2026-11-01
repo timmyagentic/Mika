@@ -8,6 +8,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * 列表里的一个可选模型。[capabilities] 是合并后的能力:接口给了的照用,没给的沿用预设的初值;
  * [toolCallsKnown]、[visionKnown] 记下哪些是接口明确说的(界面上据此标「未确认」)。
  * [chat] 是接口说没说它是对话模型(见 [ListedModel.chat]),没说为 null。
+ * [typed] 为真是不在列出的模型里、用户手填的(界面上标「手填」)。
  */
 data class ModelOption(
     val id: String,
@@ -17,6 +18,7 @@ data class ModelOption(
     val contextKnown: Boolean,
     val displayName: String = "",
     val chat: Boolean? = null,
+    val typed: Boolean = false,
 ) {
     /** 供参考的能力标记;用户选模型时不按它们过滤。 */
     val canBeMain: Boolean get() = capabilities.toolCalls
@@ -97,16 +99,22 @@ object ModelOptions {
 
     /**
      * 一个服务商可选的全部模型:记住的列表(合并能力初值;已有配置的用配置里的能力),
-     * 再加上已有配置、但列表里没有的模型(例如手动填的)。
+     * 再加上已有配置、但列表里没有的模型(例如手动填的),和手填过、还没有配置的([Provider.typedModels])。
      */
     fun ofProvider(p: Provider, configs: List<ProviderConfig>): List<ModelOption> {
         val saved = configs.filter { it.providerId == p.id }
         val byModel = saved.associateBy { it.model }
         val listed = merge(p.models.orEmpty(), baseOf(p)).map { o -> byModel[o.id]?.let { o.copy(capabilities = it.capabilities) } ?: o }
         val rest = saved.filter { c -> listed.none { it.id == c.model } }.map {
-            ModelOption(it.model, it.capabilities, toolCallsKnown = false, visionKnown = false, contextKnown = false)
+            // 列不出模型的那家,模型都是手填的;有列表的,列表后来没了的那个不算手填
+            val typed = it.model in p.typedModels || p.models?.isEmpty() == true
+            ModelOption(it.model, it.capabilities, toolCallsKnown = false, visionKnown = false, contextKnown = false, typed = typed)
         }
-        return listed + rest
+        // 手填过、还没用在哪个用途上的(没有配置):照样列出来,能力按这家的初值
+        val typed = p.typedModels.filter { m -> listed.none { it.id == m } && rest.none { it.id == m } }.sorted().map {
+            ModelOption(it, baseOf(p), toolCallsKnown = false, visionKnown = false, contextKnown = false, typed = true)
+        }
+        return listed + rest + typed
     }
 }
 

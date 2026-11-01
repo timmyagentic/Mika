@@ -69,6 +69,8 @@
     <string name="fail_connect_body">找不到无线调试的端口。可以：关掉再打开「无线调试」后重试；换用手机热点或家里的 Wi-Fi；或在下面手动填端口。</string>
     <string name="fail_revoked">配对失效了</string>
     <string name="fail_revoked_body">可能很久没用被系统收回了,或者在系统里删掉了。重新配对一次就好。在开发者选项里打开「停用 adb 授权超时功能」,以后就不会再失效。</string>
+    <string name="fail_key_unreadable">配对用的密钥读不出来了</string>
+    <string name="fail_key_unreadable_body">Mika 读不出配对时用的那把密钥了，需要重新配对一次。重新配对会换一把新的，系统「已配对的设备」里旧的那条 mika@… 可以删掉。</string>
     <string name="fail_helper">连上了,但没能准备好</string>
     <string name="fail_helper_body">通常重试一次就好。</string>
     <string name="fail_unknown">出了点问题</string>

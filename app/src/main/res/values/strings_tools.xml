@@ -28,6 +28,7 @@
     <string name="tool_switch_tab">Switch tab</string>
     <string name="tool_switch_version">Switch page version</string>
     <string name="tool_keep_page">Keep page open</string>
+    <string name="tool_app_after_task">Choose whether the app stays open afterwards</string>
     <string name="tool_read_page">Read web page</string>
     <string name="tool_downloads">Check downloads</string>
     <string name="tool_network">Check page network data</string>

@@ -272,6 +272,11 @@ interface ScreenPort {
     /** 能打开的另一份 App(装在分身、工作资料一类的另一份用户里,规则见 [AppCopies]);查不到或不支持时为空。 */
     suspend fun appCopies(): List<AppCopy> = emptyList()
 
+    /**
+     * 任务结束时这份 App 怎么办(见 [AfterTaskMarks]):只记下,此刻什么也不动。不支持的端口(没有任务结束时的去留)为 null。
+     */
+    val afterTask: AfterTaskMarks? get() = null
+
     /** 屏幕诊断;端口不支持时为 null,由调用方按元素列表粗判。 */
     suspend fun checkScreen(): ScreenCheck? = null
 

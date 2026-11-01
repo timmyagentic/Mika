@@ -46,6 +46,10 @@
     <string name="model_manual_name">模型名</string>
     <string name="model_no_list_custom">這個網址列不出模型：可能這家不提供模型列表，也可能網址或介面型別填錯了。填一個模型名再點「測試並儲存」，用它試呼叫一次就知道。</string>
     <string name="model_no_list_preset">這家沒有列出模型。填一個模型名再點「測試並儲存」，用它試呼叫一次，通了才儲存。</string>
+    <string name="model_manual_on">手動填寫模型名</string>
+    <string name="model_manual_off">不填模型名</string>
+    <string name="model_manual_note">填了模型名，「測試並儲存」就只用它試呼叫：這家不提供模型列表、列表裡沒有它、列模型出錯都不影響，試呼叫通了才儲存。</string>
+    <string name="cap_typed">手填</string>
     <string name="model_example_gemini">例如 gemini-flash-latest</string>
     <string name="model_example_anthropic">例如 claude-sonnet-4-5</string>
     <string name="model_example_openai">例如 gpt-5-mini</string>

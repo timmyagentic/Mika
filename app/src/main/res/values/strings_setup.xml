@@ -46,6 +46,10 @@
     <string name="model_manual_name">Model name</string>
     <string name="model_no_list_custom">No models could be listed at this address. The provider may not offer a model list, or the address or interface type may be wrong. Enter a model name and tap “Test and save” again; one test call will tell.</string>
     <string name="model_no_list_preset">This provider didn’t list any models. Enter a model name and tap “Test and save” again; it’s saved only if a test call with it works.</string>
+    <string name="model_manual_on">Enter a model name yourself</string>
+    <string name="model_manual_off">Don’t enter a model name</string>
+    <string name="model_manual_note">With a model name filled in, “Test and save” tries only that model: it works even if this provider has no model list, the list lacks it, or listing fails. It’s saved only if the test call works.</string>
+    <string name="cap_typed">Typed in</string>
     <string name="model_example_gemini">e.g. gemini-flash-latest</string>
     <string name="model_example_anthropic">e.g. claude-sonnet-4-5</string>
     <string name="model_example_openai">e.g. gpt-5-mini</string>

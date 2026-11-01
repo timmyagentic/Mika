@@ -49,5 +49,7 @@
                 <data android:scheme="mika-parity" />
             </intent-filter>
         </activity>
+        <!-- 一直在出声(循环播放无声的声音)的探针页:任务结束时正在出声的 App 默认关掉 -->
+        <activity android:name="com.wangzan101.mika.shell.AudioProbeActivity" android:exported="true" />
     </application>
 </manifest>

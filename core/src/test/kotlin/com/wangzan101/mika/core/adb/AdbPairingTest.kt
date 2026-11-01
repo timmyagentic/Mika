@@ -158,23 +158,41 @@ class AdbIdentityTest {
     }
 
     @Test
-    fun wrappedKeyFileRoundTripAndLoadOrCreate() {
+    fun wrappedKeyFileRoundTripAndIdentitySource() {
         val dir = Files.createTempDirectory("adbkey").toFile()
         val aes = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
-        val store = WrappedKeyFile(java.io.File(dir, "k.bin")) { aes }
+        val file = java.io.File(dir, "k.bin")
+        val store = WrappedKeyFile(file) { aes }
         assertNull(store.read())
-        val a = AdbIdentity.loadOrCreate(store, "mika@x")
-        val raw = java.io.File(dir, "k.bin").readBytes()
+        val a = AdbIdentitySource(store, { "mika@x" }).forConnect()
+        val raw = file.readBytes()
         assertTrue("not stored in clear", !String(raw, Charsets.ISO_8859_1).contains(String(a.keyPair.private.encoded.copyOfRange(30, 60), Charsets.ISO_8859_1)))
-        val b = AdbIdentity.loadOrCreate(store, "mika@x")
+        // 另一个进程(新的来源)读回同一把
+        val b = AdbIdentitySource(store, { "mika@x" }).forConnect()
         assertEquals(a.publicKey, b.publicKey)
         assertEquals(a.adbPublicKey, b.adbPublicKey)
 
-        // 换了包装密钥(如 Keystore 被清)就读不出,重新生成
+        // 换了包装密钥(如 Keystore 被清)就读不出:报出来,不换钥匙、不动文件
         val other = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
-        val c = AdbIdentity.loadOrCreate(WrappedKeyFile(java.io.File(dir, "k.bin")) { other }, "mika@x")
-        assertTrue(c.publicKey != a.publicKey)
+        val otherStore = WrappedKeyFile(file) { other }
+        assertThrows(AdbKeyUnreadableException::class.java) { otherStore.read() }
+        val src = AdbIdentitySource(otherStore, { "mika@x" })
+        assertThrows(AdbKeyUnreadableException::class.java) { src.forConnect() }
+        assertEquals(AdbKeyState.Unreadable, src.state)
+        assertArrayEquals(raw, file.readBytes())
         store.clear()
         assertNull(store.read())
+    }
+
+    @Test
+    fun wrappedKeyFileThatIsEmptyOrTruncatedIsUnreadableNotAbsent() {
+        val dir = Files.createTempDirectory("adbkey").toFile()
+        val aes = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+        val file = java.io.File(dir, "k.bin")
+        val store = WrappedKeyFile(file) { aes }
+        file.writeBytes(ByteArray(0))
+        assertThrows(AdbKeyUnreadableException::class.java) { store.read() }
+        file.writeBytes(byteArrayOf(12, 1, 2, 3))
+        assertThrows(AdbKeyUnreadableException::class.java) { store.read() }
     }
 }

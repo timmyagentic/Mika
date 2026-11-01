@@ -1291,6 +1291,7 @@ class ToolLabels(private val tools: ToolIndex, private val legacy: LegacyNames =
             "切换网页标签" to R.string.tool_switch_tab,
             "切换网页版本" to R.string.tool_switch_version,
             "保持网页开着" to R.string.tool_keep_page,
+            "定下 App 做完后留着还是关掉" to R.string.tool_app_after_task,
             "读网页" to R.string.tool_read_page,
             "查看下载" to R.string.tool_downloads,
             "查看网页收到的数据" to R.string.tool_network,

@@ -597,7 +597,8 @@ class ModelSetupViewModelTest {
         vm.pick(ModelRole.Main, p.id, " qwen3 "); runCurrent()
         assertEquals("qwen3", store.configFor(ModelRole.Main)?.model)
         assertTrue(vm.state.value.canNext)
-        assertEquals(listOf("qwen3"), vm.state.value.options(vm.state.value.providers.single()).map { it.id })
+        // 手填过的 chatty 没当上主模型也记着,选的时候还在
+        assertEquals(listOf("qwen3", "chatty"), vm.state.value.options(vm.state.value.providers.single()).map { it.id })
     }
 
     @Test fun pickerListsProvidersWithoutRememberedListOnce() = runTest {
@@ -686,5 +687,93 @@ class ModelSetupViewModelTest {
         vm.selectPreset("DeepSeek")
         assertEquals("", vm.state.value.form.name)
         assertEquals("DeepSeek", vm.state.value.form.copy(name = "别的名字").providerName)
+    }
+
+    /**
+     * 手填模型名不看列表的结果:列得出(没有它)、列出空表、没有列表接口、Key 不对、服务端出错、回的不是 JSON,
+     * 都只用手填的那个试调用;试调用通了才存,记为手填。
+     */
+    private fun TestScope.typedModelIsProbedWhatever(listed: ModelListResult) {
+        val url = "https://relay.example.com/v1"
+        listing[url] = listed
+        val store = store()
+        val vm = vm(store)
+        vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("k")
+        assertFalse("没点之前不显示模型名", vm.state.value.form.showModel)
+        vm.setManual(true)
+        assertTrue(vm.state.value.form.showModel)
+        vm.setModel(" plan-model ")
+        vm.testAndSave(); runCurrent()
+        assertEquals("只试手填的那个", listOf("plan-model"), built.map { it.first })
+        val p = store.providers.value.single()
+        assertEquals(setOf("plan-model"), p.verifiedModels)
+        assertEquals(setOf("plan-model"), p.typedModels)
+        assertEquals("plan-model", store.configFor(ModelRole.Main)?.model)
+        assertTrue(vm.state.value.options(p).single { it.id == "plan-model" }.typed)
+        assertFalse(vm.state.value.showForm)
+    }
+
+    @Test fun typedModelWithAListThatLacksIt() = runTest { typedModelIsProbedWhatever(deepseek) }
+    @Test fun typedModelWithAnEmptyList() = runTest { typedModelIsProbedWhatever(ModelListResult.Ok(emptyList())) }
+    @Test fun typedModelWithoutAListEndpoint() = runTest { typedModelIsProbedWhatever(ModelListResult.Failed(ListFailure.NotSupported)) }
+    @Test fun typedModelWhenListingSaysTheKeyIsWrong() = runTest { typedModelIsProbedWhatever(ModelListResult.Failed(ListFailure.Auth)) }
+    @Test fun typedModelWhenListingHitsAServerError() = runTest { typedModelIsProbedWhatever(ModelListResult.Failed(ListFailure.Server, "HTTP 500")) }
+    @Test fun typedModelWhenListingIsNotJson() = runTest { typedModelIsProbedWhatever(ModelListResult.Failed(ListFailure.BadResponse)) }
+
+    /** 列模型出错、没手填:照实说原因(Key 不对就说 Key 不对),展开模型名一栏,填了再测还是要试调用通过。 */
+    @Test fun listErrorShowsTheReasonAndOpensTheModelField() = runTest {
+        for ((i, failure) in listOf(ListFailure.Auth, ListFailure.Server, ListFailure.BadResponse).withIndex()) {
+            val url = "https://relay$i.example.com/v1"
+            listing[url] = ModelListResult.Failed(failure)
+            val store = store()
+            val vm = vm(store)
+            vm.selectPreset(ProviderPresets.custom.label); vm.setBaseUrl(url); vm.setApiKey("k")
+            vm.testAndSave(); runCurrent()
+            val f = vm.state.value.form
+            assertEquals(ListState.Failed(failure.text), f.test)
+            assertTrue("出错后可以手填", f.showModel)
+            assertTrue(store.providers.value.isEmpty())
+            // 试调用也说 Key 不对:不存
+            reply = { throw ModelError.Auth() }
+            vm.setModel("plan-model"); vm.testAndSave(); runCurrent()
+            assertTrue(vm.state.value.form.test is ListState.Failed)
+            assertTrue(store.providers.value.isEmpty())
+            reply = { ModelReply(listOf(Part.ToolCall("c1", "get_time", "{}")), StopReason.ToolUse, null) }
+            vm.closeForm()
+        }
+    }
+
+    /** 列表里就有手填的那个:只试它,不标手填。 */
+    @Test fun typedModelThatIsListedIsNotMarkedTyped() = runTest {
+        listing[deepseekUrl] = deepseek
+        val store = store()
+        val vm = vm(store)
+        vm.setApiKey("sk"); vm.setManual(true); vm.setModel("deepseek-reasoner"); vm.testAndSave(); runCurrent()
+        assertEquals(listOf("deepseek-reasoner"), built.map { it.first })
+        val p = store.providers.value.single()
+        assertEquals(emptySet<String>(), p.typedModels)
+        assertEquals("deepseek-reasoner", store.configFor(ModelRole.Main)?.model)
+        // 收起「手动填写」就不用填的那个
+        vm.openForm(); vm.setApiKey("sk"); vm.setManual(true); vm.setModel("x"); vm.setManual(false)
+        assertEquals("", vm.state.value.form.typedModel)
+    }
+
+    /** 选择页里有列表的那家也能手填;通了记为手填,刷新列表后还在,标「手填」。 */
+    @Test fun pickerAllowsTypingAModelForAListedProvider() = runTest {
+        val store = store()
+        val p = store.connect("DeepSeek", ProviderConfig.Kind.OpenAiCompat, deepseekUrl, "sk", deepseek.models)
+        val vm = vm(store)
+        runCurrent()
+        vm.pickManual(ModelRole.Light, p.id, "deepseek-v9"); runCurrent()
+        assertEquals(setOf("deepseek-v9"), store.provider(p.id)?.typedModels)
+        assertEquals("存进文件", setOf("deepseek-v9"), store().provider(p.id)?.typedModels)
+        store.rememberModels(p.id, deepseek.models)
+        vm.pick(ModelRole.Light, p.id, "deepseek-chat"); runCurrent()
+        val options = vm.state.value.options(store.provider(p.id)!!)
+        assertTrue(options.single { it.id == "deepseek-v9" }.typed)
+        assertFalse(options.single { it.id == "deepseek-chat" }.typed)
+        // 选列表里的不记为手填
+        vm.pickManual(ModelRole.Main, p.id, "deepseek-chat"); runCurrent()
+        assertEquals(setOf("deepseek-v9"), store.provider(p.id)?.typedModels)
     }
 }

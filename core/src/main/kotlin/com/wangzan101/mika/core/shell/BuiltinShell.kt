@@ -36,6 +36,8 @@ enum class BuiltinShellFailure(val defaultFix: BuiltinShellFix, val duringPairin
     ConnectFailed(BuiltinShellFix.Retry, duringPairing = false),
     /** 已配对的授权不认了(太久没用被系统撤销,或用户在系统里删了)。 */
     AuthorizationRevoked(BuiltinShellFix.RePair, duringPairing = false),
+    /** 配对用的钥匙存着却读不出来了:设备只认那一把,不能悄悄换,要重新配对(配对时才换新钥匙)。 */
+    KeyUnreadable(BuiltinShellFix.RePair, duringPairing = false),
     /** 连上了,助手却没能启动或交接。 */
     HelperStartFailed(BuiltinShellFix.Retry, duringPairing = false),
     /**

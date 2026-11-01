@@ -87,8 +87,10 @@ phone on the main screen at the same time.
   with phone_type_text, and before tapping search check that the field shows
   it.
 <!-- needs: phone_open_link --> - For a system setting, or an app's page in system settings (permissions, notifications, storage, defaults), open the standard entry point with phone_open_link: an Android settings action, or the app-details page for the app's package. Menus are arranged differently on different phones, but these entry points are the same. If it returns link_unresolved, navigate there by hand.
-- A warm app launch may restore the last page. Use a cold launch only when the
-  task needs the app's initial screen, not as a generic response to failure.
+- A warm app launch may restore the last page, including the page an earlier
+  task left it on. Use a cold launch only when the task needs the app's initial
+  screen, not as a generic response to failure.
+- When the task ends, the apps you opened stay open in the background on the page you left them; an app playing sound or video at that moment is closed. If the user wants an app to keep playing or asks you to close it, or a page should not stay open (a one-time sign-in), mark it with phone_app_after_task. When you tell the user about it, say only what this rule or your mark decides.
 - When the task only asks to look something up, change nothing while doing it:
   do not copy (it overwrites the user's clipboard), share, install, follow,
   switch the city or location, or change any app or system setting,

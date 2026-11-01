@@ -372,8 +372,10 @@ phone on the main screen at the same time.
   with phone_type_text, and before tapping search check that the field shows
   it.
 - For a system setting, or an app's page in system settings (permissions, notifications, storage, defaults), open the standard entry point with phone_open_link: an Android settings action, or the app-details page for the app's package. Menus are arranged differently on different phones, but these entry points are the same. If it returns link_unresolved, navigate there by hand.
-- A warm app launch may restore the last page. Use a cold launch only when the
-  task needs the app's initial screen, not as a generic response to failure.
+- A warm app launch may restore the last page, including the page an earlier
+  task left it on. Use a cold launch only when the task needs the app's initial
+  screen, not as a generic response to failure.
+- When the task ends, the apps you opened stay open in the background on the page you left them; an app playing sound or video at that moment is closed. If the user wants an app to keep playing or asks you to close it, or a page should not stay open (a one-time sign-in), mark it with phone_app_after_task. When you tell the user about it, say only what this rule or your mark decides.
 - When the task only asks to look something up, change nothing while doing it:
   do not copy (it overwrites the user's clipboard), share, install, follow,
   switch the city or location, or change any app or system setting,
@@ -398,7 +400,7 @@ phone on the main screen at the same time.
 - If back does not change the page, use the page's own back control instead
   of pressing back again.
 
-==== tools (49) ====
+==== tools (50) ====
 ## wait
 Wait briefly for an app to load or an animation to finish.
 {"type":"object","properties":{"seconds":{"type":"number","description":"0.2-10 seconds.","minimum":0.2,"maximum":10},"reason":{"type":"string","description":"Optional short note on why you are calling this, in the user's language; shown to the user as the step label."}},"required":["seconds"],"additionalProperties":false}
@@ -563,6 +565,10 @@ List apps installed for the current user as package + label. Use an exact return
 ## phone_launch_app
 Open an installed app on the phone's virtual display by exact package name, and wait until it is in the foreground. To open another copy of the app (a clone or work-profile copy), also pass user from that copy's phone_list_apps entry; leave it out for the main app. Set cold=true to restart it from its initial screen. If the app does not reach the foreground, it returns ok:false with what is there instead; if it is in the foreground but its window cannot be read, the result says so: do not launch it again. If the system asks which one to open (an app installed twice, as main and clone), it returns ok:true with chooser: tap the option the user meant, otherwise the main one, and do not launch again.
 {"type":"object","properties":{"package":{"type":"string","description":"Exact package name, e.g. com.example.app."},"cold":{"type":"boolean","description":"Restart the app first (default false)."},"user":{"type":"integer","description":"Only to open another copy of the app (a clone or work-profile copy): the user value of that copy's phone_list_apps entry. Leave out for the main app.","minimum":0,"maximum":99999},"reason":{"type":"string","description":"Optional short note on why you are calling this, in the user's language; shown to the user as the step label."}},"required":["package"],"additionalProperties":false}
+
+## phone_app_after_task
+Choose what happens to an app on your display when this task ends. By default every app you opened stays open in the background on the phone, on the page where you left it (the user finds it in recent apps, and the next task continues from there), except an app that is playing sound or video at that moment, which is closed. Mark keep when the user wants the app to keep running after you are done (keep playing the music or the video), even while it plays. Mark close when the user asks you to close it, or when leaving it open makes no sense (a one-time sign-in or a page you opened only to check something). It only marks the app; nothing changes now. Marking the same app again replaces the earlier mark.
+{"type":"object","properties":{"package":{"type":"string","description":"Exact package name of the app, e.g. com.example.app."},"action":{"type":"string","description":"keep: leave it running in the background after the task (even if it is playing sound). close: close it when the task ends.","enum":["keep","close"]},"reason":{"type":"string","description":"Why, in a few words (e.g. the user wants the music to keep playing; a one-time sign-in)."},"user":{"type":"integer","description":"Only for another copy of the app (a clone or work-profile copy): the user value of that copy's phone_list_apps entry. Leave out for the main app.","minimum":0,"maximum":99999}},"required":["package","action","reason"],"additionalProperties":false}
 
 ## phone_share_text
 Share a piece of text to an installed app by exact package name: opens that app's share screen on the phone's virtual display with the text filled in (an Android text share). Use it to send or post text into an app (a message to a contact, a note), especially when the app's screen cannot be read or typed into. It does not send anything: on the share screen, pick the recipient or destination and tap its send or confirm button yourself, then check the result. If the app cannot receive shared text, it returns cannot_share: open the app and type instead. If the system asks which one to use (an app installed twice, or several share targets), it returns ok:true with that question on screen: pick the option the task needs, and do not share again.

@@ -69,6 +69,8 @@
     <string name="fail_connect_body">找不到無線偵錯的連接埠。可以：關掉再開啟「無線偵錯」後重試；換用行動熱點或家裡的 Wi-Fi；或在下面手動填連接埠。</string>
     <string name="fail_revoked">配對失效了</string>
     <string name="fail_revoked_body">可能很久沒用被系統收回了,或者在系統裡刪掉了。重新配對一次就好。在開發人員選項裡開啟「停用 adb 授權逾時功能」,以後就不會再失效。</string>
+    <string name="fail_key_unreadable">配對用的金鑰讀不出來了</string>
+    <string name="fail_key_unreadable_body">Mika 讀不出配對時用的那把金鑰了，需要重新配對一次。重新配對會換一把新的，系統「已配對的裝置」裡舊的那條 mika@… 可以刪掉。</string>
     <string name="fail_helper">連上了,但沒能準備好</string>
     <string name="fail_helper_body">通常重試一次就好。</string>
     <string name="fail_unknown">出了點問題</string>

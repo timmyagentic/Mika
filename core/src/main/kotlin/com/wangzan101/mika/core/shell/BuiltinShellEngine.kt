@@ -1,6 +1,7 @@
 package com.wangzan101.mika.core.shell
 
 import com.wangzan101.mika.core.adb.AdbConnectionException
+import com.wangzan101.mika.core.adb.AdbKeyUnreadableException
 import com.wangzan101.mika.core.adb.AdbPairingException
 import com.wangzan101.mika.core.adb.AdbServiceTypes
 import kotlinx.coroutines.CancellationException
@@ -28,7 +29,7 @@ interface BuiltinShellPlatform {
     suspend fun findPairingPort(timeoutMs: Long): Int?
     /** 用配对码配对;失败抛 [AdbPairingException]。 */
     fun pair(port: Int, code: String)
-    /** 连本机 adbd 并起助手(不等交接);失败抛 [AdbConnectionException]。 */
+    /** 连本机 adbd 并起助手(不等交接);失败抛 [AdbConnectionException],存着的钥匙读不出抛 [AdbKeyUnreadableException]。 */
     suspend fun launchHelper()
     /** 让正在跑的助手撤掉改动并退出;没有就什么都不做。 */
     fun stopHelper()
@@ -258,6 +259,9 @@ class BuiltinShellEngine(
         lastError = describe(e)
         val f = BuiltinShellFailures.ofConnection(e.reason)
         if (f == BuiltinShellFailure.ConnectFailed && !platform.wifiConnected()) BuiltinShellFailure.NoWifi else f
+    } catch (e: AdbKeyUnreadableException) {
+        lastError = describe(e)
+        BuiltinShellFailure.KeyUnreadable
     } catch (e: Exception) {
         lastError = describe(e)
         BuiltinShellFailure.Unknown

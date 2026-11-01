@@ -195,6 +195,15 @@ This page will keep running in the background after the task ends, for at most {
 ## keep_open.taken_back
 This page is no longer kept: it closes when the task ends.
 
+## failure.after_task_unavailable
+Choosing what happens to an app after the task is not available here. Do not tell the user the app will stay open or be closed.
+
+## after_task.keep
+Marked: this app stays open in the background when the task ends, even if it is playing sound. Tell the user it stays open.
+
+## after_task.close
+Marked: this app is closed when the task ends. Tell the user it will be closed.
+
 ## failure.downloads_unavailable
 Downloading files is not available yet. Do not say a file was downloaded; tell the user they can download it themselves.
 

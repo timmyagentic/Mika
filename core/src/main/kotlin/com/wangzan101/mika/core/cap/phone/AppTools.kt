@@ -16,6 +16,7 @@ import com.wangzan101.mika.core.tool.Verb
 import com.wangzan101.mika.core.tool.argStr
 import com.wangzan101.mika.core.tool.bool
 import com.wangzan101.mika.core.tool.int
+import com.wangzan101.mika.core.tool.failCode
 import com.wangzan101.mika.core.tool.ok
 import com.wangzan101.mika.core.tool.str
 import kotlinx.serialization.json.JsonArray
@@ -111,6 +112,54 @@ internal object LaunchApp : PhoneTool {
     /** 安卓的用户编号上限(UserHandle.PER_USER_RANGE 以内)。 */
     private const val MAX_USER = 99_999
     const val COPY_NOT_FOUND = "copy_not_found"
+}
+
+/**
+ * 任务结束时这个 App 留着还是关掉。默认留着(放回后台,停在做完的那一页,下次接着用),结束时正在出声的关掉;
+ * 用户说了要它接着放、或做完就关(临时登录一类)时用它标出来。只记下,此刻什么也不动;同一份 App 再标一次以最后一次为准。
+ */
+internal object AppAfterTask : PhoneTool {
+    override val verb = Verb.AppAfterTask
+    override val label = "定下 App 做完后留着还是关掉"
+    override val risk = Risk.Write
+    override val logged = true
+    override val def = ToolDef("phone_app_after_task", Prompts.tool("phone_app_after_task"),
+        mapOf(
+            "package" to str("Exact package name of the app, e.g. com.example.app."),
+            "action" to str("keep: leave it running in the background after the task (even if it is playing sound). close: close it when the task ends.", listOf(KEEP, CLOSE)),
+            "reason" to str("Why, in a few words (e.g. the user wants the music to keep playing; a one-time sign-in)."),
+            "user" to int("Only for another copy of the app (a clone or work-profile copy): the user value of that copy's phone_list_apps entry. Leave out for the main app.", min = 0, max = MAX_USER),
+        ),
+        listOf("package", "action", "reason"))
+
+    /** 只是记下,不切换在操作的那块屏。 */
+    override fun aimAt(o: JsonObject): String? = null
+
+    override suspend fun execute(a: Args, ctx: ToolContext): ToolExecution {
+        val p = a.str("package")!!
+        if (!LinkPolicy.PACKAGE.matches(p)) throw ArgError("package", "must be an Android package name")
+        val action = a.str("action")!!
+        if (action != KEEP && action != CLOSE) throw ArgError("action", "must be keep or close")
+        val reason = a.str("reason", max = 200)!!.trim()
+        val user = a.int("user", 0, MAX_USER)
+        val marks = ctx.phone.screen.afterTask ?: return failCode(AFTER_TASK_UNAVAILABLE)
+        val previous = marks.mark(p, user, action == KEEP, reason)
+        return ok {
+            put("package", p)
+            user?.let { put("user", it) }
+            put("action", action)
+            previous?.takeIf { it.keep != (action == KEEP) }?.let { put("replaces", if (it.keep) KEEP else CLOSE) }
+            put("hint", Feedback[if (action == KEEP) "after_task.keep" else "after_task.close"])
+        }
+    }
+
+    override fun logTarget(o: JsonObject, r: ToolExecution, ctx: ToolContext) =
+        listOfNotNull(o.argStr("package"), o.argStr("action")).joinToString(" ").ifEmpty { null }
+
+    const val KEEP = "keep"
+    const val CLOSE = "close"
+    const val AFTER_TASK_UNAVAILABLE = "after_task_unavailable"
+    private const val MAX_USER = 99_999
 }
 
 /**

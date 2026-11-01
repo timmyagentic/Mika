@@ -1,5 +1,10 @@
 package com.wangzan101.mika.core.shell
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -93,6 +98,12 @@ object HelperHandoff {
             |fi
             |""".trimMargin()
     }
+
+    /**
+     * 什么时候重写「用电脑启动」脚本:助手来了或走了,以及口令被整体作废([HandoffNonces.resets],如解除配对)时;
+     * 发出的值是此刻助手在不在。后一种助手可能一直不在,不跟着它重写的话脚本里留的就是作废的口令。
+     */
+    fun usbScriptWrites(helper: Flow<Any?>, resets: Flow<Int>): Flow<Boolean> = combine(helper, resets) { h, _ -> h != null }
 
     /**
      * 此刻该写的脚本:助手连着([connected])就写不带口令的 [usbStub],也不去要口令;否则写带新口令的 [usbScript]。
@@ -214,8 +225,15 @@ class HandoffNonces(
         return random().also { store.save(NonceSlots(resume = it)) }
     }
 
+    private val _resets = MutableStateFlow(0)
+    /** 口令被整体作废([clear])的次数:变了就说明写出去的口令(如脚本里那枚)都不能用了。 */
+    val resets: StateFlow<Int> = _resets.asStateFlow()
+
     @Synchronized
-    fun clear() = store.save(NonceSlots())
+    fun clear() {
+        store.save(NonceSlots())
+        _resets.value++
+    }
 
     private fun same(a: String, b: String?) =
         b != null && MessageDigest.isEqual(a.toByteArray(Charsets.UTF_8), b.toByteArray(Charsets.UTF_8))
