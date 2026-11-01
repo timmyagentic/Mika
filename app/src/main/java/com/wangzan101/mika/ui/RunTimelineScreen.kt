@@ -79,6 +79,7 @@ fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottom + 16.dp),
                 ) {
                     item("header") { HeaderGroup(u.header) }
+                    item("trace") { RunTraceSection(vm.runId) }
                     if (u.steps.isNotEmpty()) {
                         item("label") { GroupLabel(trPlural(R.plurals.timeline_total_steps, u.steps.size)) }
                         item("steps") {

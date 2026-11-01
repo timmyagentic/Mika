@@ -1,5 +1,6 @@
 package com.wangzan101.mika.task
 
+import com.wangzan101.mika.core.trace.RunTrace
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.i18n.trPlural
@@ -433,6 +434,9 @@ class TaskRun(
         var mute: AudioMute? = null
         var shellDeath: IBinder.DeathRecipient? = null
         var shellBinder: IBinder? = null
+        val traces = (service.application as MikaApp).detailedTraces
+        val traceTicket = traces.ticket()
+        var trace: RunTrace? = null
         var record: RunHandle? = null
         var runStore: RunStore? = null
         // 这次运行里经计量的模型请求(含旁路调用),收尾时记进运行记录
@@ -565,7 +569,11 @@ class TaskRun(
             val sink: RunSink = withContext(Dispatchers.IO) {
                 runCatching {
                     val runs = RunStore(service).also { runStore = it }
-                    runs.open(goal).also { record = it; _runId.value = it.runId }
+                    runs.open(goal).also {
+                        record = it
+                        trace = traces.start(traceTicket, it.runId)
+                        _runId.value = it.runId
+                    }
                 }.onFailure { Log.w(TAG, "run record unavailable, running without it", it) }.getOrNull()
             } ?: RunSink.NONE
             // 装了哪些 App:每个任务读一次,读不到就当没有;参考资料用
@@ -692,7 +700,7 @@ class TaskRun(
                 gate = { w ->
                     if (phoneScreen.acquired && dispatcher?.surface != WEB) phone?.screen?.let { awaitUserPick(it, taskGate, w) }
                     taskGate.pass({ phoneScreen.acquired && dispatcher?.surface != WEB }, w)
-                }, knowledge = knowledge, sink = sink, installedApps = { apps },
+                }, knowledge = knowledge, sink = sink, trace = trace, installedApps = { apps },
                 // 选渠道用的事实:装了哪些 App、在 Mika 里登录过哪些网站、有没有内置浏览器
                 channelFacts = {
                     val registry = WebSites.registry(service)
@@ -846,6 +854,7 @@ class TaskRun(
             withContext(Dispatchers.IO + NonCancellable) {
                 // 前面哪步抛错,屏和网页显示也照放(按建的反序)
                 try {
+                    traces.store.finish(trace)
                     record?.let { r ->
                         r.event(tally.event(System.currentTimeMillis()))
                         r.close()

@@ -1,0 +1,27 @@
+<resources>
+    <string name="trace_switch">記錄詳細 Trace</string>
+    <string name="trace_switch_detail">從下一次執行起記錄，請求正文可能含隱私。關閉即停錄。</string>
+    <string name="trace_title">詳細 Trace</string>
+    <string name="trace_partial">部分記錄</string>
+    <string name="trace_recorded">已記錄在本機</string>
+    <string name="trace_unknown">未回報</string>
+    <string name="trace_ok">成功</string>
+    <string name="trace_error">失敗</string>
+    <string name="trace_cancelled">已取消</string>
+    <string name="trace_attempt">第 %1$d 步 · 第 %2$d 次嘗試 · %3$s</string>
+    <string name="trace_tool">第 %1$d 步 · %2$s</string>
+    <string name="trace_counts">輸入 %1$s · 快取讀取 %2$s · 未命中 %3$s · 輸出 %4$s</string>
+    <string name="trace_largest">未命中最多</string>
+    <string name="trace_diff">首處差異：%1$s</string>
+    <string name="trace_no_body">請求正文未採集</string>
+    <string name="trace_attach">附帶脫敏正文</string>
+    <string name="trace_attach_hint">僅在本機 ZIP 中附帶，儲存前可在上方檢查正文。</string>
+    <string name="trace_save">儲存本次 Trace</string>
+    <string name="trace_send">透過 OTLP/HTTP 傳送</string>
+    <string name="trace_endpoint">接收位址</string>
+    <string name="trace_network_hint">只傳送呼叫關係、耗時、用量和差異位置。</string>
+    <string name="trace_saved">Trace 已儲存</string>
+    <string name="trace_sent">接收端已接受</string>
+    <string name="trace_rejected">接收端拒收了部分或全部記錄</string>
+    <string name="trace_failed">Trace 匯出失敗</string>
+</resources>

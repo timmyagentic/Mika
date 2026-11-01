@@ -10,6 +10,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.otel.sdk.trace)
+    implementation(libs.otel.proto)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)

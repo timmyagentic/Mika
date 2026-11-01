@@ -45,6 +45,7 @@ import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.PillTone
@@ -100,6 +101,8 @@ fun SettingsScreen(
     // 并行任务的上限只在实验开关 parallelTasks 打开时出现;设备能力按此刻算,第二块屏建失败过就按失败算
     val context = LocalContext.current
     val flags = remember { FeatureFlags.get(context) }
+    val traces = (context.applicationContext as com.wangzan101.mika.MikaApp).detailedTraces
+    var traceEnabled by remember { mutableStateOf(traces.enabled) }
     var parallelMax by remember { mutableIntStateOf(flags.parallelMax()) }
     var keepScreenOn by remember { mutableStateOf(flags.keepScreenOn()) }
     var muteTarget by remember { mutableStateOf(flags.muteTarget()) }
@@ -167,6 +170,7 @@ fun SettingsScreen(
             routes = routeCount, onOpenRoutes = { page = SettingsPage.Routes },
             onOpenRecovery = { page = SettingsPage.Recovery },
             computerAccess = mcpOn, onOpenComputerAccess = { page = SettingsPage.ComputerAccess },
+            traceEnabled = traceEnabled, onTrace = { traces.setEnabled(it); traceEnabled = traces.enabled },
             showDeveloper = showDeveloper, onOpenDeveloper = { page = SettingsPage.Developer },
             versionName = BuildConfig.VERSION_NAME, updateVersion = updateVersion, onOpenAbout = onOpenAbout,
         )
@@ -261,6 +265,8 @@ fun SettingsContent(
     /** 电脑连接(MCP)开着没有;为空时不显示这一行。 */
     computerAccess: Boolean? = null,
     onOpenComputerAccess: () -> Unit = {},
+    traceEnabled: Boolean = false,
+    onTrace: (Boolean) -> Unit = {},
     showDeveloper: Boolean = false,
     onOpenDeveloper: () -> Unit = {},
     versionName: String = "",
@@ -320,30 +326,32 @@ fun SettingsContent(
 
         val sandboxRow = sandbox?.takeIf { it !is SandboxStatus.Unsupported }
         val recoveryRow = status.sdkInt >= Prerequisites.MIN_SDK
-        if (sandboxRow != null || routes != null || recoveryRow || computerAccess != null || showDeveloper) {
-            GroupLabel(stringResource(R.string.settings_advanced))
-            GroupCard {
-                var first = true
-                fun take(): Boolean = first.also { first = false }
-                if (sandboxRow != null) {
-                    ListRow(MikaIcons.Terminal, stringResource(R.string.settings_sandbox), first = take(), onClick = onOpenSandbox) {
-                        RowValue(sandboxValue(sandboxRow)); RowChevron()
-                    }
+        GroupLabel(stringResource(R.string.settings_advanced))
+        GroupCard {
+            var first = true
+            fun take(): Boolean = first.also { first = false }
+            if (sandboxRow != null) {
+                ListRow(MikaIcons.Terminal, stringResource(R.string.settings_sandbox), first = take(), onClick = onOpenSandbox) {
+                    RowValue(sandboxValue(sandboxRow)); RowChevron()
                 }
-                routes?.let {
-                    ListRow(MikaIcons.Route, stringResource(R.string.settings_routes), first = take(), onClick = onOpenRoutes) { RowValue(trPlural(R.plurals.settings_count_routes, it)); RowChevron() }
+            }
+            routes?.let {
+                ListRow(MikaIcons.Route, stringResource(R.string.settings_routes), first = take(), onClick = onOpenRoutes) { RowValue(trPlural(R.plurals.settings_count_routes, it)); RowChevron() }
+            }
+            if (recoveryRow) {
+                ListRow(MikaIcons.Wrench, stringResource(R.string.settings_recovery), first = take(), onClick = onOpenRecovery) { RowChevron() }
+            }
+            computerAccess?.let { on ->
+                ListRow(MikaIcons.Desktop, stringResource(R.string.mcp_title), first = take(), onClick = onOpenComputerAccess) {
+                    RowValue(stringResource(if (on) R.string.state_on else R.string.state_off)); RowChevron()
                 }
-                if (recoveryRow) {
-                    ListRow(MikaIcons.Wrench, stringResource(R.string.settings_recovery), first = take(), onClick = onOpenRecovery) { RowChevron() }
-                }
-                computerAccess?.let { on ->
-                    ListRow(MikaIcons.Desktop, stringResource(R.string.mcp_title), first = take(), onClick = onOpenComputerAccess) {
-                        RowValue(stringResource(if (on) R.string.state_on else R.string.state_off)); RowChevron()
-                    }
-                }
-                if (showDeveloper) {
-                    ListRow(MikaIcons.Code, stringResource(R.string.settings_developer), first = take(), onClick = onOpenDeveloper) { RowChevron() }
-                }
+            }
+            ListRow(MikaIcons.Code, stringResource(R.string.trace_switch), stringResource(R.string.trace_switch_detail), first = take(),
+                onClick = { onTrace(!traceEnabled) }) {
+                MikaSwitch(traceEnabled, null)
+            }
+            if (showDeveloper) {
+                ListRow(MikaIcons.Code, stringResource(R.string.settings_developer), first = take(), onClick = onOpenDeveloper) { RowChevron() }
             }
         }
 

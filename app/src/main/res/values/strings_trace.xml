@@ -1,0 +1,27 @@
+<resources>
+    <string name="trace_switch">Record detailed trace</string>
+    <string name="trace_switch_detail">For new runs. Request text may contain private information. Turning this off stops capture immediately.</string>
+    <string name="trace_title">Detailed trace</string>
+    <string name="trace_partial">Partial record</string>
+    <string name="trace_recorded">Recorded on this device</string>
+    <string name="trace_unknown">Unreported</string>
+    <string name="trace_ok">OK</string>
+    <string name="trace_error">Error</string>
+    <string name="trace_cancelled">Cancelled</string>
+    <string name="trace_attempt">Step %1$d · Attempt %2$d · %3$s</string>
+    <string name="trace_tool">Step %1$d · %2$s</string>
+    <string name="trace_counts">Input %1$s · Cached %2$s · Uncached %3$s · Output %4$s</string>
+    <string name="trace_largest">Most uncached input</string>
+    <string name="trace_diff">First difference: %1$s</string>
+    <string name="trace_no_body">Request body not captured</string>
+    <string name="trace_attach">Include redacted text</string>
+    <string name="trace_attach_hint">Local ZIP only. Review the request text above before saving.</string>
+    <string name="trace_save">Save this trace</string>
+    <string name="trace_send">Send via OTLP/HTTP</string>
+    <string name="trace_endpoint">Traces endpoint</string>
+    <string name="trace_network_hint">Send timing, usage and differences only.</string>
+    <string name="trace_saved">Trace saved</string>
+    <string name="trace_sent">Trace accepted</string>
+    <string name="trace_rejected">Spans rejected by receiver</string>
+    <string name="trace_failed">Trace export failed</string>
+</resources>

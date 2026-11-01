@@ -1,5 +1,9 @@
 package com.wangzan101.mika.core.model
 
+import com.wangzan101.mika.core.trace.TraceCall
+import com.wangzan101.mika.core.trace.TracePayload
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -71,24 +75,46 @@ class ResponsesModel(
     override suspend fun completeStreaming(
         system: String, messages: List<Message>, tools: List<ToolSpec>, onText: (String) -> Unit,
     ): ModelReply {
+        val trace = currentCoroutineContext()[TraceCall]
+        trace?.usesWireCapture()
         var includeReasoning = true
         var fresh = false
         while (true) {
             val stream = ResponsesStream(onText, ::errorOf)
             val bearer = token.get(fresh)
-            val (status, retryAfter, text) = HttpSupport.stream(http, request(bearer, system, messages, tools, includeReasoning), stream::accept)
-            if (status in 200..299) {
-                if (text.isNotEmpty()) return stream.fromBody(text).also { reply ->
-                    reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
+            val payload = body(system, messages, tools, includeReasoning)
+            val req = request(bearer, payload)
+            val attempt = trace?.begin(payload, messages, if (chatGptPlan || req.url.host == "api.openai.com") "openai" else "openai_compatible")
+            var outcome = "error"
+            var visibleReply: ModelReply? = null
+            try {
+                val (status, retryAfter, text) = HttpSupport.stream(http, req, stream::accept)
+                attempt?.setAttribute("http.response.status_code", status.toLong())
+                if (status in 200..299) {
+                    val reply = if (text.isNotEmpty()) stream.fromBody(text).also { r ->
+                        r.parts.filterIsInstance<Part.Text>().joinToString("").takeIf(String::isNotEmpty)?.let(onText)
+                    } else stream.finish()
+                    visibleReply = reply
+                    outcome = "ok"
+                    return reply
                 }
-                return stream.finish()
-            }
-            val err = errorBody(text)
-            when {
-                status == 401 && token.refreshable && !fresh -> fresh = true
-                status == 400 && includeReasoning && (err?.param == "include" || text.contains("reasoning.encrypted_content")) ->
-                    includeReasoning = false
-                else -> throw httpError(status, retryAfter, text, err)
+                val err = errorBody(text)
+                when {
+                    status == 401 && token.refreshable && !fresh -> fresh = true
+                    status == 400 && includeReasoning && (err?.param == "include" || text.contains("reasoning.encrypted_content")) ->
+                        includeReasoning = false
+                    else -> throw httpError(status, retryAfter, text, err)
+                }
+            } catch (e: CancellationException) {
+                outcome = "cancelled"
+                throw e
+            } finally {
+                if (attempt != null) {
+                    val usage = stream.reportedUsage
+                    val details = usage?.get("input_tokens_details") as? JsonObject
+                    trace.run.end(attempt, outcome, usage?.count("input_tokens"), details?.count("cached_tokens"), usage?.count("output_tokens"),
+                        visibleReply?.let { reply -> { TracePayload.reply(reply, trace.verb) } })
+                }
             }
         }
     }
@@ -105,12 +131,12 @@ class ResponsesModel(
             if (includeReasoning) putJsonArray("include") { add(ENCRYPTED_REASONING) }
         }
 
-    private fun request(bearer: String?, system: String, messages: List<Message>, tools: List<ToolSpec>, includeReasoning: Boolean): Request =
+    private fun request(bearer: String?, payload: JsonObject): Request =
         Request.Builder().url(endpoint)
             .withHeaders(headers)
             .apply { if (!bearer.isNullOrEmpty()) header("Authorization", "Bearer $bearer") }
             .header("Accept", "text/event-stream")
-            .post(body(system, messages, tools, includeReasoning).toString().toRequestBody("application/json".toMediaType()))
+            .post(payload.toString().toRequestBody("application/json".toMediaType()))
             .build()
 
     private fun toolJson(t: ToolSpec): JsonObject = buildJsonObject {
@@ -215,6 +241,8 @@ class ResponsesModel(
     }
 }
 
+private fun JsonObject.count(k: String) = (this[k] as? JsonPrimitive)?.intOrNull
+
 private fun JsonObject.str(k: String): String? = (this[k] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
 
 /**
@@ -229,12 +257,15 @@ private class ResponsesStream(
     private val visible = StringBuilder()
     private val items = mutableListOf<JsonObject>()
     private var final: JsonObject? = null
+    var reportedUsage: JsonObject? = null
+        private set
     private var incomplete = false
 
     fun accept(data: String) {
         if (data == "[DONE]") return
         val root = try { json.parseToJsonElement(data) as? JsonObject } catch (e: Exception) { null }
             ?: throw ModelError.BadResponse("流式响应不是合法 JSON")
+        ((root["response"] as? JsonObject)?.get("usage") as? JsonObject)?.let { reportedUsage = it }
         when (root.str("type")) {
             "response.output_text.delta" -> root.str("delta")?.takeIf { it.isNotEmpty() }?.let {
                 visible.append(it)
@@ -261,6 +292,7 @@ private class ResponsesStream(
     fun fromBody(text: String): ModelReply {
         val root = try { json.parseToJsonElement(text) as? JsonObject } catch (e: Exception) { null }
             ?: throw ModelError.BadResponse("返回内容不是合法 JSON")
+        reportedUsage = root["usage"] as? JsonObject
         (root["error"] as? JsonObject)?.let { throw failure(it) }
         final = root
         incomplete = root.str("status") == "incomplete"

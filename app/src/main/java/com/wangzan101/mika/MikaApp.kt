@@ -1,5 +1,6 @@
 package com.wangzan101.mika
 
+import com.wangzan101.mika.record.DetailedTraces
 import com.wangzan101.mika.i18n.ResourceTexts
 import com.wangzan101.mika.i18n.UiText
 import com.wangzan101.mika.i18n.AppLanguage
@@ -79,6 +80,8 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
 
     /** 各任务的标签池共用的标签总数上限。 */
     val resources = ResourceScheduler()
+    val detailedTraces by lazy { DetailedTraces(this) }
+
     val remoteTasks by lazy { RemoteTaskHub(this) }
 
     /**
