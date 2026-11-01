@@ -76,7 +76,6 @@ fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val traceSender = remember(vm.runId) { TraceSendState(scope) }
     val saveLog = rememberLauncherForActivityResult(CreateDocument("application/x-ndjson")) { uri ->
         if (uri != null) scope.launch {
             val saved = withContext(Dispatchers.IO) {
@@ -108,7 +107,7 @@ fun RunTimelineScreen(vm: RunTimelineViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
-                    item("trace") { RunTraceSection(vm.runId, traceSender) }
+                    item("trace") { RunTraceSection(vm.runId) }
                     if (u.steps.isNotEmpty()) {
                         item("label") { GroupLabel(trPlural(R.plurals.timeline_total_steps, u.steps.size)) }
                         item("steps") {

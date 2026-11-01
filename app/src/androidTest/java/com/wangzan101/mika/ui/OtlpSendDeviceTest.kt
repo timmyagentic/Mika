@@ -1,7 +1,9 @@
 package com.wangzan101.mika.ui
 
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.wangzan101.mika.ChineseUi
@@ -23,9 +25,9 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class OtlpSendDeviceTest {
     @get:Rule(order = Int.MIN_VALUE) val chinese = ChineseUi()
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun confirmedSendSurvivesCollapseAndClearsTheAuthField() {
+    @Test fun confirmedSendSurvivesCollapseAndActivityRecreation() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val dir = Files.createTempDirectory(context.cacheDir.toPath(), "test-otlp").toFile()
         val runs = RunStore(dir, { null }, keep = 1, clock = System::currentTimeMillis) { it }
@@ -39,15 +41,24 @@ class OtlpSendDeviceTest {
             val bytes = ByteArrayOutputStream().also { archive.save(it, false) }.toByteArray()
             MockWebServer().use { receiver ->
                 val vm = RunTimelineViewModel(runs, runId)
-                compose.setContent { RunTimelineScreen(vm, onBack = {}) }
+                fun showTimeline() {
+                    compose.activityRule.scenario.onActivity { it.setContent { RunTimelineScreen(vm, onBack = {}) } }
+                    compose.waitUntil(5_000) { compose.onAllNodes(hasScrollToIndexAction()).fetchSemanticsNodes().isNotEmpty() }
+                    compose.onNode(hasScrollToIndexAction()).performScrollToKey("trace")
+                    compose.awaitOne("详细 Trace")
+                    if (compose.onAllNodesWithText("通过 OTLP/HTTP 发送").fetchSemanticsNodes().isEmpty())
+                        compose.onNodeWithText("详细 Trace").performScrollTo().performClick()
+                }
                 fun toggle() = compose.awaitOne("详细 Trace").performScrollTo().performClick()
-                toggle()
+                showTimeline()
                 fun confirm() = compose.onNode(hasText("通过 OTLP/HTTP 发送") and hasClickAction() and hasAnyAncestor(isDialog()))
                 compose.onNodeWithText("通过 OTLP/HTTP 发送").performScrollTo().performClick()
                 compose.onNodeWithTag("trace-endpoint").performTextReplacement("http://8.8.8.8/v1/traces")
                 confirm().assertIsNotEnabled()
                 compose.onNodeWithTag("trace-endpoint").performTextReplacement(receiver.url("/v1/traces").toString())
-                compose.onNodeWithTag("trace-auth-value").performTextReplacement("Bearer test-only")
+                val auth = compose.onNodeWithTag("trace-auth-value").performScrollTo().assertIsDisplayed()
+                auth.performTouchInput { click() }
+                auth.performTextInput("Bearer test-only")
                 assertEquals(0, receiver.requestCount)
                 confirm().performClick()
                 val request = receiver.takeRequest(12, TimeUnit.SECONDS)!!
@@ -56,6 +67,10 @@ class OtlpSendDeviceTest {
                 // Hold the acknowledgement until the controls have left and re-entered composition.
                 toggle()
                 toggle()
+                compose.onNodeWithText("通过 OTLP/HTTP 发送").assertExists()
+                compose.onNode(hasText("通过 OTLP/HTTP 发送") and hasClickAction()).assertDoesNotExist()
+                compose.activityRule.scenario.recreate()
+                showTimeline()
                 compose.onNodeWithText("通过 OTLP/HTTP 发送").assertExists()
                 compose.onNode(hasText("通过 OTLP/HTTP 发送") and hasClickAction()).assertDoesNotExist()
                 receiver.enqueue(MockResponse().setHeader("Content-Type", "application/x-protobuf"))

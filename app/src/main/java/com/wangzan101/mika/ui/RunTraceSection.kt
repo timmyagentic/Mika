@@ -36,15 +36,15 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 
 @Composable
-internal fun RunTraceSection(runId: String, sender: TraceSendState) {
+internal fun RunTraceSection(runId: String) {
     val context = LocalContext.current
     val store = (context.applicationContext as MikaApp).detailedTraces.store
     val archive by produceState<TraceArchive?>(null, runId) { value = withContext(Dispatchers.IO) { store.archive(runId) } }
-    archive?.let { TraceDetails(it, sender) }
+    archive?.let { TraceDetails(it) }
 }
 
 @Composable
-private fun TraceDetails(archive: TraceArchive, sender: TraceSendState) {
+private fun TraceDetails(archive: TraceArchive) {
     val rows by produceState<List<TraceRow>?>(null, archive) {
         value = withContext(Dispatchers.IO) { try { archive.rows() } catch (_: IOException) { emptyList() } }
     }
@@ -59,7 +59,7 @@ private fun TraceDetails(archive: TraceArchive, sender: TraceSendState) {
             val worst = all.maxByOrNull { it.uncached ?: -1 }
             for (row in all.drop(1)) key(row.id) { TraceEntryRow(archive, row, row == worst && row.uncached != null) }
             TraceExportControls(archive)
-            TraceSendRow(archive, sender)
+            TraceSendRow(archive)
         }
     }
 }

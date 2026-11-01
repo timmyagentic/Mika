@@ -1,16 +1,23 @@
 package com.wangzan101.mika.ui
 
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
+import androidx.lifecycle.viewModelScope
 import com.wangzan101.mika.R
 import com.wangzan101.mika.core.trace.TraceArchive
 import com.wangzan101.mika.record.OtlpReceipt
@@ -19,11 +26,10 @@ import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** The run screen owns the in-flight request and receipt across trace row collapse or recycling. */
-internal class TraceSendState(private val scope: CoroutineScope) {
+/** Keeps the in-flight request and its receipt for this run across activity recreation. */
+internal class TraceSendState : ViewModel() {
     var busy by mutableStateOf(false)
         private set
     var receipt by mutableStateOf<OtlpReceipt?>(null)
@@ -36,7 +42,7 @@ internal class TraceSendState(private val scope: CoroutineScope) {
         busy = true
         receipt = null
         failed = false
-        scope.launch {
+        viewModelScope.launch {
             try { receipt = OtlpSender.send(archive, address, name, value) }
             catch (e: CancellationException) { throw e }
             catch (_: Exception) { failed = true }
@@ -46,7 +52,11 @@ internal class TraceSendState(private val scope: CoroutineScope) {
 }
 
 @Composable
-internal fun TraceSendRow(archive: TraceArchive, sender: TraceSendState) {
+internal fun TraceSendRow(archive: TraceArchive) {
+    val owner = checkNotNull(LocalView.current.findViewTreeViewModelStoreOwner())
+    val sender = remember(owner, archive.runId) {
+        ViewModelProvider(owner)["otlp-send:${archive.runId}", TraceSendState::class.java]
+    }
     var dialog by remember(archive.runId) { mutableStateOf(false) }
     ListRow(null, stringResource(R.string.trace_send), stringResource(R.string.trace_network_hint),
         onClick = if (sender.busy) null else ({ dialog = true })) { RowChevron() }
@@ -67,7 +77,7 @@ internal fun TraceSendRow(archive: TraceArchive, sender: TraceSendState) {
         val validHeader = OtlpSender.validHeader(name, value)
         AlertDialog(onDismissRequest = { dialog = false }, title = { Text(stringResource(R.string.trace_send)) },
             text = {
-                Column {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                     OutlinedTextField(address, { address = it }, Modifier.testTag("trace-endpoint"), singleLine = true, isError = address.isNotBlank() && !validAddress,
                         label = { Text(stringResource(R.string.trace_endpoint)) },
                         supportingText = { Text(stringResource(R.string.trace_endpoint_hint)) })
