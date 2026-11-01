@@ -1,6 +1,7 @@
 package com.wangzan101.mika.core.shell
 
 import com.wangzan101.mika.core.adb.AdbConnectionException
+import com.wangzan101.mika.core.adb.AdbKeyUnreadableException
 import com.wangzan101.mika.core.adb.AdbPairingException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +29,7 @@ class BuiltinShellEngineTest {
         /** 每次起助手的结果:null = 成功并交接,其余抛对应异常;用完后一直成功。 */
         val launchResults = ArrayDeque<AdbConnectionException.Reason?>()
         var deliverOnLaunch = true
+        var keyUnreadable = false
         val calls = mutableListOf<String>()
 
         override fun paired() = pairedFlag
@@ -42,6 +44,7 @@ class BuiltinShellEngineTest {
         }
         override suspend fun launchHelper() {
             calls += "launch"
+            if (keyUnreadable) throw AdbKeyUnreadableException("cannot unwrap adbkey.bin")
             launchResults.removeFirstOrNull()?.let { throw AdbConnectionException(it, "x") }
             if (deliverOnLaunch) helper.value = "binder"
         }
@@ -206,6 +209,18 @@ class BuiltinShellEngineTest {
         assertEquals(BuiltinShellStatus.Failed(BuiltinShellFailure.ConnectFailed), e.status.value)
         e.retry()
         assertEquals(4, launches())
+    }
+
+    @Test
+    fun unreadableKeyAsksToPairAgainAndIsNotRetried() = runTest {
+        platform.pairedFlag = true
+        platform.keyUnreadable = true
+        val e = engine()
+        e.retry()
+        advanceUntilIdle()
+        assertEquals(1, launches())
+        assertEquals(BuiltinShellStatus.Failed(BuiltinShellFailure.KeyUnreadable, BuiltinShellFix.RePair), e.status.value)
+        assertTrue(e.lastError!!.startsWith("AdbKeyUnreadableException"))
     }
 
     @Test

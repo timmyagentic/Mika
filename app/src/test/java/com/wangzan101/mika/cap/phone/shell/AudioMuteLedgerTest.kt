@@ -70,4 +70,11 @@ class AudioMuteLedgerTest {
         file().writeText("a.app default\nnot a record\n; rm -rf /\nb.app ignore\n")
         assertEquals(listOf("a.app", "b.app"), AudioMuteLedger(file()).packages())
     }
+
+    @Test fun copyInAnotherUserKeepsItsOwnRecord() {
+        AudioMuteLedger(file()).apply { put("a.app", "allow"); put(AppAudioKey.of("a.app", 10), "deny") }
+        val back = AudioMuteLedger(file())
+        assertEquals(listOf("a.app", "a.app@10"), back.packages())
+        assertEquals("deny", back["a.app@10"])
+    }
 }

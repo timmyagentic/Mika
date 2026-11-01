@@ -54,6 +54,9 @@ class HelperHub(context: Context) {
     /** 写进「用电脑启动」脚本的一次性口令(见 [HandoffNonces.usbNonce]);交接走的是同一个 [offer]。 */
     fun usbNonce(): String = nonces.usbNonce()
 
+    /** 口令被整体作废的次数(见 [HandoffNonces.resets]):「用电脑启动」脚本跟着它重写。 */
+    val nonceResets: StateFlow<Int> get() = nonces.resets
+
     /** 解除配对:口令全部作废(还活着的助手下次交接会被拒绝并退出),手里的接口也放掉。 */
     fun forget() {
         nonces.clear()

@@ -7,6 +7,11 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class HelperHandoffTest {
@@ -22,6 +27,30 @@ class HelperHandoffTest {
     private fun nonces(store: NonceStore = MemStore()): HandoffNonces {
         var n = 0
         return HandoffNonces(store, clock = { now }, wallClock = { wall }) { "n${++n}" }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun usbScriptIsRewrittenWithAFreshNonceWhenNoncesAreClearedWhileNoHelperIsConnected() = runTest {
+        var n = 0
+        val gate = HandoffNonces(MemStore(), clock = { now }, wallClock = { wall }) { "f00d%04d".format(++n) }
+        val helper = MutableStateFlow<Any?>(null)
+        val written = mutableListOf<String>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            HelperHandoff.usbScriptWrites(helper, gate.resets).collect { connected ->
+                written += HelperHandoff.usbFile(connected, "/a.apk", "p", 1, { "pin" }, gate::usbNonce, "/s.sh")
+            }
+        }
+        assertEquals(1, written.size)
+        val stale = gate.usbNonce()
+        assertTrue(written[0].contains(stale))
+        // 解除配对:助手一直不在,也要重写,新脚本里是新口令,旧的不再认
+        gate.clear()
+        assertEquals(2, written.size)
+        assertFalse(written[1].contains(stale))
+        assertFalse(gate.matches(stale))
+        assertTrue(gate.matches(gate.usbNonce()))
+        assertTrue(written[1].contains(gate.usbNonce()))
     }
 
     @Test

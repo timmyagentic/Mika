@@ -28,6 +28,7 @@
     <string name="tool_switch_tab">切換網頁標籤</string>
     <string name="tool_switch_version">切換網頁版本</string>
     <string name="tool_keep_page">保持網頁開著</string>
+    <string name="tool_app_after_task">決定 App 做完後留著還是關掉</string>
     <string name="tool_read_page">讀網頁</string>
     <string name="tool_downloads">檢視下載</string>
     <string name="tool_network">檢視網頁收到的資料</string>

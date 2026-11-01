@@ -69,6 +69,8 @@
     <string name="fail_connect_body">Couldn’t find the Wireless debugging port. You can: turn “Wireless debugging” off and on again, then retry; switch to a phone hotspot or your home Wi-Fi; or enter the port below.</string>
     <string name="fail_revoked">Pairing expired</string>
     <string name="fail_revoked_body">The system may have revoked it after a long time unused, or it was removed. Just pair again. Turn on “Disable adb authorization timeout” in Developer options so it won’t expire again.</string>
+    <string name="fail_key_unreadable">Pairing key can’t be read</string>
+    <string name="fail_key_unreadable_body">Mika can no longer read the key it used for pairing. Pair again once; Mika will make a new key and the old “mika@…” entry in Paired devices can be removed.</string>
     <string name="fail_helper">Connected, but couldn’t get ready</string>
     <string name="fail_helper_body">Retrying usually fixes it.</string>
     <string name="fail_unknown">Something went wrong</string>

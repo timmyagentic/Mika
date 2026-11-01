@@ -5,7 +5,7 @@ import java.io.File
 /**
  * 被 Mika 静音的 App → 静音前的 PLAY_AUDIO 模式,同时落在文件里:内置助手进程在静音中被杀、
  * 手机重启后,下次启动靠这份记录把声音还回去。静音时记、恢复成功后删;文件读写失败时退回只在内存里记。
- * 只有记录里的包会被恢复,别人设的值一概不碰。
+ * 只有记录里的包会被恢复,别人设的值一概不碰。记录的键见 [AppAudioKey]:另一份用户里的那份单独一项。
  */
 class AudioMuteLedger(private val file: File?) {
     private val modes = LinkedHashMap<String, String>()
@@ -48,7 +48,7 @@ class AudioMuteLedger(private val file: File?) {
     }
 
     companion object {
-        private val LINE = Regex("""([A-Za-z0-9_.]+) ([a-z_]+)""")
+        private val LINE = Regex("""([A-Za-z0-9_.]+(?:@[0-9]+)?) ([a-z_]+)""")
 
         /**
          * 恢复时写回的模式。原来明确是 allow/ignore/deny 等的照原样写回;没设置过(解析出 default)的写 allow:
@@ -67,4 +67,19 @@ class AudioMuteLedger(private val file: File?) {
             text.lineSequence().mapNotNull { LINE.matchEntire(it.trim())?.destructured }
                 .associate { (pkg, mode) -> pkg to mode }
     }
+}
+
+/**
+ * 一项静音的键。PLAY_AUDIO 按「包 + 用户」分开设:本来那份(Mika 所在用户里的)就是包名,
+ * 装在另一份用户里的那份(分身、工作资料)是「包名@用户编号」,两份各记各的原值、各自恢复。
+ */
+object AppAudioKey {
+    private val KEY = Regex("""([A-Za-z0-9_.]+)(?:@([0-9]+))?""")
+
+    /** [user] 为空是本来那份。 */
+    fun of(packageName: String, user: Int?): String = if (user == null) packageName else "$packageName@$user"
+
+    /** 拆回(包名, 用户);本来那份用户为空。不合格式的为 null。 */
+    fun parse(key: String): Pair<String, Int?>? =
+        KEY.matchEntire(key)?.destructured?.let { (pkg, user) -> pkg to user.takeIf { it.isNotEmpty() }?.toIntOrNull() }
 }

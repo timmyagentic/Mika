@@ -106,6 +106,7 @@ data class ProviderConfig(
  * [sessionHeader] 是它要求放对话会话号的请求头名(来自预设,见 [ProviderPreset.sessionHeader]);不要的为 null。
  * [verifiedModels] 是在这家试调用(见 [ProviderStore.probe])得到过回复的模型名:不提供列表的服务商,模型名是手填的,
  * 没在这里的就没核实过(旧版本存下的都没有,那时不提供列表的服务商不试调用)。
+ * [typedModels] 是用户手填、试调用通过后加进来的模型名(列表里没有、或这家列不出模型):刷新列表不丢,选模型时标「手填」。
  */
 data class Provider(
     val id: String,
@@ -115,6 +116,7 @@ data class Provider(
     val models: List<ListedModel>? = null,
     val sessionHeader: String? = null,
     val verifiedModels: Set<String> = emptySet(),
+    val typedModels: Set<String> = emptySet(),
     /**
      * Key 是怎么来的:用账号授权换来的(目前只有 [ProviderStore.OPENROUTER_SIGN_IN])为那一家的标记,用户自己填的为 null。
      * 标了的服务商详情里是账号登录的样子(退出登录、到对方页面删 Key),不是「更换 Key」。
@@ -310,7 +312,8 @@ class ProviderStore(
     /**
      * 「测试并保存」连上了一个服务商:存下它(名字、接口类型、地址、Key)和列出的模型。
      * 接口类型、地址和名字都相同的服务商已经有了,就更新那一个(换 Key、换列表),不重复添加。
-     * [apiKey] 为 null 时不改已存的 Key。[verified] 是这次试调用得到回复的模型名,记进 [Provider.verifiedModels]。
+     * [apiKey] 为 null 时不改已存的 Key。[verified] 是这次试调用得到回复的模型名,记进 [Provider.verifiedModels];
+     * [typed] 是其中用户手填的,记进 [Provider.typedModels]。
      * [signIn] 是 Key 的来历(见 [Provider.signIn]):用户自己填 Key 的为 null,授权来的为那一家的标记。
      * 两种来历各是各的服务商(地址、名字一样也不合并):授权不会顶掉用户自己填的 Key,退出登录也只删授权来的那把。
      */
@@ -320,9 +323,13 @@ class ProviderStore(
         sessionHeader: String? = ProviderPresets.forBaseUrl(baseUrl)?.sessionHeader,
         verified: Set<String> = emptySet(),
         signIn: String? = null,
+        typed: Set<String> = emptySet(),
     ): Provider {
         val found = findOrAddProvider(name, kind, baseUrl, signIn)
-        val p = found.copy(models = models, sessionHeader = sessionHeader, verifiedModels = found.verifiedModels + verified)
+        val p = found.copy(
+            models = models, sessionHeader = sessionHeader,
+            verifiedModels = found.verifiedModels + verified, typedModels = found.typedModels + typed,
+        )
         _providers.value = _providers.value.map { if (it.id == p.id) p else it }
         if (apiKey != null) setKey(p.id, apiKey)
         writeConfig()
@@ -343,6 +350,15 @@ class ProviderStore(
         val p = provider(providerId) ?: return
         if (model in p.verifiedModels) return
         _providers.value = _providers.value.map { if (it.id == providerId) it.copy(verifiedModels = it.verifiedModels + model) else it }
+        writeConfig()
+    }
+
+    /** 记下用户在这家手填的 [model](见 [Provider.typedModels])。 */
+    @Synchronized
+    fun markTyped(providerId: String, model: String) {
+        val p = provider(providerId) ?: return
+        if (model in p.typedModels) return
+        _providers.value = _providers.value.map { if (it.id == providerId) it.copy(typedModels = it.typedModels + model) else it }
         writeConfig()
     }
 
@@ -790,6 +806,7 @@ class ProviderStore(
         sessionHeader = o["sessionHeader"]?.jsonPrimitive?.content ?: ProviderPresets.forBaseUrl(o.str("baseUrl"))?.sessionHeader,
         signIn = o["signIn"]?.jsonPrimitive?.content,
         verifiedModels = o["verifiedModels"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty(),
+        typedModels = o["typedModels"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty(),
         models = o["models"]?.jsonArray?.map { e ->
             val m = e.jsonObject
             ListedModel(
@@ -861,6 +878,7 @@ class ProviderStore(
                         p.sessionHeader?.let { put("sessionHeader", it) }
                         p.signIn?.let { put("signIn", it) }
                         if (p.verifiedModels.isNotEmpty()) putJsonArray("verifiedModels") { p.verifiedModels.forEach { add(it) } }
+                        if (p.typedModels.isNotEmpty()) putJsonArray("typedModels") { p.typedModels.forEach { add(it) } }
                         p.models?.let { models ->
                             putJsonArray("models") {
                                 models.forEach { m ->

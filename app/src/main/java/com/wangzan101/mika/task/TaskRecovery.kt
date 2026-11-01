@@ -6,6 +6,7 @@ import android.util.Log
 import com.wangzan101.mika.settings.KeyCipher
 import com.wangzan101.mika.settings.KeystoreKeyCipher
 import com.wangzan101.mika.shell.IMikaShell
+import com.wangzan101.mika.cap.phone.shell.AppAudioKey
 import com.wangzan101.mika.cap.phone.shell.SharedShell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filterNotNull
@@ -53,7 +54,7 @@ class PrefsMarker(private val prefs: SharedPreferences, private val name: String
     }
 }
 
-/** 静音所需的 shell 能力。 */
+/** 静音所需的 shell 能力。参数是静音的键(见 [AppAudioKey]):本来那份是包名,另一份用户里的那份带上用户编号。 */
 interface AudioPort {
     /** 当前 PLAY_AUDIO 模式;读不到返回 null。 */
     fun mode(packageName: String): String?
@@ -62,9 +63,21 @@ interface AudioPort {
 }
 
 class ShellAudio(private val shell: IMikaShell) : AudioPort {
-    override fun mode(packageName: String): String? = runCatching { shell.getAudioMode(packageName) }.getOrNull()
-    override fun mute(packageName: String): Boolean = runCatching { shell.setAudioMuted(packageName, true) }.getOrDefault(false)
-    override fun setMode(packageName: String, mode: String): Boolean = runCatching { shell.setAudioMode(packageName, mode) }.getOrDefault(false)
+    override fun mode(packageName: String): String? = runCatching {
+        val (pkg, user) = AppAudioKey.parse(packageName) ?: return null
+        if (user == null) shell.getAudioMode(pkg) else shell.getAudioModeInUser(pkg, user)
+    }.getOrNull()
+
+    override fun mute(packageName: String): Boolean = runCatching {
+        val (pkg, user) = AppAudioKey.parse(packageName) ?: return false
+        if (user == null) shell.setAudioMuted(pkg, true) else shell.setAudioMutedInUser(pkg, user, true)
+    }.getOrDefault(false)
+
+    override fun setMode(packageName: String, mode: String): Boolean = runCatching {
+        // 不合格式的键当作已恢复:留着也恢复不了
+        val (pkg, user) = AppAudioKey.parse(packageName) ?: return true
+        if (user == null) shell.setAudioMode(pkg, mode) else shell.setAudioModeInUser(pkg, user, mode)
+    }.getOrDefault(false)
 }
 
 /**

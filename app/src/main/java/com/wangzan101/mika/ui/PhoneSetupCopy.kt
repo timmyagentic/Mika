@@ -160,6 +160,10 @@ object PhoneSetupCopy {
             tr(R.string.fail_revoked),
             tr(R.string.fail_revoked_body),
         )
+        BuiltinShellFailure.KeyUnreadable -> FailureCopy(
+            tr(R.string.fail_key_unreadable),
+            tr(R.string.fail_key_unreadable_body),
+        )
         BuiltinShellFailure.HelperStartFailed -> FailureCopy(
             tr(R.string.fail_helper),
             tr(R.string.fail_helper_body),

@@ -30,12 +30,12 @@ class UsbStartScript(context: Context, private val hub: HelperHub) {
     fun command(): String =
         HelperHandoff.usbCommand(file()?.absolutePath ?: "/storage/emulated/0/Android/data/${app.packageName}/files/${HelperHandoff.USB_SCRIPT}")
 
-    /** App 启动时调:跟着助手在不在重写脚本。 */
+    /** App 启动时调:跟着助手在不在、口令有没有被作废(解除配对)重写脚本。 */
     @Synchronized
     fun start() {
         if (started) return
         started = true
-        scope.launch { hub.shell.collect { write(connected = it != null) } }
+        scope.launch { HelperHandoff.usbScriptWrites(hub.shell, hub.nonceResets).collect { write(connected = it) } }
     }
 
     /** 有人要用助手却没有、打开引导页时调:再写一遍(口令还新就沿用,见 [HelperHub.usbNonce])。 */

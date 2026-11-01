@@ -14,6 +14,7 @@ Any app installed on your phone works, with no per-app integration: Mika looks a
 - Can share a piece of text straight into an app (to send a message or save a note); Mika still picks the recipient and taps send on that page itself.
 - Recognizes the system asking "open with which app", a dual-installed app asking "which one", and one app opening another (e.g. jumping to a payment page). It carries on when it can, and stops to let you act on screen when you need to choose or handle it yourself.
 - Things only you should do (logging in, verification codes, payment) trigger a notification asking you to take over: the app moves to your main screen, you finish and hand it back, and Mika re-checks before continuing.
+- When a task is done, the apps Mika opened stay in the background on the page where it finished: you find them in recent apps, and the next time Mika opens one it continues from there. They never jump in front of what you are doing. An app that is playing sound or video at that moment is closed; say "keep the music playing" or "close it when you're done" and Mika does that instead.
 
 ## Built-in browser
 

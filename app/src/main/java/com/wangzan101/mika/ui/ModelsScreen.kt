@@ -189,7 +189,7 @@ internal fun fixedChoices(role: ModelRole): List<RoleChoice> = when (role) {
 
 /**
  * 选用途:看图、轻量顶上是固定选项;下面按服务商分组列出所有已连接服务商的全部模型(用记住的列表),
- * 标签只作参考,不按能力过滤或置灰;服务不提供列表的那家可以手动填模型名。点一下就生效并返回。
+ * 标签只作参考,不按能力过滤或置灰;每家下面都能手动填模型名(列表里没有、或这家不提供列表),手填的标「手填」。点一下就生效并返回。
  */
 @Composable
 fun RolePickerContent(ui: ModelSetupUi, role: ModelRole, actions: RolePickerActions, onBack: () -> Unit) {
@@ -220,27 +220,26 @@ fun RolePickerContent(ui: ModelSetupUi, role: ModelRole, actions: RolePickerActi
         var anyShown = false
         groups.forEach { (p, options) ->
             val shown = options.filter { q.isEmpty() || it.id.contains(q, ignoreCase = true) }
-            val manual = p.models?.isEmpty() == true
+            // 这家列不出模型:手填是唯一的选法
+            val noList = p.models?.isEmpty() == true
             if (q.isNotEmpty() && shown.isEmpty()) return@forEach
             anyShown = true
             val state = ui.listing[p.id]
             GroupLabel(ModelsCopy.providerName(p))
-            if (shown.isNotEmpty() || manual) {
-                GroupCard {
-                    shown.take(PICK_AT_MOST).forEachIndexed { i, o ->
-                        RadioRow(
-                            o.id, selected = ui.picked(role, p.id, o.id), onClick = { actions.pick(p.id, o.id) }, first = i == 0,
-                            titleStyle = ModelIdStyle, below = { Tags(o, forVision = role == ModelRole.Vision) },
-                        )
-                    }
-                    if (manual) ManualModel(p, ui.manualPick[p.id], first = shown.isEmpty()) { actions.pickManual(p.id, it) }
+            GroupCard {
+                shown.take(PICK_AT_MOST).forEachIndexed { i, o ->
+                    RadioRow(
+                        o.id, selected = ui.picked(role, p.id, o.id), onClick = { actions.pick(p.id, o.id) }, first = i == 0,
+                        titleStyle = ModelIdStyle, below = { Tags(o, forVision = role == ModelRole.Vision) },
+                    )
                 }
+                ManualModel(p, ui.manualPick[p.id], first = shown.isEmpty()) { actions.pickManual(p.id, it) }
             }
             val manualState = ui.manualPick[p.id]
             when {
                 manualState is ListState.Failed -> FooterNote(manualState.message, Modifier.testTag("manual-model-failed"), color = c.bad)
                 // 选列表里的模型也可能先试调用(见 ModelSetupUi.probeBeforePick);手填的那一行自己显示进度
-                !manual && manualState == ListState.Running -> FooterNote(ModelSetupCopy.TESTING, Modifier.testTag("pick-probe-running"))
+                !noList && manualState == ListState.Running -> FooterNote(ModelSetupCopy.TESTING, Modifier.testTag("pick-probe-running"))
                 state == ListState.Running -> FooterNote(ModelsCopy.LISTING)
                 state is ListState.Failed -> FooterNote(ModelSetupCopy.failed(state.message), color = c.bad)
                 shown.size > PICK_AT_MOST -> FooterNote(ModelsCopy.more(shown.size - PICK_AT_MOST))
@@ -255,7 +254,7 @@ fun RolePickerContent(ui: ModelSetupUi, role: ModelRole, actions: RolePickerActi
     }
 }
 
-/** 服务不提供模型列表时:照服务商文档填模型名;点「使用」先试调用一次([state] 是进度),通了才选上。 */
+/** 手填模型名(列表里没有、或服务不提供列表):照服务商文档填;点「使用」先试调用一次([state] 是进度),通了才选上并记为手填。 */
 @Composable
 internal fun ManualModel(p: Provider, state: ListState?, first: Boolean, onUse: (String) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }

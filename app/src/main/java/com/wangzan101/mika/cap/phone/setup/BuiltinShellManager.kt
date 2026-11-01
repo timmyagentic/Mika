@@ -176,7 +176,7 @@ class BuiltinShellManager(context: Context, private val hub: HelperHub, private 
         override suspend fun findPairingPort(timeoutMs: Long): Int? = finder.findPorts(AdbServiceTypes.PAIRING, timeoutMs).firstOrNull()
 
         override fun pair(port: Int, code: String) {
-            AdbPairing(AndroidAdb.tls(AndroidAdb.identity(app))).pair(LOCALHOST, port, code)
+            AdbPairing(AndroidAdb.tls(AndroidAdb.pairingIdentity(app))).pair(LOCALHOST, port, code)
         }
 
         override suspend fun launchHelper() {
