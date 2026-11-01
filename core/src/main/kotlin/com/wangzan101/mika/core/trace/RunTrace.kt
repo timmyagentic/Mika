@@ -77,7 +77,9 @@ internal class TraceCall(
     private var pendingChange = change
     fun takeChange(): String? = pendingChange.also { pendingChange = null }
 
-    internal class Attempt(val span: LocalSpan, private val protocol: InferenceProtocol) {
+    internal inner class Attempt(val span: LocalSpan, private val protocol: InferenceProtocol) {
+        fun httpStatus(code: Int) = run.httpStatus(span, code)
+
         @Volatile var usage: ReportedTokens? = null
             private set
 
@@ -92,11 +94,6 @@ internal class TraceCall(
         finish("error", null)
         val span = begin(req.payload, messages, req.provider, req.protocol) ?: return null
         return Attempt(span, req.protocol).also { current = it }
-    }
-
-    fun responded(attempt: Attempt, status: Int) {
-        run.httpStatus(attempt.span, status)
-        if (status !in 200..299) finish("error", null)
     }
 
     fun finish(status: String, reply: ModelReply?) {
@@ -170,13 +167,13 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
         return beginPrepared(call, blocks, start, provider)
     }
 
-    @Synchronized private fun beginPrepared(call: TraceCall, blocks: List<RequestBlock>, start: Long, provider: String?): LocalSpan? = record(call.step.toLong()) {
+    @Synchronized private fun beginPrepared(call: TraceCall, blocks: List<RequestBlock>, start: Long, provider: String): LocalSpan? = record(call.step.toLong()) {
         val span = child("chat " + TracePayload.label(call.model.name), call.step, SpanKind.SPAN_KIND_CLIENT, start)
         val index = (attempts[call.step] ?: 0) + 1
         attempts[call.step] = index
         span.setAttribute("gen_ai.operation.name", "chat").setAttribute("gen_ai.request.model", TracePayload.label(call.model.name))
             .setAttribute("mika.attempt", index).setAttribute("mika.request.captured", true)
-        provider?.let { span.setAttribute("gen_ai.provider.name", it) }
+        span.setAttribute("gen_ai.provider.name", provider)
         val change = listOfNotNull("tools_opened".takeIf { toolsOpened }, call.takeChange()).joinToString(",")
         if (change.isNotEmpty()) span.setAttribute("mika.context.change", change)
         toolsOpened = false

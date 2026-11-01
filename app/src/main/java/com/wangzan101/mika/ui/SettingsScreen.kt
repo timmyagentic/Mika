@@ -153,7 +153,8 @@ fun SettingsScreen(
 
     if (page != SettingsPage.Home) BackHandler { back() }
 
-    when (page) {
+    val visiblePage = if (!showDeveloper && (page == SettingsPage.Developer || page == SettingsPage.RunStats)) SettingsPage.Home else page
+    when (visiblePage) {
         SettingsPage.Home -> SettingsContent(
             status = status, androidRelease = androidRelease,
             mainModel = roles.main?.let { id -> configs.firstOrNull { it.id == id } }?.let(ProviderConnection::displayName),

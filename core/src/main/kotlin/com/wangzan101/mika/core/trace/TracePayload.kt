@@ -116,14 +116,20 @@ internal object TracePayload {
                 return if (args is JsonPrimitive && args.isString) encoded(raw, safe) else safe
             }
             fun result(op: Verb?, item: JsonElement): JsonElement {
-                val raw = (item as? JsonPrimitive)?.takeIf { it.isString }?.content
-                val value = raw?.let(::parsed) ?: item
-                val safe = when {
-                    op == Verb.AskUser -> JsonPrimitive(MASK)
-                    value is JsonObject -> clean(Redactor.result(op, value), depth + 1)
-                    else -> clean(value, depth + 1)
+                if (op == Verb.AskUser) return JsonPrimitive(MASK)
+                fun plain(element: JsonElement): JsonElement {
+                    val raw = (element as? JsonPrimitive)?.takeIf { it.isString }?.content
+                    val value = raw?.let(::parsed) ?: element
+                    val safe = clean(if (value is JsonObject) Redactor.result(op, value) else value, depth + 1)
+                    return if (raw == null) safe else encoded(raw, safe)
                 }
-                return if (raw == null) safe else encoded(raw, safe)
+                // Explicit-cache chat endpoints can wrap the tool result in text blocks.
+                if (item !is JsonArray) return plain(item)
+                return JsonArray(item.map { part ->
+                    if (part is JsonObject && part.text("type") == "text") {
+                        JsonObject(part.mapValues { (field, element) -> if (field == "text") plain(element) else clean(element, depth + 1) })
+                    } else clean(part, depth + 1)
+                })
             }
             val callId = str("call_id") ?: str("id")
             if (callId != null) {

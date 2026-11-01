@@ -47,18 +47,18 @@ class GeminiModel(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-        val (status, retryAfter, text) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
+        val (status, retryAfter, text, parsed) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        return parse(text)
+        return parse(text, parsed)
     }
 
     override suspend fun completeStreaming(
         system: String, messages: List<Message>, tools: List<ToolSpec>, onText: (String) -> Unit,
     ): ModelReply {
         val stream = GeminiStream(onText, ::parse, ::parseUsage)
-        val (status, retryAfter, text) = HttpSupport.stream(http, request(system, messages, tools, stream = true), stream::accept)
+        val (status, retryAfter, text, parsed) = HttpSupport.stream(http, request(system, messages, tools, stream = true), stream::accept)
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        if (text.isNotEmpty()) return parse(text).also { reply ->
+        if (text.isNotEmpty()) return parse(text, parsed).also { reply ->
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
         }
         return stream.finish()
@@ -189,9 +189,10 @@ class GeminiModel(
             else -> null
         }
 
-    private fun parse(text: String): ModelReply {
+    private fun parse(text: String, parsed: ParsedPacket? = null): ModelReply {
         try {
             val root = json.parseToJsonElement(text).jsonObject
+            parsed?.invoke(root)
             val blockReason = ((root["promptFeedback"] as? JsonObject)?.get("blockReason") as? JsonPrimitive)?.contentOrNull
             if (blockReason != null) throw ModelError.ContentRefused()
             val cand = root["candidates"]?.jsonArray?.firstOrNull()?.jsonObject
@@ -247,7 +248,7 @@ private class GeminiStream(
     private var usage: Usage? = null
     private var finishReason: String? = null
 
-    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
+    fun accept(data: String, parsed: ParsedPacket? = null) {
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
         parsed?.invoke(root)

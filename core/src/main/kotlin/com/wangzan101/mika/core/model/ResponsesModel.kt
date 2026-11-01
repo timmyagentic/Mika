@@ -77,9 +77,9 @@ class ResponsesModel(
             val bearer = token.get(fresh)
             val payload = body(system, messages, tools, includeReasoning)
             val req = request(bearer, payload)
-            val (status, retryAfter, text) = HttpSupport.stream(http, req, stream::accept)
+            val (status, retryAfter, text, parsed) = HttpSupport.stream(http, req, stream::accept)
             if (status in 200..299) {
-                return if (text.isNotEmpty()) stream.fromBody(text).also { r ->
+                return if (text.isNotEmpty()) stream.fromBody(text, parsed).also { r ->
                     r.parts.filterIsInstance<Part.Text>().joinToString("").takeIf(String::isNotEmpty)?.let(onText)
                 } else stream.finish()
             }
@@ -232,7 +232,7 @@ private class ResponsesStream(
     private var final: JsonObject? = null
     private var incomplete = false
 
-    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
+    fun accept(data: String, parsed: ParsedPacket? = null) {
         if (data == "[DONE]") return
         val root = try { json.parseToJsonElement(data) as? JsonObject } catch (e: Exception) { null }
             ?: throw ModelError.BadResponse("流式响应不是合法 JSON")
@@ -260,9 +260,10 @@ private class ResponsesStream(
     }
 
     /** 服务端没按流式回、直接给了整个 response 对象。 */
-    fun fromBody(text: String): ModelReply {
+    fun fromBody(text: String, parsed: ParsedPacket?): ModelReply {
         val root = try { json.parseToJsonElement(text) as? JsonObject } catch (e: Exception) { null }
             ?: throw ModelError.BadResponse("返回内容不是合法 JSON")
+        parsed?.invoke(root)
         (root["error"] as? JsonObject)?.let { throw failure(it) }
         final = root
         incomplete = root.str("status") == "incomplete"

@@ -32,7 +32,22 @@ class RunTraceDeviceTest {
     @get:Rule(order = Int.MIN_VALUE) val chinese = ChineseUi()
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
+    @Test fun releaseIgnoresAPreviouslyEnabledRecordingPreference() {
+        org.junit.Assume.assumeFalse(com.wangzan101.mika.record.DetailedTraces.supportedBuild)
+        val app = compose.activity.application as MikaApp
+        val prefs = app.getSharedPreferences("trace_settings", android.content.Context.MODE_PRIVATE)
+        val previous = prefs.getBoolean("enabled", false)
+        try {
+            prefs.edit().putBoolean("enabled", true).apply()
+            assertTrue(!app.detailedTraces.enabled && app.detailedTraces.ticket() == null)
+            assertTrue(app.detailedTraces.start(null, "release-check") == null)
+        } finally {
+            prefs.edit().putBoolean("enabled", previous).apply()
+        }
+    }
+
     @Test fun recordsAndViewsARequestFromTheSettingsSwitch() {
+        org.junit.Assume.assumeTrue(com.wangzan101.mika.record.DetailedTraces.supportedBuild)
         val app = compose.activity.application as MikaApp
         val previous = app.detailedTraces.enabled
         val previousLimit = app.detailedTraces.limitMiB

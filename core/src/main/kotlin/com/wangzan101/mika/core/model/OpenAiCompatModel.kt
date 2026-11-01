@@ -55,12 +55,12 @@ class OpenAiCompatModel(
     }
 
     override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-        val (status, retryAfter, text) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
+        val (status, retryAfter, text, parsed) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
         if (status !in 200..299) throw mapError(status, retryAfter, text)
         // 有的兼容端点不守 OpenAI 的默认值:没让流式也照样回 SSE(本地、局域网上的自建服务常见)。按流读完再拼,别把 `data:` 当成坏 JSON。
-        if (!looksLikeEvents(text)) return parse(text)
+        if (!looksLikeEvents(text)) return parse(text, parsed)
         val stream = OpenAiStream({}, ::parseUsage, ::thinking)
-        eventsOf(text).forEach(stream::accept)
+        eventsOf(text).forEach { stream.accept(it, parsed) }
         return stream.finish()
     }
 
@@ -74,7 +74,7 @@ class OpenAiCompatModel(
             stream = OpenAiStream(onText, ::parseUsage, ::thinking)
             response = HttpSupport.stream(http, request(system, messages, tools, stream = true, includeUsage = false), stream::accept)
         }
-        val (status, retryAfter, text) = response
+        val (status, retryAfter, text, parsed) = response
         if (status !in 200..299) {
             // 不支持流式传输的兼容端点仍可按原接口完成任务。
             if (status == 400 && text.contains("stream", ignoreCase = true)) return complete(system, messages, tools).also {
@@ -82,7 +82,7 @@ class OpenAiCompatModel(
             }
             throw mapError(status, retryAfter, text)
         }
-        if (text.isNotEmpty()) return parse(text).also { reply ->
+        if (text.isNotEmpty()) return parse(text, parsed).also { reply ->
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
         }
         return stream.finish()
@@ -260,9 +260,10 @@ class OpenAiCompatModel(
         return out
     }
 
-    private fun parse(text: String): ModelReply {
+    private fun parse(text: String, parsed: ParsedPacket? = null): ModelReply {
         try {
             val root = json.parseToJsonElement(text).jsonObject
+            parsed?.invoke(root)
             val choice = root["choices"]?.jsonArray?.firstOrNull()?.jsonObject
                 ?: throw ModelError.BadResponse("缺少 choices")
             val msg = choice["message"]?.jsonObject ?: throw ModelError.BadResponse("缺少 message")
@@ -326,7 +327,7 @@ private class OpenAiStream(
     private var done = false
     private var chunks = 0
 
-    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
+    fun accept(data: String, parsed: ParsedPacket? = null) {
         if (data == "[DONE]") { done = true; return }
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }

@@ -67,11 +67,11 @@ class AnthropicModel(
     private val staleThinking: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-        val (status, retryAfter, text) = dropStaleThinking(messages) {
+        val (status, retryAfter, text, parsed) = dropStaleThinking(messages) {
             HttpSupport.execute(http, request(system, messages, tools, stream = false))
         }
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        return parse(text)
+        return parse(text, parsed)
     }
 
     override suspend fun completeStreaming(
@@ -79,11 +79,11 @@ class AnthropicModel(
     ): ModelReply {
         val stream = AnthropicStream(endpoint, onText, ::parseUsage)
         // 被拒的那次没有事件(不是 2xx 时 HttpSupport.stream 不调 accept),重发接着用这个 stream
-        val (status, retryAfter, text) = dropStaleThinking(messages) {
+        val (status, retryAfter, text, parsed) = dropStaleThinking(messages) {
             HttpSupport.stream(http, request(system, messages, tools, stream = true), stream::accept)
         }
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        if (text.isNotEmpty()) return parse(text).also { reply ->
+        if (text.isNotEmpty()) return parse(text, parsed).also { reply ->
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
         }
         return stream.finish()
@@ -226,9 +226,10 @@ class AnthropicModel(
         }
     }
 
-    private fun parse(text: String): ModelReply {
+    private fun parse(text: String, parsed: ParsedPacket? = null): ModelReply {
         try {
             val root = json.parseToJsonElement(text).jsonObject
+            parsed?.invoke(root)
             val content = root["content"]?.jsonArray ?: throw ModelError.BadResponse("缺少 content")
             val parts = mutableListOf<Part>()
             content.forEach { el ->
@@ -284,7 +285,7 @@ private class AnthropicStream(
     private var reason: String? = null
     private var stopped = false
 
-    fun accept(data: String, parsed: ((JsonObject) -> Unit)? = null) {
+    fun accept(data: String, parsed: ParsedPacket? = null) {
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
         parsed?.invoke(root)
