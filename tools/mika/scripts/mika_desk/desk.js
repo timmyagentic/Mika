@@ -317,6 +317,14 @@ $("pick").addEventListener("submit", event => {
   event.preventDefault();
   work(() => refresh({device: $("devices").value}));
 });
+$("goal").addEventListener("keydown", event => {
+  if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey ||
+      event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (!event.repeat && !$("submit-goal").disabled && $("goal").value.trim()) {
+    $("compose").requestSubmit($("submit-goal"));
+  }
+});
 $("compose").addEventListener("submit", event => {
   event.preventDefault();
   const goal = $("goal").value.trim();
