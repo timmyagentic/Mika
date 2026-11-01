@@ -69,8 +69,15 @@ class OtlpSenderTest {
                 assertEquals(OtlpReceipt.HttpError(307), send())
                 assertEquals(0, redirect.requestCount)
             }
-            receiver.enqueue(MockResponse().setBody("not an acknowledgement"))
-            try { send(); fail("invalid receiver response") } catch (_: IOException) {}
+            for (invalid in listOf(
+                MockResponse(),
+                MockResponse().setHeader("Content-Type", "text/html"),
+                MockResponse().setHeader("Content-Type", "text/html").setBody("OK"),
+                MockResponse().setHeader("Content-Type", "application/x-protobuf").setBody("not an acknowledgement"),
+            )) {
+                receiver.enqueue(invalid)
+                try { send(); fail("invalid receiver response") } catch (_: IOException) {}
+            }
             assertArrayEquals(expected, ByteArrayOutputStream().also { archive.save(it, false) }.toByteArray())
         }
     }

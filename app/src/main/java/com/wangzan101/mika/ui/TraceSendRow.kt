@@ -19,23 +19,43 @@ import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+/** The run screen owns the in-flight request and receipt across trace row collapse or recycling. */
+internal class TraceSendState(private val scope: CoroutineScope) {
+    var busy by mutableStateOf(false)
+        private set
+    var receipt by mutableStateOf<OtlpReceipt?>(null)
+        private set
+    var failed by mutableStateOf(false)
+        private set
+
+    fun send(archive: TraceArchive, address: String, name: String, value: String) {
+        if (busy) return
+        busy = true
+        receipt = null
+        failed = false
+        scope.launch {
+            try { receipt = OtlpSender.send(archive, address, name, value) }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { failed = true }
+            finally { busy = false }
+        }
+    }
+}
+
 @Composable
-internal fun TraceSendRow(archive: TraceArchive) {
-    val scope = rememberCoroutineScope()
+internal fun TraceSendRow(archive: TraceArchive, sender: TraceSendState) {
     var dialog by remember(archive.runId) { mutableStateOf(false) }
-    var busy by remember(archive.runId) { mutableStateOf(false) }
-    var receipt by remember(archive.runId) { mutableStateOf<OtlpReceipt?>(null) }
-    var failed by remember(archive.runId) { mutableStateOf(false) }
     ListRow(null, stringResource(R.string.trace_send), stringResource(R.string.trace_network_hint),
-        onClick = if (busy) null else ({ dialog = true })) { RowChevron() }
-    val message = when (val r = receipt) {
+        onClick = if (sender.busy) null else ({ dialog = true })) { RowChevron() }
+    val message = when (val r = sender.receipt) {
         OtlpReceipt.Accepted -> stringResource(R.string.trace_sent)
         OtlpReceipt.AcceptedWithWarning -> stringResource(R.string.trace_sent_warning)
         is OtlpReceipt.Rejected -> stringResource(R.string.trace_rejected, r.spans)
         is OtlpReceipt.HttpError -> stringResource(R.string.trace_http_error, r.code)
-        null -> if (failed) stringResource(R.string.trace_send_failed) else null
+        null -> if (sender.failed) stringResource(R.string.trace_send_failed) else null
     }
     if (message != null) Text(message, Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MikaType.Hint)
     if (dialog) {
@@ -60,19 +80,8 @@ internal fun TraceSendRow(archive: TraceArchive) {
                 }
             },
             confirmButton = { TextButton(enabled = validAddress && validHeader, onClick = {
-                val url = address
-                val header = name
-                val credential = value
                 dialog = false
-                busy = true
-                failed = false
-                receipt = null
-                scope.launch {
-                    try { receipt = OtlpSender.send(archive, url, header, credential) }
-                    catch (e: CancellationException) { throw e }
-                    catch (_: Exception) { failed = true }
-                    finally { busy = false }
-                }
+                sender.send(archive, address, name, value)
             }) { Text(stringResource(R.string.trace_send)) } },
             dismissButton = { TextButton(onClick = { dialog = false }) { Text(stringResource(R.string.cancel)) } })
     }

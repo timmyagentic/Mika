@@ -91,10 +91,11 @@ internal object OtlpSender {
     private fun receipt(response: Response): OtlpReceipt {
         if (response.code != 200) return OtlpReceipt.HttpError(response.code)
         val body = response.body ?: throw IOException("Missing acknowledgement")
+        val type = body.contentType()
+        if (type?.type != protobuf.type || type.subtype != protobuf.subtype)
+            throw IOException("Invalid acknowledgement type")
         val source = body.source()
         if (source.request(65_537)) throw IOException("Oversized acknowledgement")
-        if (!source.exhausted() && body.contentType()?.let { it.type == protobuf.type && it.subtype == protobuf.subtype } != true)
-            throw IOException("Invalid acknowledgement type")
         val ack = ExportTraceServiceResponse.parseFrom(source.readByteArray())
         val rejected = ack.partialSuccess.rejectedSpans
         if (rejected < 0) throw IOException("Invalid acknowledgement")

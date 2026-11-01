@@ -36,15 +36,15 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 
 @Composable
-internal fun RunTraceSection(runId: String) {
+internal fun RunTraceSection(runId: String, sender: TraceSendState) {
     val context = LocalContext.current
     val store = (context.applicationContext as MikaApp).detailedTraces.store
     val archive by produceState<TraceArchive?>(null, runId) { value = withContext(Dispatchers.IO) { store.archive(runId) } }
-    archive?.let { TraceDetails(it) }
+    archive?.let { TraceDetails(it, sender) }
 }
 
 @Composable
-private fun TraceDetails(archive: TraceArchive) {
+private fun TraceDetails(archive: TraceArchive, sender: TraceSendState) {
     val rows by produceState<List<TraceRow>?>(null, archive) {
         value = withContext(Dispatchers.IO) { try { archive.rows() } catch (_: IOException) { emptyList() } }
     }
@@ -59,6 +59,7 @@ private fun TraceDetails(archive: TraceArchive) {
             val worst = all.maxByOrNull { it.uncached ?: -1 }
             for (row in all.drop(1)) key(row.id) { TraceEntryRow(archive, row, row == worst && row.uncached != null) }
             TraceExportControls(archive)
+            TraceSendRow(archive, sender)
         }
     }
 }
@@ -130,7 +131,6 @@ private fun TraceExportControls(archive: TraceArchive) {
         if (includeBody) zip.launch("mika-trace-${archive.runId}.zip") else proto.launch("mika-trace-${archive.runId}.pb")
     }) { RowChevron() }
     if (result != 0) Text(stringResource(result), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MikaType.Hint)
-    TraceSendRow(archive)
 }
 
 private suspend fun saveTrace(archive: TraceArchive, includeBody: Boolean, open: () -> java.io.OutputStream?): Int =
