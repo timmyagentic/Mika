@@ -152,7 +152,7 @@ class AgentLoop(
     private val reviewFinalAnswer: Boolean = true,
     /** 同一网站、App 里连着做对外动作(发送、提交)时两次之间的间隔;默认不等。 */
     private val outwardPacing: OutwardPacing = OutwardPacing.Off,
-    trace: RunTrace? = null,
+    private val trace: RunTrace? = null,
 ) {
     init {
         require(maxSteps > 0) { "maxSteps must be positive" }
@@ -561,6 +561,7 @@ class AgentLoop(
             answered = null
 
             val first = calls.first()
+            trace?.toolStarted(step, first.name, first.id, now())
             val skipped = calls.drop(1).map {
                 Part.ToolResult(it.id, buildJsonObject {
                     put("ok", false)

@@ -144,11 +144,13 @@ class RunTraceTest {
         val body = generateSequence(0) { it + 1 }.map { files.bodyPage(completed[2], it * 8, 8)!! }
         val full = buildString { for (chunk in body) { append(chunk.text); if (!chunk.hasMore) break } }
         assertTrue(full.contains("rewritten") && full.contains("new"))
+        trace.toolStarted(4, "phone_observe", "call_wait", System.currentTimeMillis())
         store.stopAll()
         trace.end(pending, "ok", 300, 250, 4)
         assertEquals("partial", files.rows().first().status)
         assertEquals("partial", files.rows().last().status)
-        assertNull(files.rows().last().cached)
+        assertEquals("call_wait", files.rows().last().toolCallId)
+        assertNull(files.rows().single { it.id == pending.spanContext.spanId }.cached)
     }
 
     @Test fun stopAndQuotaLeaveReadablePartialRunsAndLateCallbacksCannotResumeCapture() {

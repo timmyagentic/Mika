@@ -94,6 +94,7 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
         .setAttribute("gen_ai.operation.name", "invoke_agent").setAttribute("mika.status", "partial")
     private val parent = Context.root().with(root)
     private val pending = mutableSetOf<Span>()
+    private val toolSpans = mutableMapOf<Pair<Int, String>, Span>()
     private val previous = IdentityHashMap<ChatModel, List<Pair<String, String>>>()
     private val attempts = mutableMapOf<Int, Long>()
     private var toolsOpened = false
@@ -213,14 +214,30 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
         }
     }
 
+    @Synchronized internal fun toolStarted(step: Int, name: String, callId: String, start: Long) {
+        record {
+            val span = tool(step, name, callId, start)
+            toolSpans[step to callId] = span
+            checkpoint(span)
+        }
+    }
+
+    private fun tool(step: Int, name: String, callId: String?, start: Long): Span {
+        val safeName = TracePayload.label(name)
+        return child("execute_tool " + safeName, step, SpanKind.INTERNAL, start).apply {
+            setAttribute("gen_ai.operation.name", "execute_tool")
+            setAttribute("gen_ai.tool.name", safeName)
+            callId?.let { setAttribute("gen_ai.tool.call.id", TracePayload.label(it)) }
+        }
+    }
+
     @Synchronized override fun event(e: RunEvent) {
         record {
             when (e) {
                 is RunEvent.ToolResult -> if (e.source == "model") {
-                    val name = TracePayload.label(e.tool)
-                    val span = child("execute_tool " + name, e.step, SpanKind.INTERNAL, e.atMs - e.durationMs)
-                    span.setAttribute("gen_ai.operation.name", "execute_tool").setAttribute("gen_ai.tool.name", name)
-                    e.callId?.let { span.setAttribute("gen_ai.tool.call.id", TracePayload.label(it)) }
+                    val span = e.callId?.let { toolSpans.remove(e.step to it) }
+                        ?: tool(e.step, e.tool, e.callId, e.atMs - e.durationMs)
+                    span.setAttribute("mika.tool.duration_ms", e.durationMs)
                     val failed = runCatching { Json.parseToJsonElement(e.resultJson).jsonObject["ok"]?.jsonPrimitive?.booleanOrNull == false }
                         .getOrDefault(false) || Regex("""^\{\s*"ok"\s*:\s*false\b""").containsMatchIn(e.resultJson)
                     span.setAttribute("mika.status", if (failed) "error" else "ok")
@@ -251,6 +268,7 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
         val interrupted = pending.isNotEmpty() || outcome == "cancelled"
         pending.forEach { it.end() }
         pending.clear()
+        toolSpans.clear()
         previous.clear()
         val state = if (stopped || interrupted || truncated || writeFailed || outcome == null) "partial" else outcome!!
         outcome?.let { root.setAttribute("mika.run.outcome", it) }
