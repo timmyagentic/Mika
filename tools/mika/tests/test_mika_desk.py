@@ -220,3 +220,33 @@ class DeskTest(unittest.TestCase):
             code, body = request(url, {"action": "overview"})
             self.assertEqual(401, code)
             self.assertIn("[redacted]", body["error"]["message"])
+
+    def test_history_reads_reuse_transport_and_reject_path_or_page_injection(self):
+        def respond(method, path, body):
+            if path == "/api/v1":
+                return 200, {**DISCOVERY, "capabilities": ["tasks", "history"], "history_enabled": True}, {}
+            if path.startswith("/api/v1/history/"):
+                return 200, {"conversations": [], "next_offset": None, "text": "saved"}, {}
+            if path.startswith("/api/v1/tasks?"):
+                return 200, {"tasks": []}, {}
+        with api(respond) as phone, self.launch(phone) as url:
+            self.assertTrue(request(url, {"action": "overview"})[1]["history_enabled"])
+            data = {"action": "history_body", "conversation": "phone-chat", "run_id": "run-one",
+                    "span_id": "0123456789abcdef", "offset": "3000"}
+            self.assertEqual("saved", request(url, data)[1]["text"])
+            for field, value in [("conversation", "../settings"), ("run_id", "a?limit=0"), ("offset", "-1")]:
+                count = len(phone.calls)
+                self.assertEqual(400, request(url, {**data, field: value})[0])
+                self.assertEqual(count, len(phone.calls))
+            self.assertTrue(all(method == "GET" for method, _, _ in phone.calls))
+            self.assertIn(("GET", "/api/v1/history/conversations/phone-chat/runs/run-one/bodies/0123456789abcdef?offset=3000", None), phone.calls)
+
+    def test_disabled_history_does_not_fetch_private_conversations(self):
+        def respond(method, path, body):
+            if path == "/api/v1":
+                return 200, {**DISCOVERY, "capabilities": ["tasks", "history"], "history_enabled": False}, {}
+            if path.startswith("/api/v1/tasks?"):
+                return 200, {"tasks": []}, {}
+        with api(respond) as phone, self.launch(phone) as url:
+            self.assertEqual(200, request(url, {"action": "overview"})[0])
+            self.assertFalse(any("/history/" in path for _, path, _ in phone.calls))

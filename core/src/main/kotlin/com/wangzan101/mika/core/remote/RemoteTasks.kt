@@ -15,6 +15,7 @@ data class RemoteTask(
     val createdAtMs: Long,
     val state: TaskState?,
     val steers: List<RemoteSteer> = emptyList(),
+    val runId: String? = null,
 )
 
 /** 只报告电脑追加的消息;joined 表示进入当前任务上下文,不是执行成功。 */
@@ -77,6 +78,7 @@ object RemoteStatus {
         put("conversation", t.conversation)
         put("goal", t.goal)
         put("started_at_ms", t.createdAtMs)
+        t.runId?.let { put("run_id", it) }
         when (s) {
             is TaskState.Running -> {
                 put("step", s.step)

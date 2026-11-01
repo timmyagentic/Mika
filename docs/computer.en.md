@@ -45,6 +45,10 @@ If you would rather not type commands, connect the phone and run `mika ui`. Your
 
 The sidebar groups the latest 50 remote tasks by conversation. Read each turn in the center and use the composer to continue after a turn ends. Select **View process** to expand the phone’s report and the updates observed in this tab above that turn’s reply. Select **Hide process** to collapse it. The composer keeps your current draft. Select **New chat** to start a separate conversation.
 
+On the phone, open **Settings → Connect a computer → Advanced** and enable **Allow computers to view history** to include saved phone conversations in the sidebar. **Load more conversations** and **Load earlier turns** page through the archive. Tasks started on the phone can be viewed here and continued or answered on the phone. This permission is off by default and covers all conversations, run records and recorded Trace bodies over both USB and private-network connections.
+
+Each turn’s **View process** can show saved run events and detailed Trace entries, including model attempts, tool calls, timing, input and cached tokens, and the first changed request block. **Read request and reply** loads redacted text one page at a time. Recordings update while the page is visible, and switching the inspected turn keeps the composer’s draft. Detailed recording must have been enabled beforehand in Developer options in a debug or perf build. Missing, rotated and incomplete records are identified in the view.
+
 - With several ADB devices, choose one in the page or start with `mika ui --device SERIAL`; Wi-Fi / private VPN connections use the usual `--url` and `--token-file`.
 - With only the Skill installed, run `python3 <skills-directory>/mika/scripts/mika_cli.py ui`.
 - If no browser opens, add `--no-open` and open the printed link in a browser on this computer.

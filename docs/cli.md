@@ -113,7 +113,18 @@ mika ui --device SERIAL --no-open
 | POST /tasks/ID/steer | text;202 返回 task_id、message_id 与 accepted。只接受 running 任务。 |
 | POST /tasks/ID/cancel | 空对象;接受时 202,终态任务 200,返回 accepted。 |
 
-业务校验失败为 400,任务不存在为 404,当前状态不能回答为 409,任务服务拒绝启动为 503。认证、来源和限流策略与 `/mcp` 共用。两种入口使用同一远程任务索引;持有同一访问权限的客户端可以跨入口查询和操作远程任务,仍不能访问手机本地发起的任务。
+业务校验失败为 400,任务不存在为 404,当前状态不能回答为 409,任务服务拒绝启动为 503。认证、来源和限流策略与 `/mcp` 共用。两种入口使用同一远程任务索引；任务控制接口只认电脑交来的任务。状态中有运行记录时额外返回 `"run_id"`，任务 ID 与运行 ID 各自保留。
+
+支持历史查询的手机在发现响应中报告 `history` 能力及 `history_enabled`。机主先在手机「连接电脑 → 高级设置」授权历史查看，以下 GET 接口才可读取本机对话与运行记录。未授权或读取期间撤销授权返回 `403 history_disabled`，缺失的对话、运行或请求返回 404。
+
+| 路径 | 返回 |
+| --- | --- |
+| /history/conversations | `conversations` 列出 ID、标题和更新时间，`next_offset` 指向下一页。 |
+| /history/conversations/C | `turns` 含要求、答复、`"run_id"` 与 `turn_index`，页内按对话顺序排列。`offset` 从最新轮次往前计，`total` 为当前总轮数。 |
+| /history/conversations/C/runs/R | 该对话所属运行的 `events` 与 Trace `rows`，并报告归档是否存在及是否仍在录制。 |
+| /history/conversations/C/runs/R/bodies/S | 指定 Trace span 的脱敏请求与回复正文，`text` 为一页，`next_offset` 为后续字符位置。 |
+
+各接口只接受 `offset`、`limit`。默认每页 20 项，最多 50 项；正文默认且最多每页 3,000 个字符。`next_offset` 为 null 表示已到末页。长对话文本和运行事件的展示节选分别带 `text_truncated` 或 `truncated`。历史读取不把手机任务加入远程控制索引，不能用它的编号去回答、追加或取消手机任务。
 
 ## 开发验证
 

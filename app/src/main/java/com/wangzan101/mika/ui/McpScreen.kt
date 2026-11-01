@@ -77,7 +77,16 @@ fun McpScreen(runtime: McpRuntime, onBack: () -> Unit) {
             activity, addresses, token, usbCommand),
         onBack, runtime::setUsbEnabled, runtime::setEnabled,
         onCopy = { copy(context, it) }, onRegenerate = { confirmRegenerate = true },
-        deviceSettings = { DeviceAccessSection(runtime.device.settings) },
+        deviceSettings = {
+            val historyEnabled by runtime.settings.historyEnabled.collectAsState()
+            GroupCard {
+                ListRow(MikaIcons.Desktop, stringResource(R.string.mcp_history_title), stringResource(R.string.mcp_history_detail),
+                    first = true, onClick = { runtime.settings.setHistoryEnabled(!historyEnabled) }) {
+                    MikaSwitch(historyEnabled, runtime.settings::setHistoryEnabled, Modifier.testTag("computer-history"))
+                }
+            }
+            DeviceAccessSection(runtime.device.settings)
+        },
     )
     if (confirmRegenerate) AlertDialog(
         onDismissRequest = { confirmRegenerate = false },

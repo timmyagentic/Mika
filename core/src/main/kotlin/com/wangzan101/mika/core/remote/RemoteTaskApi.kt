@@ -14,12 +14,14 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import java.net.URLDecoder
+import java.io.IOException
 
 /** 普通 HTTP/JSON 适配器。无需 MCP 握手、工具发现或 tools/call;认证由 RemoteHost 统一执行。 */
 class RemoteTaskApi(
     private val service: RemoteTaskService,
     private val serverVersion: String,
     private val device: DeviceAccess? = null,
+    private val history: RemoteHistory? = null,
 ) {
     fun handle(req: HttpRequest): HttpResponse = try {
         req.header("accept")?.lowercase()?.let {
@@ -41,12 +43,18 @@ class RemoteTaskApi(
 
     private fun route(req: HttpRequest): HttpResponse {
         val query = query(req)
+        if (req.path.startsWith("$ROOT/history/")) return history(req, query)
         if (req.path != "$ROOT/tasks" && query.isNotEmpty()) invalid("This endpoint accepts no query parameters")
         if (req.path == ROOT) {
             method(req, "GET")
             return ok(buildJsonObject {
                 put("api_version", 1); put("server_version", serverVersion)
-                putJsonArray("capabilities") { add("tasks"); add("task_steer"); if (device != null) add("device_state") }
+                putJsonArray("capabilities") {
+                    add("tasks"); add("task_steer")
+                    if (device != null) add("device_state")
+                    if (history != null) add("history")
+                }
+                if (history != null) put("history_enabled", history.enabled)
                 putJsonObject("limits") {
                     put("max_wait_s", RemoteTaskService.MAX_WAIT_S)
                     put("max_goal", RemoteTaskService.MAX_GOAL)
@@ -121,6 +129,34 @@ class RemoteTaskApi(
         }
     }
 
+    private fun history(req: HttpRequest, query: Map<String, String>): HttpResponse {
+        method(req, "GET")
+        val source = history ?: throw ApiError(404, "not_found", "History is not supported by this phone")
+        if (!source.enabled) throw ApiError(403, "history_disabled", "Allow history viewing in Connect a computer on the phone")
+        if (query.keys.any { it !in setOf("offset", "limit") }) invalid("Only offset and limit are supported")
+        val parts = req.path.removePrefix("$ROOT/history/").split('/')
+        if (parts.firstOrNull() != "conversations" || parts.drop(1).any { !HISTORY_ID.matches(it) })
+            throw ApiError(404, "not_found", "No such history endpoint")
+        val bodyPage = parts.size == 6 && parts[2] == "runs" && parts[4] == "bodies"
+        val max = if (bodyPage) 3_000 else 50
+        val offset = query["offset"]?.let { it.toIntOrNull() ?: invalid("offset must be an integer") } ?: 0
+        val limit = query["limit"]?.let { it.toIntOrNull() ?: invalid("limit must be an integer") } ?: if (bodyPage) max else 20
+        if (offset < 0 || offset > Int.MAX_VALUE - max || limit !in 1..max) invalid("Invalid page bounds")
+        val result = try {
+            when {
+                parts.size == 1 -> source.conversations(offset, limit)
+                parts.size == 2 -> source.turns(parts[1], offset, limit)
+                parts.size == 4 && parts[2] == "runs" -> source.run(parts[1], parts[3], offset, limit)
+                bodyPage && SPAN_ID.matches(parts[5]) -> source.body(parts[1], parts[3], parts[5], offset, limit)
+                else -> throw ApiError(404, "not_found", "No such history endpoint")
+            }
+        } catch (_: IOException) {
+            throw ApiError(503, "history_unavailable", "This record could not be read; try again")
+        } ?: throw ApiError(404, "not_found", "The conversation, run or request is no longer available")
+        if (!source.enabled) throw ApiError(403, "history_disabled", "History viewing was turned off on the phone")
+        return ok(result)
+    }
+
     private fun body(req: HttpRequest, allowed: Set<String>): JsonObject {
         if (req.header("content-type")?.substringBefore(';')?.trim()?.lowercase() != "application/json")
             throw ApiError(415, "unsupported_media_type", "Content-Type must be application/json")
@@ -163,6 +199,8 @@ class RemoteTaskApi(
     companion object {
         const val ROOT = "/api/v1"
         private val ID = Regex("[A-Za-z0-9_-]+")
+        private val HISTORY_ID = Regex("[A-Za-z0-9_-]{1,80}")
+        private val SPAN_ID = Regex("[a-f0-9]{16}")
         fun error(status: Int, code: String, message: String, headers: Map<String, String> = emptyMap()) =
             HttpResponse.json(status, buildJsonObject { putJsonObject("error") {
                 put("code", code); put("message", message)

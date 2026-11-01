@@ -32,6 +32,7 @@ class RemoteTaskHub(
     private class Record(val id: String, val conversation: String, val goal: String, val createdAtMs: Long) {
         @Volatile var final: TaskState? = null
         @Volatile var steers: List<RemoteSteer> = emptyList()
+        @Volatile var runId: String? = null
     }
 
     private val buses = HashMap<RunId, RunEventBus>()
@@ -101,17 +102,19 @@ class RemoteTaskHub(
         val state = end ?: run?.state?.value
             ?: if (clock() - r.createdAtMs > LOST_MS) TaskState.Failed("The task never started on the phone.", FailKind.Environment) else null
         return RemoteTask(r.id, r.conversation, r.goal, r.createdAtMs, state,
-            if (end != null) r.steers else run?.let { remoteSteers(it.steers.value) }.orEmpty())
+            if (end != null) r.steers else run?.let { remoteSteers(it.steers.value) }.orEmpty(),
+            run?.runId?.value ?: r.runId)
     }
 
     @Synchronized fun attach(id: String, source: RunEventBus): AutoCloseable? =
         buses[RunId(id)]?.let { sink -> source.subscribe(sink) }
 
     /** 任务收尾(含排队时被取消、服务被系统停掉):记下终态,之后状态都从这里读。 */
-    @Synchronized fun ended(id: String, end: TaskState, steers: List<SteerNote>) {
+    @Synchronized fun ended(id: String, end: TaskState, steers: List<SteerNote>, runId: String? = null) {
         records[id]?.let { record ->
             // 由收尾方传快照:排队取消可能已移出中心,服务中断也可能来不及改消息展示状态。
             record.steers = remoteSteers(steers, finished = true)
+            record.runId = runId
             record.final = end
         }
         buses.remove(RunId(id))?.event(RunEvent.State(clock(), "mcp_task_ended", end::class.simpleName.orEmpty()))

@@ -135,6 +135,36 @@ const STRINGS = {
   errFallback: ["暂时无法更新任务。", "Cannot update tasks right now."],
   keptList: ["保留上次读取的会话。", "Showing the last successful read."],
   taskGone: ["手机已找不到之前选中的任务。", "The phone no longer knows the previously selected task."],
+  historyHint: ["手机保存的对话与近期远程任务", "Saved phone conversations and recent remote tasks"],
+  historyOff: ["在手机「连接电脑 → 高级设置」打开「允许电脑查看历史记录」，即可查看手机上的对话和 Trace。", "In Connect a computer → Advanced on the phone, allow computers to view history to read saved conversations and traces."],
+  phoneReadOnly: ["在手机上继续此对话", "Continue this conversation on the phone"],
+  olderChats: ["加载更多对话", "Load more conversations"],
+  olderTurns: ["加载更早的轮次", "Load earlier turns"],
+  historyLoading: ["正在读取手机记录…", "Reading saved phone records…"],
+  historyFailed: ["未能读取这份记录，请重试。", "Could not read this record. Try again."],
+  retryHistory: ["重试读取", "Try again"],
+  traceTitle: ["详细 Trace", "Detailed Trace"],
+  traceRecording: ["录制中，随任务更新", "Recording · updates with the task"],
+  traceMissing: ["这次运行没有可读取的详细 Trace，可能未开启录制或已按容量清理。", "No detailed trace is available. Recording may have been off, or the archive may have been removed by storage rotation."],
+  runMissing: ["这轮没有可读取的运行记录。", "No saved run record is available for this turn."],
+  tracePartial: ["这份 Trace 包含未完整录制的内容。", "This trace includes incomplete recording."],
+  traceEmpty: ["这一页没有模型请求或工具调用。", "This page has no model attempts or tool calls."],
+  requestN: ["第 {step} 步 · 请求 {attempt} · {name}", "Step {step} · attempt {attempt} · {name}"],
+  traceTiming: ["{status} · {ms} ms", "{status} · {ms} ms"],
+  traceTokens: ["输入 {input} · 缓存 {cached} · 未命中 {uncached} · 输出 {output}", "Input {input} · cached {cached} · uncached {uncached} · output {output}"],
+  traceDifference: ["首处变化 · {path}", "First change · {path}"],
+  traceBody: ["查看请求与回复", "Read request and reply"],
+  traceNoBody: ["这次请求没有录下正文。", "No body was recorded for this request."],
+  traceOk: ["完成", "Completed"],
+  traceError: ["错误", "Error"],
+  traceCancelled: ["取消", "Cancelled"],
+  traceIncomplete: ["部分记录", "Partial"],
+  savedEvents: ["手机保存的运行记录", "Saved run events"],
+  clippedRecord: ["这条记录较长，当前仅显示开头。", "This long record shows only its beginning."],
+  previousPage: ["上一页", "Previous page"],
+  nextPage: ["下一页", "Next page"],
+  pageN: ["第 {n} 页", "Page {n}"],
+  closeBody: ["收起正文", "Hide body"],
 };
 
 const $ = id => document.getElementById(id);
@@ -222,6 +252,8 @@ const drafts = new Map(),
   observed = new Map(),
   exchanges = new Map(),
   expandedGoals = new Set();
+const savedChats = new Map(), savedTurns = new Map();
+let moreChats = null, recordView = null, recordBody = null, recordRequest = 0, bodyRequest = 0;
 let composerKey = "",
   transcriptKey = "",
   transcriptSignature = "",
@@ -251,7 +283,8 @@ function chooseGroup(key) {
   setNav(false);
   invalidate();
   render();
-  schedule();
+  recordView = recordBody = null;
+  schedule(true);
 }
 
 function setNav(open) {
@@ -350,17 +383,198 @@ function noteProgress(tasks) {
   }
 }
 
+function mergeHistoryGroups() {
+  const merged = groupTasks(overview?.tasks || []);
+  for (const chat of savedChats.values()) {
+    let g = merged.find(item => item.key === "chat:" + chat.id);
+    if (!g) {
+      g = { key: "chat:" + chat.id, turns: [], primary: null };
+      merged.push(g);
+    }
+    g.title = chat.title;
+    g.updated = chat.updated_at_ms;
+    g.conversation = chat.id;
+  }
+  for (const g of merged) {
+    g.conversation ||= g.primary?.conversation;
+    const saved = savedTurns.get(g.conversation);
+    if (saved) {
+      const remote = new Map(g.turns.filter(task => task.run_id).map(task => [task.run_id, task]));
+      const remoteIds = new Map(g.turns.map(task => [task.task_id, task]));
+      const ids = new Set(saved.turns.map(task => task.run_id).filter(Boolean));
+      const sources = new Set(saved.turns.map(task => task.source_task_id).filter(Boolean));
+      g.turns = [
+        ...saved.turns.map(task => {
+          const current = remote.get(task.run_id) || remoteIds.get(task.source_task_id);
+          return current ? { ...task, ...current, read_only: false } : task;
+        }),
+        ...g.turns.filter(task => !ids.has(task.run_id) && !sources.has(task.task_id))
+      ].sort((a, b) => a.turn_index != null && b.turn_index != null
+        ? a.turn_index - b.turn_index : (a.started_at_ms || 0) - (b.started_at_ms || 0));
+      g.primary = [...g.turns].reverse().sort((a, b) => urgency(a) - urgency(b))[0] || null;
+    }
+  }
+  groups = merged.sort((a, b) => (a.primary ? urgency(a.primary) : 2) - (b.primary ? urgency(b.primary) : 2) ||
+    (b.updated || b.primary?.started_at_ms || 0) - (a.updated || a.primary?.started_at_ms || 0));
+}
+
+async function loadSavedTurns(conversation, offset = 0, at = revision) {
+  try {
+    const page = await call("history_turns", { conversation, offset: String(offset) });
+    if (at !== revision || !overview?.history_enabled) return;
+    const inspecting = byId(group()?.turns, inspectId);
+    const turns = new Map((savedTurns.get(conversation)?.turns || []).filter(task => !task.live).map(task => [task.task_id, task]));
+    for (const task of page.turns) turns.set(task.task_id, task);
+    const ordered = [...turns.values()].sort((a, b) => a.turn_index - b.turn_index);
+    savedTurns.set(conversation, { turns: ordered, next_offset: ordered.length < page.total ? ordered.length : null });
+    mergeHistoryGroups();
+    if (inspecting?.source_task_id && !byId(group()?.turns, inspectId)) {
+      const replacement = group()?.turns.find(task => task.source_task_id === inspecting.source_task_id);
+      if (replacement) { inspectId = replacement.task_id; recordView = recordBody = null; recordRequest++; bodyRequest++; }
+    }
+  } catch (error) {
+    if (at !== revision) return;
+    if (error.code === "history_disabled") forgetHistory();
+    else if (error.http_status === 404) {
+      savedChats.delete(conversation); savedTurns.delete(conversation); mergeHistoryGroups();
+    } else message("notice", t("historyFailed"));
+  }
+}
+
+function forgetHistory() {
+  if (overview) overview.history_enabled = false;
+  savedChats.clear(); savedTurns.clear(); moreChats = null;
+  recordView = recordBody = null;
+  recordRequest++; bodyRequest++;
+  mergeHistoryGroups();
+}
+
+async function loadSavedRun(task, offset = 0) {
+  if (!task?.run_id || !overview?.history_enabled || task.task_id !== inspectId) return;
+  const request = ++recordRequest;
+  const prior = recordView?.taskId === task.task_id && recordView.offset === offset ? recordView.data : null;
+  recordView = { taskId: task.task_id, offset, ...(prior ? { data: prior } : { loading: true }) };
+  renderProcess();
+  try {
+    const data = await call("history_run", { conversation: task.conversation, run_id: task.run_id, offset: String(offset) });
+    if (request !== recordRequest || inspectId !== task.task_id) return;
+    recordView = { taskId: task.task_id, offset, data };
+  } catch (error) {
+    if (request !== recordRequest || inspectId !== task.task_id) return;
+    if (error.code === "history_disabled") forgetHistory();
+    else recordView = { taskId: task.task_id, offset, error: error.http_status === 404 ? "runMissing" : "historyFailed" };
+  }
+  render();
+  schedule();
+}
+
+async function loadTraceBody(span, offset = 0) {
+  const task = byId(group()?.turns, inspectId);
+  if (!task?.run_id || !overview?.history_enabled) return;
+  const request = ++bodyRequest;
+  recordBody = { span, offset, loading: true };
+  renderProcess();
+  try {
+    const page = await call("history_body", { conversation: task.conversation, run_id: task.run_id, span_id: span, offset: String(offset) });
+    if (request !== bodyRequest || inspectId !== task.task_id) return;
+    recordBody = { span, offset, ...page };
+  } catch (error) {
+    if (request !== bodyRequest || inspectId !== task.task_id) return;
+    if (error.code === "history_disabled") forgetHistory();
+    else recordBody = { span, offset, error: "historyFailed" };
+  }
+  render();
+}
+
+function pageButtons(offset, next, size, kind) {
+  const bar = el("div", "trace-pages");
+  for (const [name, value] of [["previousPage", Math.max(0, offset - size)], ["nextPage", next]]) {
+    const button = el("button", "", t(name));
+    button.type = "button";
+    button.dataset[kind] = String(value ?? 0);
+    button.disabled = !online || (name === "previousPage" ? offset === 0 : next == null);
+    bar.append(button);
+    if (name === "previousPage") bar.append(el("span", "", t("pageN", { n: Math.floor(offset / size) + 1 })));
+  }
+  return bar;
+}
+
+function renderSavedRun(content, task) {
+  if (!overview?.capabilities.includes("history")) return;
+  const box = el("div", "saved-run");
+  content.append(processSection(t("traceTitle"), box));
+  if (!overview.history_enabled) { box.append(el("p", "process-note", t("historyOff"))); return; }
+  if (!task.run_id) { box.append(el("p", "process-note", t("runMissing"))); return; }
+  const view = recordView?.taskId === task.task_id ? recordView : null;
+  if (!view || (view.loading && !view.data)) { box.append(el("p", "process-note", t("historyLoading"))); return; }
+  if (view.error) {
+    box.append(el("p", "process-note", t(view.error)));
+    const retry = el("button", "", t("retryHistory"));
+    retry.type = "button"; retry.dataset.recordPage = String(view.offset); box.append(retry);
+    return;
+  }
+  const data = view.data;
+  if (!data.trace_available) box.append(el("p", "process-note", t("traceMissing")));
+  else if (data.recording || data.trace_status === "partial")
+    box.append(el("p", "process-note", t(data.recording ? "traceRecording" : "tracePartial")));
+  if (data.trace_available && !data.rows.length) box.append(el("p", "process-note", t("traceEmpty")));
+  const count = value => value == null ? t("unknown") : new Intl.NumberFormat().format(value);
+  for (const row of data.rows) {
+    const entry = el("div", "trace-entry");
+    const title = row.attempt == null ? t("stepN", { n: row.step ?? 0 }) + " · " + row.name
+      : t("requestN", { step: row.step ?? 0, attempt: row.attempt, name: row.name });
+    entry.append(el("h4", "", title));
+    const status = t(({ ok: "traceOk", error: "traceError", cancelled: "traceCancelled" })[row.status] || "traceIncomplete");
+    entry.append(el("p", "process-note", t("traceTiming", { status, ms: count(row.duration_ms) })));
+    if (row.attempt != null) entry.append(el("p", "trace-tokens", t("traceTokens", {
+      input: count(row.input), cached: count(row.cached), uncached: count(row.uncached), output: count(row.output)
+    })));
+    if (row.difference) entry.append(el("p", "process-note", t("traceDifference", { path: row.difference })));
+    if (row.context_change) entry.append(el("p", "process-value", row.context_change));
+    if (row.captured) {
+      const selected = recordBody?.span === row.id;
+      const button = el("button", "trace-body-toggle", t(selected ? "closeBody" : "traceBody"));
+      button.type = "button"; button.dataset.bodySpan = row.id;
+      button.setAttribute("aria-expanded", String(selected));
+      entry.append(button);
+      if (selected) {
+        if (recordBody.loading || recordBody.error)
+          entry.append(el("p", "process-note", t(recordBody.error || "historyLoading")));
+        else {
+          entry.append(el("pre", "trace-body", recordBody.text));
+          entry.append(pageButtons(recordBody.offset, recordBody.next_offset, 3000, "bodyPage"));
+        }
+      }
+    } else if (row.attempt != null) entry.append(el("p", "process-note", t("traceNoBody")));
+    box.append(entry);
+  }
+  const events = el("details", "saved-events");
+  events.dataset.record = "events";
+  events.append(el("summary", "", t("savedEvents")));
+  if (!data.record_available) events.append(el("p", "process-note", t("runMissing")));
+  for (const [i, event] of data.events.entries()) {
+    const detail = el("details", "trace-event");
+    detail.dataset.record = "event-" + (view.offset + i);
+    const name = (event.step == null ? "" : t("stepN", { n: event.step }) + " · ") + event.type;
+    detail.append(el("summary", "", name), el("pre", "trace-body", event.detail));
+    if (event.truncated) detail.append(el("p", "process-note", t("clippedRecord")));
+    events.append(detail);
+  }
+  box.append(events);
+  if (view.offset || data.next_offset != null) box.append(pageButtons(view.offset, data.next_offset, 20, "recordPage"));
+}
+
 function renderNav() {
   $("new-chat").setAttribute("aria-current", String(groupKey === fresh));
   $("count").textContent = groups.length || "";
-  $("count").title = t("recentHint");
+  $("count").title = t(overview?.history_enabled ? "historyHint" : "recentHint");
   const rows = groups.map(g => {
     const task = g.primary;
-    const shortLabel = { waiting_for_answer: "attention", waiting_on_phone: "handoff" }[task.status];
-    const marker = isActive(task) ? t(shortLabel || task.status) : "";
-    return { key: g.key, name: label(g.turns[0]), count: g.turns.length, marker };
+    const shortLabel = { waiting_for_answer: "attention", waiting_on_phone: "handoff" }[task?.status];
+    const marker = task && isActive(task) ? t(shortLabel || task.status) : "";
+    return { key: g.key, name: g.title || label(g.turns[0]), count: g.turns.length, marker };
   });
-  const signature = JSON.stringify([rows, groupKey, busy, !!overview]);
+  const signature = JSON.stringify([rows, groupKey, busy, !!overview, moreChats, overview?.history_enabled]);
   if (signature === navSignature) return;
   navSignature = signature;
   const list = $("threads"),
@@ -373,12 +587,19 @@ function renderNav() {
     b.dataset.group = row.key;
     b.disabled = busy;
     b.setAttribute("aria-current", String(row.key === groupKey));
-    b.title = row.name + " · " + t("rounds", { n: row.count });
+    b.title = row.name + (row.count ? " · " + t("rounds", { n: row.count }) : "");
     b.append(icon("chat"), el("span", "name", row.name));
     if (row.marker) b.append(el("small", "", row.marker));
     list.append(b);
     if (focus === row.key && !busy) b.focus({ preventScroll: true });
   }
+  if (moreChats != null) {
+    const more = commandButton("history-list", t("olderChats"));
+    more.disabled = busy || !online;
+    list.append(more);
+  }
+  if (overview?.capabilities.includes("history") && !overview.history_enabled)
+    list.append(el("p", "nav-empty", t("historyOff")));
 }
 
 function scrollAnchor() {
@@ -408,7 +629,7 @@ function addTurn(task, index) {
   const id = task.task_id,
     node = el("article", "turn");
   node.dataset.id = id;
-  const turn = t("round", { n: index + 1 });
+  const turn = t("round", { n: (task.turn_index ?? index) + 1 });
   node.setAttribute("aria-label", turn);
   node.append(el("div", "turn-label", turn + (task.started_at_ms ? " · " + date(task.started_at_ms) : "")));
   const request = el("div", "request"),
@@ -452,6 +673,7 @@ function addTurn(task, index) {
   process.setAttribute("aria-controls", slot.id);
   process.setAttribute("aria-expanded", "false");
   node.append(author, process, slot, el("p", "answer", taskMessage(task)));
+  if (task.text_truncated) node.append(el("p", "guidance", t("clippedRecord")));
   if (task.status === "paused" && task.progress && task.waiting_for && task.progress !== task.waiting_for) {
     node.append(el("p", "guidance", t("waitingCondition") + " · " + task.waiting_for));
   }
@@ -459,7 +681,7 @@ function addTurn(task, index) {
     node.append(el("p", "guidance", [task.app, t("handoffGuide")].filter(Boolean).join(" · ")));
   const tools = el("div", "turn-tools");
   if (task.status === "done" && task.answer) tools.append(commandButton("copy", t("copyResult"), "copy", id));
-  if (isActive(task)) {
+  if (isActive(task) && !task.read_only) {
     if (
       currentTask()?.task_id !== id &&
       (task.status === "waiting_for_answer" ||
@@ -501,6 +723,12 @@ function renderTurns() {
   const focusedInProcess = processContent.contains(focus);
   container.replaceChildren();
   if (g) {
+    if (!g.turns.length) container.append(el("p", "guidance", t("historyLoading")));
+    if (savedTurns.get(g.conversation)?.next_offset != null) {
+      const more = commandButton("history-turns", t("olderTurns"));
+      more.disabled = busy || !online;
+      container.append(more);
+    }
     g.turns.forEach((task, index) => container.append(addTurn(task, index)));
   } else {
     const empty = el("div", "empty"),
@@ -556,19 +784,27 @@ function renderProcess() {
     return;
   }
   const hist = observed.get(inspectId),
-    n = g.turns.indexOf(task) + 1;
+    n = (task.turn_index ?? g.turns.indexOf(task)) + 1;
   const rows = hist?.rows || [],
     focusedRow = rows.includes(selectedObservation) ? selectedObservation : rows.at(-1);
-  const sig = JSON.stringify([task, n, rows.length, rows.at(-1)?.at, hist?.trimmed, rows.indexOf(focusedRow)]);
+  const sig = JSON.stringify([task, n, rows.length, rows.at(-1)?.at, hist?.trimmed, rows.indexOf(focusedRow), recordView, recordBody, overview?.history_enabled]);
   if (sig === processSignature) return;
   processSignature = sig;
   const content = processContent,
-    keepDetails = content.dataset.id === inspectId && content.querySelector("details")?.open;
+    keepDetails = content.dataset.id === inspectId && content.querySelector(".process-facts")?.open;
+  const openRecords = new Set(content.dataset.id === inspectId
+    ? Array.from(content.querySelectorAll("details[data-record][open]"), n => n.dataset.record) : []);
   const focusStep =
     content.contains(document.activeElement) && document.activeElement.hasAttribute("data-observation");
+  const focused = content.contains(document.activeElement) ? document.activeElement : null;
+  const focusAttribute = focused && ["data-body-span", "data-body-page", "data-record-page"].find(name => focused.hasAttribute(name));
+  const focusValue = focusAttribute ? focused.getAttribute(focusAttribute) : null;
+  const focusRecord = focused?.tagName === "SUMMARY" ? focused.parentElement.dataset.record : null;
   content.dataset.id = inspectId;
   content.setAttribute("aria-label", t("round", { n }) + " · " + t("process"));
   content.replaceChildren();
+  renderSavedRun(content, task);
+  for (const detail of content.querySelectorAll("details[data-record]")) detail.open = openRecords.has(detail.dataset.record);
   const timeline = el("div");
   if (rows.length) {
     const list = el("ol", "events");
@@ -590,7 +826,7 @@ function renderProcess() {
     timeline.append(list);
     if (hist.trimmed) timeline.append(el("p", "process-note", t("recentChanges", { n: hist.rows.length })));
   } else timeline.append(el("p", "process-note", t(isActive(task) ? "observingNow" : "noSteps")));
-  content.append(processSection(t("observed"), timeline));
+  if (rows.length || !recordView?.data?.record_available) content.append(processSection(t("observed"), timeline));
   if (focusedRow) {
     const reading = el("div", "event-reading");
     reading.append(
@@ -637,6 +873,8 @@ function renderProcess() {
   details.append(fields);
   content.append(details);
   if (focusStep) content.querySelector('.event-choice[aria-pressed="true"]')?.focus({ preventScroll: true });
+  else if (focusAttribute) content.querySelector(`[${focusAttribute}="${CSS.escape(focusValue)}"]`)?.focus({ preventScroll: true });
+  else if (focusRecord) content.querySelector(`[data-record="${CSS.escape(focusRecord)}"] > summary`)?.focus({ preventScroll: true });
 }
 
 function toggleProcess(id) {
@@ -647,6 +885,9 @@ function toggleProcess(id) {
   const viewport = scroller.getBoundingClientRect();
   const previousTop = trigger.getBoundingClientRect().top;
   inspectId = inspectId === id ? null : id;
+  recordView = recordBody = null;
+  recordRequest++;
+  bodyRequest++;
   selectedObservation = null;
   setNav(false);
   renderProcess();
@@ -655,6 +896,7 @@ function toggleProcess(id) {
     scroller.scrollTop += trigger.getBoundingClientRect().top - previousTop;
   }
   if (inspectId) {
+    loadSavedRun(byId(group()?.turns, inspectId));
     const triggerTop = trigger.getBoundingClientRect().top;
     if (triggerTop < viewport.top || slot.getBoundingClientRect().bottom > viewport.bottom) {
       scroller.scrollTop += triggerTop - viewport.top - 8;
@@ -669,6 +911,9 @@ function composeTarget() {
     if (groupKey && groupKey !== fresh) return { kind: "wait", mode: "unavailableChat", hint: "unavailableHint" };
     return { kind: "run", key: fresh, mode: "newChat", hint: "newPlaceholder", send: "submit" };
   }
+  if (!task) return { kind: "wait", mode: "historyLoading", hint: "historyLoading" };
+  if (task.read_only && (isActive(task) || !task.conversation?.startsWith("mcp-")))
+    return { kind: "wait", mode: "phoneReadOnly", hint: "phoneReadOnly" };
   const turn = g.turns.indexOf(task) + 1;
   if (task.status === "waiting_for_answer")
     return {
@@ -751,7 +996,7 @@ function syncComposer() {
 
 function render() {
   const g = group();
-  const title = g ? label(g.turns[0]) : t(groupKey && groupKey !== fresh ? "heading" : "newChat");
+  const title = g ? g.title || label(g.turns[0]) : t(groupKey && groupKey !== fresh ? "heading" : "newChat");
   $("thread-title").textContent = title;
   $("thread-title").title = title;
   $("thread-meta").textContent = g ? t("rounds", { n: g.turns.length }) : "";
@@ -851,7 +1096,7 @@ function showProblem(e) {
 }
 
 async function call(action, fields = {}) {
-  const write = !["overview", "select", "watch", "status"].includes(action);
+  const write = !["overview", "select", "watch", "status"].includes(action) && !action.startsWith("history_");
   let response, data;
   try {
     response = await fetch("/desk", {
@@ -878,7 +1123,9 @@ async function refresh({ device, watchId, at = revision } = {}) {
   else next = await call("overview");
   if (at !== revision) return false;
   const keep = inspectId || anchorId;
-  if (keep && !byId(next.tasks, keep) && groupKey !== fresh) {
+  // Saved turn identifiers are local to the history view; the task-control API accepts remote UUIDs.
+  const savedId = keep && /^(run|turn|live)-/.test(keep);
+  if (keep && !savedId && !byId(next.tasks, keep) && !byId(group()?.turns, keep)?.read_only && groupKey !== fresh) {
     try {
       const task = await call("status", { task_id: keep });
       if (at !== revision) return false;
@@ -895,7 +1142,16 @@ async function refresh({ device, watchId, at = revision } = {}) {
     }
   }
   noteProgress(next.tasks);
-  groups = groupTasks(next.tasks);
+  overview = next;
+  if (next.history_enabled) {
+    const first = savedChats.size === 0;
+    for (const chat of next.history.conversations || []) savedChats.set(chat.id, chat);
+    if (first) moreChats = next.history.next_offset ?? null;
+  } else {
+    savedChats.clear(); savedTurns.clear(); moreChats = null; recordView = recordBody = null;
+    recordRequest++; bodyRequest++;
+  }
+  mergeHistoryGroups();
   if (!groupKey) {
     const legacy = byId(next.tasks, anchorId),
       chosen = legacy ? threadOf(legacy) : groups[0]?.key || fresh;
@@ -903,11 +1159,18 @@ async function refresh({ device, watchId, at = revision } = {}) {
   }
   const current = currentTask();
   if (current && anchorId !== current.task_id) rememberGroup(groupKey, current.task_id);
-  overview = next;
   online = true;
   retryDelay = 0;
   updateDevice(next);
   message("error", writeWarning);
+  const selected = group();
+  if (overview.history_enabled && selected?.conversation) {
+    await loadSavedTurns(selected.conversation, 0, at);
+    if (at !== revision) return false;
+    const inspected = byId(group()?.turns, inspectId);
+    if (inspected && (!recordView?.data || recordView.data.recording || isActive(inspected)))
+      await loadSavedRun(inspected, recordView?.offset || 0);
+  }
   return true;
 }
 
@@ -918,13 +1181,13 @@ function invalidate() {
 
 function watchedTask() {
   const sel = currentTask();
-  return sel && isActive(sel) ? sel : overview?.tasks.find(isActive);
+  return sel && !sel.read_only && isActive(sel) ? sel : overview?.tasks.find(isActive);
 }
 
 function schedule(immediate = false) {
   clearTimeout(updateTimer);
   if (busy || observing || document.hidden) return;
-  updateTimer = setTimeout(() => observe(immediate), immediate ? 0 : retryDelay || (watchedTask() ? 750 : 8000));
+  updateTimer = setTimeout(() => observe(immediate), immediate ? 0 : retryDelay || (watchedTask() ? 750 : recordView?.data?.recording ? 4000 : 8000));
 }
 
 async function observe(immediate) {
@@ -1013,6 +1276,12 @@ $("new-chat").addEventListener("click", () => {
 $("threads").addEventListener("click", ev => {
   const b = ev.target.closest("button[data-group]");
   if (b && !busy) chooseGroup(b.dataset.group);
+  if (ev.target.closest('[data-action="history-list"]') && moreChats != null) work(async () => {
+    const page = await call("history_list", { offset: String(moreChats) });
+    for (const chat of page.conversations) savedChats.set(chat.id, chat);
+    moreChats = page.next_offset;
+    mergeHistoryGroups();
+  });
 });
 $("open-nav").addEventListener("click", () => setNav(true));
 $("close-nav").addEventListener("click", () => {
@@ -1052,6 +1321,21 @@ function collapseProcess() {
   if (returnFocus) $(processSlotId(old))?.previousElementSibling?.focus({ preventScroll: true });
 }
 processContent.addEventListener("click", ev => {
+  const action = ev.target.closest("button");
+  if (action?.dataset.recordPage != null) {
+    recordBody = null; bodyRequest++;
+    loadSavedRun(byId(group()?.turns, inspectId), Number(action.dataset.recordPage));
+    return;
+  }
+  if (action?.dataset.bodyPage != null && recordBody) {
+    loadTraceBody(recordBody.span, Number(action.dataset.bodyPage));
+    return;
+  }
+  if (action?.dataset.bodySpan) {
+    if (recordBody?.span === action.dataset.bodySpan) { recordBody = null; bodyRequest++; renderProcess(); }
+    else loadTraceBody(action.dataset.bodySpan);
+    return;
+  }
   const b = ev.target.closest("button[data-observation]");
   if (!b) return;
   selectedObservation = observed.get(inspectId)?.rows[Number(b.dataset.observation)] || null;
@@ -1070,6 +1354,11 @@ document.addEventListener("keydown", e => {
 $("transcript").addEventListener("click", async ev => {
   const b = ev.target.closest("button[data-action]");
   if (!b) return;
+  if (b.dataset.action === "history-turns") {
+    const conversation = group()?.conversation, offset = savedTurns.get(conversation)?.next_offset;
+    if (conversation && offset != null) await work(() => loadSavedTurns(conversation, offset));
+    return;
+  }
   const task = byId(group()?.turns, b.dataset.task);
   if (!task) return;
   const id = task.task_id;

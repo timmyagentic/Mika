@@ -25,14 +25,17 @@ class RemoteCliContractTest {
             fun cli(vararg args: String, exit: Int = 0): JsonObject {
                 val process = ProcessBuilder(listOf(System.getProperty("mika.python", "python3"), script,
                     "--url", "http://127.0.0.1:${server.port}", "--token-file", token.absolutePath, "--json") + args)
-                    .directory(directory).redirectErrorStream(true).start()
+                    .directory(directory).start()
                 if (!process.waitFor(10, TimeUnit.SECONDS)) {
                     process.destroyForcibly()
                     fail("CLI did not finish within its test budget")
                 }
                 val output = process.inputStream.bufferedReader().readText()
+                // Connect reports progress on stderr; the machine-readable contract is stdout alone.
+                val progress = process.errorStream.bufferedReader().readText()
                 assertFalse(output.contains("contract-test-token"))
-                assertEquals(output, exit, process.exitValue())
+                assertFalse(progress.contains("contract-test-token"))
+                assertEquals(output + progress, exit, process.exitValue())
                 return Json.parseToJsonElement(output).jsonObject
             }
             assertTrue(cli("connect")["connected"]!!.jsonPrimitive.boolean)

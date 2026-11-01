@@ -113,7 +113,18 @@ All paths below are relative to `/api/v1` and use the same Bearer authentication
 | POST /tasks/ID/steer | text; 202 with task_id, message_id and accepted. Only accepts running tasks. |
 | POST /tasks/ID/cancel | Empty object; 202 when accepted, 200 for an already-terminal task; returns accepted. |
 
-Business validation errors return 400, missing tasks 404, answers incompatible with the current state 409, and refused starts 503. Authentication, origin and rate-limit policies are shared with `/mcp`. Both adapters use the same remote task index. Clients with the same access authorization can operate on remote tasks across interfaces; phone-local tasks remain inaccessible.
+Business validation errors return 400, missing tasks 404, answers incompatible with the current state 409, and refused starts 503. Authentication, origin and rate-limit policies are shared with `/mcp`. Both adapters control tasks in the same remote task index. When available, status also includes `"run_id"`, separate from the remote task ID.
+
+Phones with history support advertise the `history` capability and `history_enabled`. The owner must enable history viewing under **Connect a computer → Advanced** on the phone before these GET endpoints can read saved conversations and runs. Missing permission, including revocation during a read, returns `403 history_disabled`. Missing conversations, runs or requests return 404.
+
+| Path | Response |
+| --- | --- |
+| /history/conversations | `conversations` with IDs, titles and update times; `next_offset` identifies the next page. |
+| /history/conversations/C | `turns` with requests, replies, `"run_id"` and `turn_index`, in conversation order within each page. `offset` counts back from the latest turn; `total` is the current turn count. |
+| /history/conversations/C/runs/R | Saved `events` and Trace `rows` belonging to this conversation, with archive availability and recording state. |
+| /history/conversations/C/runs/R/bodies/S | One page of a span’s redacted request and reply in `text`; `next_offset` is the next character position. |
+
+Only `offset` and `limit` query parameters are accepted. Pages default to 20 items, up to 50; body pages default to and allow at most 3,000 characters. A null `next_offset` ends pagination. Long conversation text and event excerpts report `text_truncated` or `truncated`. History reads do not register phone tasks in the remote control index or allow answering, steering or cancelling them.
 
 ## Development checks
 

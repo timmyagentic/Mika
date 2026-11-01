@@ -52,6 +52,19 @@
   }
 }
 * { box-sizing: border-box; }
+.trace-entry { padding-block: 12px; border-bottom: 1px solid var(--line); }
+.trace-entry h4 { margin: 0 0 4px; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.trace-tokens { margin: 6px 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.trace-body-toggle { padding: 5px 8px; margin-top: 4px; }
+.trace-body { margin: 8px 0 12px; padding: 12px; background: var(--panel); white-space: pre-wrap;
+  overflow-wrap: anywhere; font: 14px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.trace-pages { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-block: 12px; }
+.trace-pages button { padding: 6px 10px; }
+.trace-pages span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.saved-events { margin-block: 16px 8px; }
+.saved-events > summary { font-weight: 600; }
+.trace-event { margin-top: 8px; }
+.trace-event summary { padding-block: 4px; overflow-wrap: anywhere; }
 [hidden],
 .symbols { display: none !important; }
 html,

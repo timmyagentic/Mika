@@ -23,7 +23,10 @@ ASSETS = {
 }
 WATCH_SECONDS = 4
 FIELDS = {"overview": set(), "watch": {"task_id"}, "select": {"device"}, "run": {"goal"}, "status": {"task_id"}, "cancel": {"task_id"},
-          "answer": {"task_id", "text"}, "steer": {"task_id", "text"}}
+          "answer": {"task_id", "text"}, "steer": {"task_id", "text"},
+          "history_list": {"offset"}, "history_turns": {"conversation", "offset"},
+          "history_run": {"conversation", "run_id", "offset"},
+          "history_body": {"conversation", "run_id", "span_id", "offset"}}
 
 
 def command(data):
@@ -39,6 +42,12 @@ def command(data):
         raise ValueError
     if "task_id" in data and not re.fullmatch(r"[A-Za-z0-9_-]+", data["task_id"]):
         raise ValueError
+    if action.startswith("history_"):
+        for field in ("conversation", "run_id", "span_id"):
+            if field in data and not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", data[field]):
+                raise ValueError
+        if not re.fullmatch(r"[0-9]{1,9}", data["offset"]):
+            raise ValueError
     return action
 
 
@@ -81,6 +90,17 @@ class Desk(ThreadingHTTPServer):
 
     def dispatch(self, action, data, sensitive):
         self.pin_target(data.get("device"))
+        if action.startswith("history_"):
+            path = "/history/conversations"
+            if "conversation" in data:
+                path += "/" + data["conversation"]
+            if "run_id" in data:
+                path += "/runs/" + data["run_id"]
+            if "span_id" in data:
+                path += "/bodies/" + data["span_id"]
+            with connection(self.args, sensitive) as (client, _):
+                client.discover()
+                return client.request("GET", path + "?offset=" + data["offset"])
         if action in {"overview", "select", "watch"}:
             with connection(self.args, sensitive) as (client, transport):
                 info = client.discover()
@@ -103,9 +123,18 @@ class Desk(ThreadingHTTPServer):
                         # The optional screen/helper status can be unavailable on a
                         # phone that just returned a valid list of tasks.
                         pass
+                history = {}
+                if info.get("history_enabled"):
+                    try:
+                        history = client.request("GET", "/history/conversations")
+                    except CliError as exc:
+                        if exc.code != "history_disabled":
+                            raise
+                        info["history_enabled"] = False
                 return {"target": transport.get("device") or self.args.url,
                         "transport": transport["transport"], "server_version": info.get("server_version"),
-                        "capabilities": info["capabilities"], "device": device, "tasks": tasks}
+                        "capabilities": info["capabilities"], "device": device, "tasks": tasks,
+                        "history_enabled": info.get("history_enabled", False), "history": history}
 
         args = argparse.Namespace(**{**vars(self.args), "conversation": None, **data, "command": "task",
                                      "goal_file": None, "text_file": None})

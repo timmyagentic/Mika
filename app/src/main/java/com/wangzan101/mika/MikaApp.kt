@@ -90,12 +90,21 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
      */
     val mcp by lazy {
         val settingsDir = java.io.File(filesDir, "settings")
+        val settings = com.wangzan101.mika.settings.McpSettings(settingsDir,
+            com.wangzan101.mika.settings.KeystoreKeyCipher("mika-mcp-token"))
         com.wangzan101.mika.mcp.McpRuntime(this,
-            com.wangzan101.mika.settings.McpSettings(settingsDir, com.wangzan101.mika.settings.KeystoreKeyCipher("mika-mcp-token")),
+            settings,
             com.wangzan101.mika.settings.McpUsbSettings(settingsDir,
                 bootId = { android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.BOOT_COUNT) ?: "null" },
                 infoFile = { getExternalFilesDir(null)?.let { java.io.File(it, com.wangzan101.mika.core.mcp.McpUsb.INFO_FILE) } }),
-            remoteTasks, com.wangzan101.mika.device.AndroidDeviceAccess(this) { phone.hub.shell.value })
+            remoteTasks, com.wangzan101.mika.device.AndroidDeviceAccess(this) { phone.hub.shell.value },
+            com.wangzan101.mika.task.PhoneHistory(conversations, com.wangzan101.mika.record.RunStore(this),
+                detailedTraces.store, { settings.historyEnabled.value }) {
+                taskState.runs.value.map { run ->
+                    com.wangzan101.mika.core.remote.RemoteTask(run.mcpExternalId ?: run.key, run.conversationId, run.goal, 0,
+                        run.state.value, runId = run.runId.value)
+                }
+            })
     }
     val childRuns by lazy { FileChildRunStore(java.io.File(filesDir, "children-v3.json")) }
     override val tabBudget get() = resources.tabBudget
