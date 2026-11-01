@@ -19,4 +19,4 @@ packages = ["mika_desk"]
 package-dir = {"" = "scripts"}
 
 [tool.setuptools.package-data]
-mika_desk = ["*.html", "*.css", "*.js"]
+mika_desk = ["*.html", "*.css", "*.js", "mika-logo.png"]

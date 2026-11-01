@@ -15,8 +15,13 @@ import webbrowser
 from mika_cli import Adb, CliError, connection, execute, recent_tasks, redact
 
 
-ASSETS = {"/": ("index.html", "text/html"), "/desk.css": ("desk.css", "text/css"),
-          "/desk.js": ("desk.js", "text/javascript")}
+ASSETS = {
+    "/": ("index.html", "text/html"),
+    "/desk.css": ("desk.css", "text/css"),
+    "/desk.js": ("desk.js", "text/javascript"),
+    # 3× header rendition of Android's drawable-nodpi/mika_launcher_art.png.
+    "/mika-logo.png": ("mika-logo.png", "image/png"),
+}
 WATCH_SECONDS = 4
 FIELDS = {"overview": set(), "watch": {"task_id"}, "select": {"device"}, "run": {"goal"}, "status": {"task_id"}, "cancel": {"task_id"},
           "answer": {"task_id", "text"}, "steer": {"task_id", "text"}}
@@ -114,13 +119,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def send(self, status, content, mime="text/plain"):
         self.send_response(status)
-        self.send_header("Content-Type", mime + "; charset=utf-8")
+        if mime.startswith("text/") or mime == "application/json":
+            mime += "; charset=utf-8"
+        self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; "
-                         "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+                         "img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
         self.end_headers()
         try:
             self.wfile.write(content)

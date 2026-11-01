@@ -126,6 +126,31 @@ class DeskUpdatesTest(unittest.TestCase):
             expect(page.locator("#error")).to_be_hidden()
             expect(target).to_be_hidden()
 
+    def test_system_appearance_switches_in_place_with_the_packaged_logo(self):
+        def respond(method, path, body):
+            if path == "/api/v1":
+                return 200, DISCOVERY, {}
+            if path.startswith("/api/v1/tasks?"):
+                return 200, {"tasks": [SNAPSHOT]}, {}
+            return 200, SNAPSHOT, {}
+
+        with browser_desk(respond) as (page, _):
+            expect(page.locator("#status")).to_have_text("进行中")
+            logo = page.locator("header img")
+            expect(logo).to_have_count(1, timeout=1500)
+            self.assertGreater(logo.evaluate("async img => { await img.decode(); return img.naturalWidth; }"), 0)
+            goal = page.locator("#goal")
+            goal.fill("unfinished goal")
+            surfaces = []
+            for scheme in ("light", "dark", "light"):
+                page.emulate_media(color_scheme=scheme)
+                surfaces.append(page.locator(".panel").first.evaluate("el => getComputedStyle(el).backgroundColor"))
+                expect(goal).to_have_value("unfinished goal")
+                expect(goal).to_be_focused()
+                expect(page.locator(".task[aria-current=true]")).to_have_count(1)
+            self.assertNotEqual(surfaces[0], surfaces[1])
+            self.assertEqual(surfaces[0], surfaces[2])
+
     def test_late_read_cannot_undo_a_write_and_a_lost_receipt_is_not_retried(self):
         tasks = [dict(SNAPSHOT)]
         watched = threading.Event()
