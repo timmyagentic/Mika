@@ -115,7 +115,7 @@ All paths below are relative to `/api/v1` and use the same Bearer authentication
 
 Business validation errors return 400, missing tasks 404, answers incompatible with the current state 409, and refused starts 503. Authentication, origin and rate-limit policies are shared with `/mcp`. Both adapters control tasks in the same remote task index. When available, status also includes `"run_id"`, separate from the remote task ID.
 
-Phones with history support advertise the `history` capability and `history_enabled`. The owner must enable history viewing under **Connect a computer → Advanced** on the phone before these GET endpoints can read saved conversations and runs. Missing permission, including revocation during a read, returns `403 history_disabled`. Missing conversations, runs or requests return 404.
+Phones with history support advertise the `history` capability and the `"history_enabled"` field. The owner must enable history viewing under **Connect a computer → Advanced** on the phone before these GET endpoints can read saved conversations and runs. Missing permission, including revocation during a read, returns `403 history_disabled`. Missing conversations, runs or requests return 404.
 
 | Path | Response |
 | --- | --- |
