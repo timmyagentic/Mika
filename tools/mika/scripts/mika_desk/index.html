@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>电脑任务台 · Mika</title>
+  <link rel="stylesheet" href="/desk.css">
+  <script defer src="/desk.js"></script>
+</head>
+<body>
+  <header class="bar"><div class="wrap brand"><strong>Mika</strong><span>个人工作区</span></div></header>
+  <main class="wrap">
+    <div class="heading">
+      <div><h1>电脑任务台</h1><p>把任务交给手机，查看进展，处理需要你的问题。</p></div>
+      <div class="refresh"><small id="updated"></small><button id="refresh" type="button">刷新状态</button></div>
+    </div>
+    <section class="device" aria-label="设备状态">
+      <div><span class="caption">连接的手机</span><b id="target">等待读取</b></div>
+      <div><span class="caption">任务服务</span><b id="connection">正在连接</b></div>
+      <div><span class="caption">手机状态</span><b id="device">未知</b></div>
+      <div><span class="caption">模型配置</span><b>未验证</b></div>
+    </section>
+    <p id="error" class="notice warn" role="alert" hidden></p>
+    <form id="pick" class="picker" hidden>
+      <label for="devices">本次使用的设备</label><select id="devices"></select><button id="pick-device">选择设备</button>
+    </form>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <form id="compose" class="panel composer">
+      <label for="goal">新建任务</label>
+      <div class="input-row"><textarea id="goal" rows="2" maxlength="4000" placeholder="描述希望这台手机完成的事…" required></textarea>
+        <button class="primary" id="submit-goal" disabled>交给手机</button></div>
+    </form>
+    <div class="columns">
+      <section class="panel inbox" aria-labelledby="inbox-title">
+        <div class="section-head"><h2 id="inbox-title">近期任务</h2><span id="count" class="count">0</span></div>
+        <p class="hint">显示最近 50 个远程任务，需要你处理的在前。</p>
+        <div id="tasks"></div>
+      </section>
+      <section class="panel detail" aria-labelledby="detail-title">
+        <div class="section-head"><h2 id="detail-title">任务详情</h2><span id="status" class="badge" hidden></span></div>
+        <div id="facts"></div>
+        <form id="respond" hidden>
+          <label id="reply-label" for="reply">回答追问</label>
+          <div id="options"></div>
+          <textarea id="reply" rows="2" required></textarea>
+          <button class="primary" id="submit-reply">发送回答</button>
+        </form>
+        <button class="stop" id="cancel" type="button" hidden>取消任务</button>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
