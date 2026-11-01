@@ -124,6 +124,8 @@ mika ui --device SERIAL --no-open
 | /history/conversations/C/runs/R | 该对话所属运行的 `events` 与 Trace `rows`，并报告归档是否存在及是否仍在录制。 |
 | /history/conversations/C/runs/R/bodies/S | 指定 Trace span 的脱敏请求与回复正文，`text` 为一页，`next_offset` 为后续字符位置。 |
 
+保存的轮次只有在实际核验过时才返回 `verified`。旧记录缺少核验信息时省略该字段。由电脑派发的轮次可带 `"source_task_id"`，即使排队时取消、没有运行编号，也能与近期任务对应。
+
 各接口只接受 `offset`、`limit`。默认每页 20 项，最多 50 项；正文默认且最多每页 3,000 个字符。`next_offset` 为 null 表示已到末页。长对话文本和运行事件的展示节选分别带 `text_truncated` 或 `truncated`。历史读取不把手机任务加入远程控制索引，不能用它的编号去回答、追加或取消手机任务。
 
 ## 开发验证

@@ -30,6 +30,52 @@ class PhoneHistoryTest {
     private fun traces() = TraceStore(tmp.root.resolve("traces"))
     private fun history() = PhoneHistory(conversations(), runs(), traces(), { true })
 
+    @Test fun savedVerificationUsesTheRecordedVerdictIncludingAfterReopen() {
+        val store = conversations()
+        store.append("phone", Turn("old", "answer", "succeeded"))
+        store.append("phone", Turn("checked", "answer", "succeeded", verified = true))
+        store.append("phone", Turn("failed check", "answer", "unverified", verified = false))
+        val turns = history().turns("phone", 0, 20)!!.getValue("turns").jsonArray
+        assertEquals(listOf(null, true, false), turns.map { it.jsonObject["verified"]?.jsonPrimitive?.boolean })
+    }
+
+    @Test fun queuedCancellationsKeepSeparateRemoteIdsWithoutRunRecords() {
+        val store = conversations()
+        for (id in listOf("one", "two")) store.append("chat", Turn("repeat", "cancelled", "cancelled", remoteTaskId = id))
+        // The second task can still be present in the task center while its cancellation is published.
+        val reader = PhoneHistory(conversations(), runs(), traces(), { true }) {
+            listOf(RemoteTask("two", "chat", "repeat", 0, TaskState.Cancelled))
+        }
+        val turns = reader.turns("chat", 0, 20)!!.getValue("turns").jsonArray
+        assertEquals(listOf("one", "two"), turns.map { it.jsonObject.getValue("source_task_id").jsonPrimitive.content })
+        assertTrue(turns.none { "run_id" in it.jsonObject })
+    }
+
+    @Test fun historyListReadsOnlyThePageAndReusesUnchangedConversationBodies() {
+        val dir = tmp.newFolder("old-chats")
+        val writer = ConversationStore(dir)
+        repeat(65) { i ->
+            writer.append("c$i", Turn("first $i", "answer", "succeeded", runId = "r$i"))
+            assertTrue(dir.resolve("c$i.json").setLastModified(1_000L * (i + 1)))
+        }
+        val reads = mutableListOf<String>()
+        val store = ConversationStore(dir) { file -> reads += file.nameWithoutExtension; file.readText() }
+        val reader = PhoneHistory(store, runs(), traces(), { true })
+        fun page(offset: Int) = reader.conversations(offset, 20).getValue("conversations").jsonArray
+        assertEquals("c64", page(0).first().jsonObject.getValue("id").jsonPrimitive.content)
+        assertTrue("cold page read $reads", reads.size <= 21 && reads.all { it.removePrefix("c").toInt() in 44..64 })
+        reads.clear()
+        assertEquals(20, page(0).size)
+        assertTrue(reads.isEmpty())
+        assertEquals("c44", page(20).first().jsonObject.getValue("id").jsonPrimitive.content)
+        assertTrue("next page read $reads", reads.size <= 21 && reads.all { it.removePrefix("c").toInt() in 24..44 })
+        store.updateTurn("c64", "r64") { it.copy(userText = "updated") }
+        assertEquals("updated", page(0).first().jsonObject.getValue("title").jsonPrimitive.content)
+        store.delete("c64")
+        store.append("c64", Turn("new first message", "answer", "succeeded"))
+        assertEquals("new first message", page(0).first().jsonObject.getValue("title").jsonPrimitive.content)
+    }
+
     @Test fun recordedModelAttemptAndPagedBodyReachHistoryWithoutInventingUsage() = runBlocking {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("""{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"Recorded answer"}]}],"usage":{"input_tokens":1000,"input_tokens_details":{"cached_tokens":0},"output_tokens":2}}"""))

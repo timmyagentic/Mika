@@ -140,16 +140,33 @@ class DeskHistoryTest(unittest.TestCase):
             expect(page.locator(".turn")).to_have_count(2)
             self.assertEqual([], mutations(phone))
 
+    def test_cancelled_before_start_merges_by_remote_id_even_with_identical_goals(self):
+        fixture = HistoryPhone()
+        fixture.tasks = [snapshot(id, "mcp-session", "Same goal", status="cancelled") for id in ("new", "old")]
+        def respond(method, url, body):
+            if urlsplit(url).path == "/api/v1/history/conversations/mcp-session":
+                turns = [{"task_id": f"turn-mcp-session-{i}", "source_task_id": task["task_id"], "turn_index": i,
+                          "conversation": "mcp-session", "read_only": True, "goal": task["goal"], "status": "cancelled"}
+                         for i, task in enumerate(reversed(fixture.tasks))]
+                return 200, {"turns": turns, "total": 2, "next_offset": None}, {}
+            return fixture.respond(method, url, body)
+        with browser_desk(respond) as (page, phone):
+            page.wait_for_function('() => savedTurns.has("mcp-session") && !observing')
+            turns = page.locator(".turn")
+            self.assertEqual(["old", "new"], turns.evaluate_all("items => items.map(item => item.dataset.id)"))
+            self.assertEqual([], mutations(phone))
+
     def test_history_pages_keep_earlier_turns_after_refresh(self):
         fixture = HistoryPhone()
+        total = 24
         def respond(method, url, body):
             parsed = urlsplit(url)
             if parsed.path == "/api/v1/history/conversations/phone-only":
                 offset = int(parse_qs(parsed.query).get("offset", ["0"])[0])
-                end = max(0, 24 - offset)
+                end = max(0, total - offset)
                 turns = [snapshot("run-archived-" + str(i), "phone-only", "Saved request " + str(i), run_id="archived-" + str(i),
                                   turn_index=i, read_only=True) for i in range(max(0, end - 20), end)]
-                return 200, {"turns": turns, "total": 24, "next_offset": 20 if offset == 0 else None}, {}
+                return 200, {"turns": turns, "total": total, "next_offset": offset + 20 if end > 20 else None}, {}
             return fixture.respond(method, url, body)
         with browser_desk(respond) as (page, phone):
             page.get_by_role("button", name="手机采集", exact=True).click()
@@ -161,6 +178,41 @@ class DeskHistoryTest(unittest.TestCase):
             expect(page.locator(".trace-entry")).to_contain_text("archived-0")
             page.wait_for_function('() => !observing')
             expect(page.locator(".turn")).to_have_count(24)
+            # More than a full page arrives while the desk is away. Keep the open
+            # turn, and fetch the gap between it and the newly visible turns.
+            total = 49
+            page.locator("#refresh").dispatch_event("click")
+            expect(page.locator(".turn")).to_have_count(44)
+            page.get_by_role("button", name="加载更早的轮次").click()
+            expect(page.locator(".turn")).to_have_count(49)
+            self.assertEqual([f"Saved request {i}" for i in range(49)], page.locator(".turn .request p").all_text_contents())
+            expect(page.locator(".trace-entry")).to_contain_text("archived-0")
+            self.assertEqual([], mutations(phone))
+
+    def test_new_conversations_after_the_initially_complete_list_are_reachable(self):
+        fixture = HistoryPhone()
+        fixture.tasks = []
+        total = 1
+        def respond(method, url, body):
+            parsed = urlsplit(url)
+            if parsed.path == "/api/v1/history/conversations":
+                offset = int(parse_qs(parsed.query).get("offset", ["0"])[0])
+                ids = list(reversed(range(total)))[offset:offset + 20]
+                return 200, {"conversations": [{"id": f"phone-{i}", "title": f"Chat {i}", "updated_at_ms": i} for i in ids],
+                             "next_offset": offset + 20 if offset + 20 < total else None}, {}
+            return fixture.respond(method, url, body)
+        with browser_desk(respond) as (page, phone):
+            expect(page.locator("#threads .conversation")).to_have_count(1)
+            total = 26
+            page.locator("#refresh").dispatch_event("click")
+            more = page.get_by_role("button", name="加载更多对话")
+            more.click(timeout=5000)
+            names = page.locator("#threads .conversation .name")
+            expect(names).to_have_count(26)
+            self.assertEqual({f"Chat {i}" for i in range(total)}, set(names.all_text_contents()))
+            page.locator("#refresh").dispatch_event("click")
+            page.wait_for_function("() => !busy && !observing")
+            expect(more).to_have_count(0)
             self.assertEqual([], mutations(phone))
 
 

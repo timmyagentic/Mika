@@ -428,10 +428,16 @@ async function loadSavedTurns(conversation, offset = 0, at = revision) {
     const page = await call("history_turns", { conversation, offset: String(offset) });
     if (at !== revision || !overview?.history_enabled) return;
     const inspecting = byId(group()?.turns, inspectId);
-    const turns = new Map((savedTurns.get(conversation)?.turns || []).filter(task => !task.live).map(task => [task.task_id, task]));
-    for (const task of page.turns) turns.set(task.task_id, task);
+    const previous = savedTurns.get(conversation)?.turns || [];
+    const turns = new Map(previous.filter(task => task.turn_index < page.total && (offset !== 0 || !task.live))
+      .map(task => [task.turn_index, task]));
+    for (const task of page.turns) turns.set(task.turn_index, task);
     const ordered = [...turns.values()].sort((a, b) => a.turn_index - b.turn_index);
-    savedTurns.set(conversation, { turns: ordered, next_offset: ordered.length < page.total ? ordered.length : null });
+    // Offsets count backwards from the newest turn. Older cached pages can be
+    // separated from that end by a gap after the phone adds new turns.
+    let contiguous = 0;
+    while (turns.has(page.total - contiguous - 1)) contiguous++;
+    savedTurns.set(conversation, { turns: ordered, next_offset: contiguous < page.total ? contiguous : null });
     mergeHistoryGroups();
     if (inspecting?.source_task_id && !byId(group()?.turns, inspectId)) {
       const replacement = group()?.turns.find(task => task.source_task_id === inspecting.source_task_id);
@@ -1147,15 +1153,20 @@ async function refresh({ device, watchId, at = revision } = {}) {
     }
   }
   noteProgress(next.tasks);
-  overview = next;
   if (next.history_enabled) {
-    const first = savedChats.size === 0;
-    for (const chat of next.history.conversations || []) savedChats.set(chat.id, chat);
-    if (first) moreChats = next.history.next_offset ?? null;
+    const page = next.history, previous = overview?.history_enabled ? overview.history : null;
+    // The next page's offset is relative to the current ordering. Keep older
+    // selections visible, but restart paging if the first page changed.
+    if (!previous || previous.next_offset !== page.next_offset || previous.conversations.length !== page.conversations.length ||
+        page.conversations.some((chat, i) => chat.id !== previous.conversations[i].id))
+      moreChats = page.next_offset ?? null;
+    if (page.next_offset == null) savedChats.clear();
+    for (const chat of page.conversations) savedChats.set(chat.id, chat);
   } else {
     savedChats.clear(); savedTurns.clear(); moreChats = null; recordView = recordBody = null;
     recordRequest++; bodyRequest++;
   }
+  overview = next;
   mergeHistoryGroups();
   if (!groupKey) {
     const legacy = byId(next.tasks, anchorId),

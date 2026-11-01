@@ -1,6 +1,7 @@
 package com.wangzan101.mika.task
 
 import com.wangzan101.mika.chat.ConversationStore
+import com.wangzan101.mika.chat.ConversationSummary
 import com.wangzan101.mika.core.agent.Turn
 import com.wangzan101.mika.core.record.RunEvent
 import com.wangzan101.mika.core.remote.RemoteHistory
@@ -22,25 +23,27 @@ class PhoneHistory(
     override val enabled: Boolean get() = allowed()
 
     override fun conversations(offset: Int, limit: Int): JsonObject {
-        val active = live().groupBy { it.conversation }
-        val saved = conversations.list()
-        val rows = saved.map { c ->
-            buildJsonObject {
-                put("id", c.id); put("title", c.title.take(TEXT_LIMIT)); put("updated_at_ms", c.updatedAt)
-            }
-        }.toMutableList()
-        for ((id, tasks) in active) if (saved.none { it.id == id }) rows.add(0, buildJsonObject {
-            put("id", id); put("title", tasks.first().goal.take(TEXT_LIMIT)); put("updated_at_ms", tasks.first().createdAtMs)
-        })
+        val pending = live().distinctBy { it.conversation }.asReversed().map {
+            ConversationSummary(it.conversation, it.goal, it.createdAtMs)
+        }
+        val page = conversations.listPage(offset, limit + 1, pending)
         return buildJsonObject {
-            put("conversations", JsonArray(rows.drop(offset).take(limit)))
-            next(offset, limit, rows.size)
+            putJsonArray("conversations") {
+                for (c in page.take(limit)) addJsonObject {
+                    put("id", c.id); put("title", c.title.take(TEXT_LIMIT)); put("updated_at_ms", c.updatedAt)
+                }
+            }
+            put("next_offset", if (page.size > limit) JsonPrimitive(offset + limit) else JsonNull)
         }
     }
 
     override fun turns(conversation: String, offset: Int, limit: Int): JsonObject? {
         val saved = conversations.turns(conversation)
-        val active = live().filter { it.conversation == conversation && (it.runId == null || saved.none { t -> t.runId == it.runId }) }
+        val active = live().filter { task ->
+            task.conversation == conversation && saved.none { turn ->
+                turn.remoteTaskId == task.id || (task.runId != null && turn.runId == task.runId)
+            }
+        }
         if (saved.isEmpty() && active.isEmpty()) return null
         val summaries = runs.list().associateBy { it.id }
         val rows = saved.mapIndexed { index, turn -> turn(conversation, index, turn, turn.runId?.let { summaries[it]?.startedAtMs }) } +
@@ -64,6 +67,7 @@ class PhoneHistory(
         put("task_id", turn.runId?.let { "run-$it" } ?: "turn-$conversation-$index")
         put("conversation", conversation); put("turn_index", index); put("read_only", true)
         turn.runId?.let { put("run_id", it) }
+        turn.remoteTaskId?.let { put("source_task_id", it) }
         started?.let { put("started_at_ms", it) }
         put("goal", turn.userText.take(TEXT_LIMIT)); put("answer", turn.outcome.take(TEXT_LIMIT))
         put("text_truncated", turn.userText.length > TEXT_LIMIT || turn.outcome.length > TEXT_LIMIT)
@@ -73,7 +77,7 @@ class PhoneHistory(
             else -> "failed"
         })
         if (turn.status == "failed") put("reason", turn.outcome.take(TEXT_LIMIT))
-        if (turn.status == "succeeded") put("verified", true)
+        turn.verified?.let { put("verified", it) }
         turn.note?.let { put("verification_note", it.take(TEXT_LIMIT)) }
         turn.result?.let { put("result", it) }
     }

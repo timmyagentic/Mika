@@ -124,6 +124,8 @@ Phones with history support advertise the `history` capability and the `"history
 | /history/conversations/C/runs/R | Saved `events` and Trace `rows` belonging to this conversation, with archive availability and recording state. |
 | /history/conversations/C/runs/R/bodies/S | One page of a span’s redacted request and reply in `text`; `next_offset` is the next character position. |
 
+A saved turn includes `verified` only when a review actually ran. Older records without a verdict omit the field. A turn started from a computer can include `"source_task_id"` even when cancelled in the queue before a run ID was assigned.
+
 Only `offset` and `limit` query parameters are accepted. Pages default to 20 items, up to 50; body pages default to and allow at most 3,000 characters. A null `next_offset` ends pagination. Long conversation text and event excerpts report `text_truncated` or `truncated`. History reads do not register phone tasks in the remote control index or allow answering, steering or cancelling them.
 
 ## Development checks
