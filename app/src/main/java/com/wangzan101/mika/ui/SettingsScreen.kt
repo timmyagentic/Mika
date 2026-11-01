@@ -100,9 +100,6 @@ fun SettingsScreen(
     // 并行任务的上限只在实验开关 parallelTasks 打开时出现;设备能力按此刻算,第二块屏建失败过就按失败算
     val context = LocalContext.current
     val flags = remember { FeatureFlags.get(context) }
-    val traces = (context.applicationContext as com.wangzan101.mika.MikaApp).detailedTraces
-    var traceEnabled by remember { mutableStateOf(traces.enabled) }
-    var traceLimitMiB by remember { mutableIntStateOf(traces.limitMiB) }
     var parallelMax by remember { mutableIntStateOf(flags.parallelMax()) }
     var keepScreenOn by remember { mutableStateOf(flags.keepScreenOn()) }
     var muteTarget by remember { mutableStateOf(flags.muteTarget()) }
@@ -206,13 +203,6 @@ fun SettingsScreen(
             grounding = visionConfig?.let { GroundingSetting(it.model, it.capabilities.groundingVerified) },
             onGrounding = { verified -> scope.launch { withContext(Dispatchers.IO) { store.setVisionGroundingVerified(verified) } } },
             onOpenRunStats = { page = SettingsPage.RunStats },
-            traceEnabled = traceEnabled, onTrace = { traces.setEnabled(it); traceEnabled = traces.enabled },
-            traceLimitMiB = traceLimitMiB, onTraceLimit = { limit ->
-                scope.launch {
-                    withContext(Dispatchers.IO) { traces.setLimitMiB(limit) }
-                    traceLimitMiB = traces.limitMiB
-                }
-            },
         )
         SettingsPage.RunStats -> RunStatsScreen(remember { RunStore(context).metrics }, onBack = back)
     }

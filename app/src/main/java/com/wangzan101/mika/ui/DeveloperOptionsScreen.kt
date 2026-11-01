@@ -2,20 +2,9 @@ package com.wangzan101.mika.ui
 
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.input.KeyboardType
-import com.wangzan101.mika.core.trace.TraceStore
 import com.wangzan101.mika.core.agent.SpeedFlags
 import com.wangzan101.mika.ui.components.FooterNote
 import com.wangzan101.mika.ui.components.GroupCard
@@ -24,7 +13,6 @@ import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.RowChevron
-import com.wangzan101.mika.ui.components.RowValue
 
 /** 一个工程开关:[id] 用作测试标签,[change] 算出改过这一项之后的整组开关。 */
 data class DevSwitch(
@@ -67,7 +55,10 @@ object GroundingCopy {
     fun subtitle(model: String) = tr(R.string.dev_grounding_sub, model)
 }
 
-/** 调试与性能测试版本的工程开关、详细记录和运行统计。 */
+/**
+ * 设置 › 开发者选项:最前面是「自主模式」([autonomous],默认关即询问);原来「速度」下的八个开关,分成速度和实验两组;有看图模型时另有它的「看图定位已验证」
+ * ([grounding] 为 null 时不显示);最后是「运行统计」的入口([onOpenRunStats] 为 null 时不显示)。
+ */
 @Composable
 fun DeveloperOptionsScreen(
     speed: SpeedFlags,
@@ -78,12 +69,7 @@ fun DeveloperOptionsScreen(
     grounding: GroundingSetting? = null,
     onGrounding: (Boolean) -> Unit = {},
     onOpenRunStats: (() -> Unit)? = null,
-    traceEnabled: Boolean = false,
-    onTrace: (Boolean) -> Unit = {},
-    traceLimitMiB: Int = TraceStore.DEFAULT_LIMIT_MIB,
-    onTraceLimit: (Int) -> Unit = {},
 ) {
-    var editingLimit by rememberSaveable { mutableStateOf(false) }
     PageScaffold(tr(R.string.settings_developer), onBack) {
         GroupLabel(AutonomyCopy.GROUP)
         GroupCard {
@@ -105,36 +91,12 @@ fun DeveloperOptionsScreen(
         }
         GroupLabel(tr(R.string.dev_run_log))
         GroupCard {
-            ListRow(null, tr(R.string.trace_switch), tr(R.string.trace_switch_detail), first = true, onClick = { onTrace(!traceEnabled) }) {
-                MikaSwitch(traceEnabled, onTrace, Modifier.testTag("dev-trace"))
-            }
-            ListRow(null, tr(R.string.trace_storage_limit), tr(R.string.trace_storage_hint), onClick = { editingLimit = true }) {
-                RowValue(tr(R.string.trace_storage_value, traceLimitMiB))
-            }
+            TraceSettingsRows()
             if (onOpenRunStats != null) {
                 ListRow(null, RunMetricsCopy.STATS_TITLE, RunMetricsCopy.STATS_SUBTITLE, onClick = onOpenRunStats) { RowChevron() }
             }
         }
         FooterNote(DEVELOPER_NOTE)
-    }
-    if (editingLimit) {
-        var text by rememberSaveable { mutableStateOf(traceLimitMiB.toString()) }
-        val limit = text.toIntOrNull()?.takeIf { it > 0 }
-        AlertDialog(
-            onDismissRequest = { editingLimit = false },
-            title = { Text(tr(R.string.trace_storage_limit)) },
-            text = {
-                OutlinedTextField(text, { text = it }, singleLine = true, label = { Text("MiB") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-            },
-            confirmButton = {
-                TextButton(enabled = limit != null, onClick = {
-                    limit?.let(onTraceLimit)
-                    editingLimit = false
-                }) { Text(tr(R.string.save)) }
-            },
-            dismissButton = { TextButton(onClick = { editingLimit = false }) { Text(tr(R.string.cancel)) } },
-        )
     }
 }
 

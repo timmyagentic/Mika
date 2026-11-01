@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,7 +13,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.core.trace.TraceArchive
@@ -21,6 +26,7 @@ import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.ListRow
 import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.RowChevron
+import com.wangzan101.mika.ui.components.RowValue
 import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaType
 import kotlinx.coroutines.CancellationException
@@ -134,3 +140,45 @@ private suspend fun saveTrace(archive: TraceArchive, includeBody: Boolean, open:
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { R.string.trace_failed }
     }
+
+@Composable
+internal fun TraceSettingsRows() {
+    val traces = (LocalContext.current.applicationContext as MikaApp).detailedTraces
+    val scope = LocalLifecycleOwner.current.lifecycleScope
+    var traceEnabled by remember { mutableStateOf(traces.enabled) }
+    var traceLimitMiB by remember { mutableIntStateOf(traces.limitMiB) }
+    var editingLimit by rememberSaveable { mutableStateOf(false) }
+    fun onTrace(enabled: Boolean) {
+        traces.setEnabled(enabled)
+        traceEnabled = traces.enabled
+    }
+
+    ListRow(null, stringResource(R.string.trace_switch), stringResource(R.string.trace_switch_detail), first = true, onClick = { onTrace(!traceEnabled) }) {
+        MikaSwitch(traceEnabled, ::onTrace, Modifier.testTag("dev-trace"))
+    }
+    ListRow(null, stringResource(R.string.trace_storage_limit), stringResource(R.string.trace_storage_hint), onClick = { editingLimit = true }) {
+        RowValue(stringResource(R.string.trace_storage_value, traceLimitMiB))
+    }
+    if (editingLimit) {
+        var text by rememberSaveable { mutableStateOf(traceLimitMiB.toString()) }
+        val limit = text.toIntOrNull()?.takeIf { it > 0 }
+        AlertDialog(
+            onDismissRequest = { editingLimit = false },
+            title = { Text(stringResource(R.string.trace_storage_limit)) },
+            text = {
+                OutlinedTextField(text, { text = it }, singleLine = true, label = { Text("MiB") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+            },
+            confirmButton = {
+                TextButton(enabled = limit != null, onClick = {
+                    if (limit != null) scope.launch {
+                        withContext(Dispatchers.IO) { traces.setLimitMiB(limit) }
+                        traceLimitMiB = traces.limitMiB
+                    }
+                    editingLimit = false
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = { TextButton(onClick = { editingLimit = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+}

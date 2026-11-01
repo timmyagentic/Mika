@@ -1,6 +1,5 @@
 package com.wangzan101.mika.task
 
-import com.wangzan101.mika.core.trace.RunTrace
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.i18n.trPlural
@@ -441,7 +440,6 @@ class TaskRun(
         var shellBinder: IBinder? = null
         val traces = (service.application as MikaApp).detailedTraces
         val traceTicket = traces.ticket()
-        var trace: RunTrace? = null
         var record: RunHandle? = null
         var runStore: RunStore? = null
         // 这次运行里经计量的模型请求(含旁路调用),收尾时记进运行记录
@@ -579,13 +577,12 @@ class TaskRun(
             val sink: RunSink = withContext(Dispatchers.IO) {
                 runCatching {
                     val runs = RunStore(service).also { runStore = it }
-                    runs.open(goal).also {
-                        record = it
-                        trace = traces.start(traceTicket, it.runId)
-                        _runId.value = it.runId
-                    }
+                    runs.open(goal).also { record = it; _runId.value = it.runId }
                 }.onFailure { Log.w(TAG, "run record unavailable, running without it", it) }.getOrNull()
             } ?: RunSink.NONE
+            val trace = record?.takeIf { traceTicket != null }?.let { run ->
+                resources.acquire(Dispatchers.IO, traces.store::finish) { traces.start(traceTicket, run.runId) }
+            }
             // 装了哪些 App:每个任务读一次,读不到就当没有;参考资料用
             val apps = try { phoneScreen.listApps() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
             val speed = FeatureFlags.get(service).speedFlags()
@@ -880,11 +877,7 @@ class TaskRun(
                     try { mute?.restoreAll() } finally { recovery.endRun(key) }
                     watcher?.close()
                 } finally {
-                    try {
-                        resources.close()
-                    } finally {
-                        traces.store.finish(trace)
-                    }
+                    resources.close()
                 }
             }
             // 屏释放后、对外报结束前清掉:界面看到任务结束时已经没有屏了
