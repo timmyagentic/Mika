@@ -45,7 +45,6 @@ import com.wangzan101.mika.ui.components.ButtonSize
 import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.ListRow
-import com.wangzan101.mika.ui.components.MikaSwitch
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.PageScaffold
 import com.wangzan101.mika.ui.components.PillTone
@@ -137,8 +136,6 @@ fun SettingsScreen(
             secondDisplayFailed = runtimeLimit.reason == ParallelCapability.SECOND_DISPLAY_FAILED,
         ),
     )
-    // 开发者选项只在调试版和性能测试版里列出:发布版的各开关按评测结果统一定默认值
-    val showDeveloper = BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "perf"
     val toHome = { page = SettingsPage.Home }
     // 通知页可以从首页或手机操作页进,返回回到进来的那一页
     var notificationsFrom by rememberSaveable { mutableStateOf(SettingsPage.Home) }
@@ -170,8 +167,7 @@ fun SettingsScreen(
             routes = routeCount, onOpenRoutes = { page = SettingsPage.Routes },
             onOpenRecovery = { page = SettingsPage.Recovery },
             computerAccess = mcpOn, onOpenComputerAccess = { page = SettingsPage.ComputerAccess },
-            traceEnabled = traceEnabled, onTrace = { traces.setEnabled(it); traceEnabled = traces.enabled },
-            showDeveloper = showDeveloper, onOpenDeveloper = { page = SettingsPage.Developer },
+            onOpenDeveloper = { page = SettingsPage.Developer },
             versionName = BuildConfig.VERSION_NAME, updateVersion = updateVersion, onOpenAbout = onOpenAbout,
         )
         SettingsPage.Usage -> UsageScreen(usage, store.providers, onBack = toHome)
@@ -206,6 +202,7 @@ fun SettingsScreen(
             grounding = visionConfig?.let { GroundingSetting(it.model, it.capabilities.groundingVerified) },
             onGrounding = { verified -> scope.launch { withContext(Dispatchers.IO) { store.setVisionGroundingVerified(verified) } } },
             onOpenRunStats = { page = SettingsPage.RunStats },
+            traceEnabled = traceEnabled, onTrace = { traces.setEnabled(it); traceEnabled = traces.enabled },
         )
         SettingsPage.RunStats -> RunStatsScreen(remember { RunStore(context).metrics }, onBack = back)
     }
@@ -229,8 +226,8 @@ fun SettingsScreen(
 }
 
 /**
- * 不带状态的设置首页,便于测试。可选的入口([usageTokens]、[onOpenMemory]、[webSitesCount]、[grantsCount]、[routes]、[sandbox])
- * 为空时对应那一行不显示;[showDeveloper] 为假(发布版)时没有开发者选项。
+ * 不带状态的设置首页,便于测试。可选的入口([usageTokens]、[onOpenMemory]、[webSitesCount]、[routes]、[sandbox])
+ * 为空时对应那一行不显示。
  */
 @Composable
 fun SettingsContent(
@@ -265,9 +262,6 @@ fun SettingsContent(
     /** 电脑连接(MCP)开着没有;为空时不显示这一行。 */
     computerAccess: Boolean? = null,
     onOpenComputerAccess: () -> Unit = {},
-    traceEnabled: Boolean = false,
-    onTrace: (Boolean) -> Unit = {},
-    showDeveloper: Boolean = false,
     onOpenDeveloper: () -> Unit = {},
     versionName: String = "",
     updateVersion: String? = null,
@@ -346,13 +340,7 @@ fun SettingsContent(
                     RowValue(stringResource(if (on) R.string.state_on else R.string.state_off)); RowChevron()
                 }
             }
-            ListRow(MikaIcons.Code, stringResource(R.string.trace_switch), stringResource(R.string.trace_switch_detail), first = take(),
-                onClick = { onTrace(!traceEnabled) }) {
-                MikaSwitch(traceEnabled, null)
-            }
-            if (showDeveloper) {
-                ListRow(MikaIcons.Code, stringResource(R.string.settings_developer), first = take(), onClick = onOpenDeveloper) { RowChevron() }
-            }
+            ListRow(MikaIcons.Code, stringResource(R.string.settings_developer), first = take(), onClick = onOpenDeveloper) { RowChevron() }
         }
 
         GroupCard {

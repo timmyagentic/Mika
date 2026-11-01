@@ -1,5 +1,6 @@
 package com.wangzan101.mika.ui
 
+import com.wangzan101.mika.BuildConfig
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import androidx.compose.runtime.Composable
@@ -55,10 +56,7 @@ object GroundingCopy {
     fun subtitle(model: String) = tr(R.string.dev_grounding_sub, model)
 }
 
-/**
- * 设置 › 开发者选项:最前面是「自主模式」([autonomous],默认关即询问);原来「速度」下的八个开关,分成速度和实验两组;有看图模型时另有它的「看图定位已验证」
- * ([grounding] 为 null 时不显示);最后是「运行统计」的入口([onOpenRunStats] 为 null 时不显示)。
- */
+/** 所有版本都能记录详细 Trace，调试版和性能测试版另有工程开关与运行统计。 */
 @Composable
 fun DeveloperOptionsScreen(
     speed: SpeedFlags,
@@ -69,33 +67,41 @@ fun DeveloperOptionsScreen(
     grounding: GroundingSetting? = null,
     onGrounding: (Boolean) -> Unit = {},
     onOpenRunStats: (() -> Unit)? = null,
+    traceEnabled: Boolean = false,
+    onTrace: (Boolean) -> Unit = {},
+    showDebugOptions: Boolean = BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "perf",
 ) {
     PageScaffold(tr(R.string.settings_developer), onBack) {
-        GroupLabel(AutonomyCopy.GROUP)
-        GroupCard {
-            ListRow(null, AutonomyCopy.TITLE, AutonomyCopy.SUBTITLE, first = true, onClick = { onAutonomous(!autonomous) }) {
-                MikaSwitch(autonomous, onAutonomous, Modifier.testTag("dev-autonomous"))
-            }
-        }
-        GroupLabel(tr(R.string.dev_speed))
-        SwitchGroup(DeveloperSwitches.speed(speed), onSpeed)
-        GroupLabel(tr(R.string.dev_experiments))
-        SwitchGroup(DeveloperSwitches.experimental(speed), onSpeed)
-        if (grounding != null) {
-            GroupLabel(GroundingCopy.GROUP)
+        if (showDebugOptions) {
+            GroupLabel(AutonomyCopy.GROUP)
             GroupCard {
-                ListRow(null, GroundingCopy.TITLE, GroundingCopy.subtitle(grounding.model), first = true, onClick = { onGrounding(!grounding.verified) }) {
-                    MikaSwitch(grounding.verified, onGrounding, Modifier.testTag("dev-grounding-verified"))
+                ListRow(null, AutonomyCopy.TITLE, AutonomyCopy.SUBTITLE, first = true, onClick = { onAutonomous(!autonomous) }) {
+                    MikaSwitch(autonomous, onAutonomous, Modifier.testTag("dev-autonomous"))
+                }
+            }
+            GroupLabel(tr(R.string.dev_speed))
+            SwitchGroup(DeveloperSwitches.speed(speed), onSpeed)
+            GroupLabel(tr(R.string.dev_experiments))
+            SwitchGroup(DeveloperSwitches.experimental(speed), onSpeed)
+            if (grounding != null) {
+                GroupLabel(GroundingCopy.GROUP)
+                GroupCard {
+                    ListRow(null, GroundingCopy.TITLE, GroundingCopy.subtitle(grounding.model), first = true, onClick = { onGrounding(!grounding.verified) }) {
+                        MikaSwitch(grounding.verified, onGrounding, Modifier.testTag("dev-grounding-verified"))
+                    }
                 }
             }
         }
-        if (onOpenRunStats != null) {
-            GroupLabel(tr(R.string.dev_run_log))
-            GroupCard {
-                ListRow(null, RunMetricsCopy.STATS_TITLE, RunMetricsCopy.STATS_SUBTITLE, first = true, onClick = onOpenRunStats) { RowChevron() }
+        GroupLabel(tr(R.string.dev_run_log))
+        GroupCard {
+            ListRow(null, tr(R.string.trace_switch), tr(R.string.trace_switch_detail), first = true, onClick = { onTrace(!traceEnabled) }) {
+                MikaSwitch(traceEnabled, onTrace, Modifier.testTag("dev-trace"))
+            }
+            if (showDebugOptions && onOpenRunStats != null) {
+                ListRow(null, RunMetricsCopy.STATS_TITLE, RunMetricsCopy.STATS_SUBTITLE, onClick = onOpenRunStats) { RowChevron() }
             }
         }
-        FooterNote(DEVELOPER_NOTE)
+        if (showDebugOptions) FooterNote(DEVELOPER_NOTE)
     }
 }
 
