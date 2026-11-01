@@ -63,6 +63,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core"))
+    implementation(libs.protobuf.lite)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)

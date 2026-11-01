@@ -22,4 +22,15 @@
     <string name="trace_save">Save this trace</string>
     <string name="trace_saved">Trace saved</string>
     <string name="trace_failed">Trace export failed</string>
+    <string name="trace_send">Send via OTLP/HTTP</string>
+    <string name="trace_network_hint">Send this trace’s metadata only.</string>
+    <string name="trace_endpoint">Traces endpoint</string>
+    <string name="trace_endpoint_hint">Use HTTPS for public addresses. HTTP is allowed on localhost and the local network.</string>
+    <string name="trace_header_name">Auth header name</string>
+    <string name="trace_header_value">Auth header value (optional)</string>
+    <string name="trace_sent">Trace accepted</string>
+    <string name="trace_sent_warning">Trace accepted with a receiver warning</string>
+    <string name="trace_rejected">Receiver rejected %1$d spans</string>
+    <string name="trace_http_error">Receiver returned HTTP %1$d</string>
+    <string name="trace_send_failed">Could not send trace</string>
 </resources>

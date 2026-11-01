@@ -130,6 +130,7 @@ private fun TraceExportControls(archive: TraceArchive) {
         if (includeBody) zip.launch("mika-trace-${archive.runId}.zip") else proto.launch("mika-trace-${archive.runId}.pb")
     }) { RowChevron() }
     if (result != 0) Text(stringResource(result), Modifier.padding(horizontal = 16.dp, vertical = 6.dp), style = MikaType.Hint)
+    TraceSendRow(archive)
 }
 
 private suspend fun saveTrace(archive: TraceArchive, includeBody: Boolean, open: () -> java.io.OutputStream?): Int =

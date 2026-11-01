@@ -22,4 +22,15 @@
     <string name="trace_save">保存本次 Trace</string>
     <string name="trace_saved">Trace 已保存</string>
     <string name="trace_failed">Trace 导出失败</string>
+    <string name="trace_send">通过 OTLP/HTTP 发送</string>
+    <string name="trace_network_hint">仅发送本次 Trace 的诊断元数据。</string>
+    <string name="trace_endpoint">接收地址</string>
+    <string name="trace_endpoint_hint">公网地址使用 HTTPS。本机和局域网可以使用 HTTP。</string>
+    <string name="trace_header_name">鉴权头名称</string>
+    <string name="trace_header_value">鉴权值（选填）</string>
+    <string name="trace_sent">接收端已接受</string>
+    <string name="trace_sent_warning">接收端已接受，并返回了提示</string>
+    <string name="trace_rejected">接收端拒收了 %1$d 个 span</string>
+    <string name="trace_http_error">接收端返回 HTTP %1$d</string>
+    <string name="trace_send_failed">发送失败</string>
 </resources>
