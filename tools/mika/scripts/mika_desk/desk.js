@@ -1,6 +1,17 @@
 "use strict";
 
 const STRINGS = {
+  attachFile: ["附加文件", "Attach files"],
+  removeFile: ["移除 {name}", "Remove {name}"],
+  downloadFile: ["下载 {name}", "Download {name}"],
+  uploadingFile: ["正在上传 {name}（{index}/{total}）", "Uploading {name} ({index}/{total})"],
+  downloadingFile: ["正在下载 {name}…", "Downloading {name}…"],
+  fileSaved: ["文件已交给浏览器保存。", "File sent to the browser for saving."],
+  fileLimit: ["最多可选 9 个文件，合计不超过 200 MiB。", "Choose up to 9 files totalling at most 200 MiB."],
+  filesNeedUpdate: ["此手机版本或设备不支持任务附件。", "Task attachments are unavailable on this phone or version."],
+  uploadRejected: ["{name} 未传完。附件已保留，请检查手机连接和剩余空间后重试。", "{name} did not finish uploading. Your attachments are still here. Check the connection and free space, then try again."],
+  resultUnavailable: ["文件已变化或无法读取，请在手机上检查后重新导出。", "The file changed or is unavailable. Check it on the phone and export it again."],
+  fileTransferFailed: ["文件传输未完成，请检查连接后重试。", "File transfer did not complete. Check the connection and try again."],
   title: ["Mika · 会话桌面", "Mika · Conversation desk"],
   heading: ["会话桌面", "Conversation desk"],
   displayLanguage: ["界面语言", "Language"],
@@ -180,7 +191,7 @@ const clock = ms =>
   new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const byId = (items, id) => items?.find(task => task.task_id === id);
 const label = task =>
-  (task?.goal || "")
+  (task?.request_text || task?.input_files?.[0]?.name || task?.goal || "")
     .trim()
     .split(/[\r\n。！？!?；;]/, 1)[0]
     .trim() || t("remoteTask");
@@ -221,6 +232,7 @@ let revision = 0,
   retryDelay = 0,
   writeWarning = "",
   autoDisclosure = false;
+const attachmentDrafts = new Map();
 const drafts = new Map(),
   observed = new Map(),
   exchanges = new Map(),
@@ -417,10 +429,20 @@ function addTurn(task, index) {
   node.setAttribute("aria-label", turn);
   node.append(el("div", "turn-label", turn + (task.started_at_ms ? " · " + date(task.started_at_ms) : "")));
   const request = el("div", "request"),
-    goal = task.goal || t("remoteTask"),
+    goal = task.request_text ?? (task.goal || t("remoteTask")),
     chars = Array.from(goal),
     long = chars.length > 160;
-  request.append(el("p", "", long && !expandedGoals.has(id) ? chars.slice(0, 150).join("") + "…" : goal));
+  if (task.input_files?.length) {
+    const tray = el("div", "file-tray");
+    for (const file of task.input_files) {
+      const chip = el("div", "file-chip");
+      chip.append(icon("attach"), el("span", "file-name", file.name), el("small", "", file.size_label));
+      chip.title = file.name;
+      tray.append(chip);
+    }
+    request.append(tray);
+  }
+  if (goal) request.append(el("p", "", long && !expandedGoals.has(id) ? chars.slice(0, 150).join("") + "…" : goal));
   if (long) {
     const b = commandButton("goal", t(expandedGoals.has(id) ? "collapseGoal" : "expandGoal"), "", id);
     b.className = "expand-text";
@@ -462,6 +484,20 @@ function addTurn(task, index) {
   }
   if (task.status === "waiting_on_phone")
     node.append(el("p", "guidance", [task.app, t("handoffGuide")].filter(Boolean).join(" · ")));
+  if (task.files?.length) {
+    const list = el("div", "result-files");
+    for (const file of task.files) {
+      const button = commandButton("download", file.name, "download", id);
+      button.querySelector("span").className = "file-name";
+      button.dataset.fileId = file.id;
+      button.setAttribute("aria-label", t("downloadFile", { name: file.name }));
+      button.title = button.getAttribute("aria-label");
+      button.disabled = !online || busy;
+      button.append(el("small", "", fileSize(file.size)));
+      list.append(button);
+    }
+    node.append(list);
+  }
   const tools = el("div", "turn-tools");
   if (task.status === "done" && task.answer) tools.append(commandButton("copy", t("copyResult"), "copy", id));
   if (isActive(task)) {
@@ -715,6 +751,81 @@ function composeTarget() {
     };
   return { kind: "wait", mode: "noConversation", hint: "noConversation" };
 }
+function fileSize(bytes) {
+  const scale = bytes >= 1048576 ? 1048576 : bytes >= 1024 ? 1024 : 1;
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(bytes / scale) +
+    " " + ({ 1: "B", 1024: "KiB", 1048576: "MiB" })[scale];
+}
+
+function addFiles(items) {
+  const route = composeTarget();
+  if (busy || route.kind !== "run") return;
+  if (!overview?.capabilities.includes("task_files")) {
+    message("notice", t("filesNeedUpdate"));
+    return;
+  }
+  const files = [...(attachmentDrafts.get(route.key) || []), ...items];
+  if (files.length > 9 || files.reduce((n, f) => n + f.size, 0) > 200 * 1048576) {
+    message("notice", t("fileLimit"));
+    return;
+  }
+  attachmentDrafts.set(route.key, files);
+  syncComposer();
+  $("goal").focus();
+}
+
+let shownFiles, traySignature = "";
+function syncAttachments(route) {
+  const files = attachmentDrafts.get(route.key);
+  const supported = !!overview?.capabilities.includes("task_files");
+  $("attach-file").hidden = !supported || route.kind !== "run";
+  $("attach-file").disabled = busy || !online;
+  const signature = [route.key, busy, lang].join("|");
+  if (shownFiles !== files || signature !== traySignature) {
+    shownFiles = files;
+    traySignature = signature;
+    const tray = $("attachments");
+    tray.replaceChildren();
+    for (const [index, file] of (files || []).entries()) {
+      const chip = el("div", "file-chip");
+      const remove = commandButton("remove", "", "x");
+      remove.lastElementChild.remove();
+      remove.disabled = busy;
+      remove.setAttribute("aria-label", t("removeFile", { name: file.name }));
+      remove.addEventListener("click", () => {
+        attachmentDrafts.set(route.key, files.filter((_, i) => i !== index));
+        syncComposer();
+        $("goal").focus();
+      });
+      chip.title = file.name;
+      chip.append(icon("attach"), el("span", "file-name", file.name), el("small", "", fileSize(file.size)), remove);
+      tray.append(chip);
+    }
+  }
+  return files?.length || 0;
+}
+
+$("attach-file").addEventListener("click", () => $("file-picker").click());
+$("file-picker").addEventListener("change", () => {
+  addFiles(Array.from($("file-picker").files));
+  $("file-picker").value = "";
+});
+$("goal").addEventListener("paste", event => {
+  const clipboard = event.clipboardData;
+  if (!clipboard || composeTarget().kind !== "run") return;
+  let images = Array.from(clipboard.files).filter(file => file.type.startsWith("image/"));
+  if (!images.length) images = Array.from(clipboard.items)
+    .filter(item => item.kind === "file" && item.type.startsWith("image/"))
+    .map(item => item.getAsFile()).filter(Boolean);
+  if (!images.length) return;
+  event.preventDefault();
+  addFiles(images.map(file => {
+    if (file.name) return file;
+    const suffix = ({ "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" })[file.type] || "";
+    return new File([file], "clipboard-image" + suffix, { type: file.type });
+  }));
+});
+
 let optionsSignature = "";
 function syncComposer() {
   const route = composeTarget(),
@@ -732,7 +843,10 @@ function syncComposer() {
   $("compose-label").textContent = t(route.send || "message");
   $("submit-goal").setAttribute("aria-label", t(route.send || "submit"));
   $("submit-goal").title = t(route.send || "submit");
-  $("submit-goal").disabled = !online || busy || route.kind === "wait" || !goal.value.trim();
+  const attached = syncAttachments(route);
+  goal.required = !attached;
+  $("submit-goal").disabled = !online || busy || route.kind === "wait" || (!goal.value.trim() && !attached) ||
+    (!!attached && !overview?.capabilities.includes("task_files"));
   const opts = Array.isArray(route.options) ? route.options : [];
   const sig = JSON.stringify([key, opts, busy, online]);
   if (sig === optionsSignature) return;
@@ -828,6 +942,7 @@ function updateDevice(next) {
 }
 
 function showProblem(e) {
+  if (e.code === "upload_failed") { message("notice", e.message); return; }
   if (e.code === "outcome_unknown") writeWarning = t("errOutcomeUnknown");
   const key = (e.code === "device_offline" && deviceStates.get(e.state)) || errorNames[e.code];
   const detail = key ? t(key) : e.message || t("errFallback");
@@ -856,14 +971,17 @@ function showProblem(e) {
 }
 
 async function call(action, fields = {}) {
-  const write = !["overview", "select", "watch", "status"].includes(action);
+  const write = !["overview", "select", "watch", "status", "discard_upload", "download"].includes(action);
+  return deskRequest("/desk", JSON.stringify({ action, ...fields }), { "Content-Type": "application/json" }, write, action === "download");
+}
+
+async function deskRequest(path, body, headers, write = false, download = false) {
   let response, data;
   try {
-    response = await fetch("/desk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Mika-Desk": ticket || "" },
-      body: JSON.stringify({ action, ...fields })
-    });
+    response = await fetch(path, { method: "POST", headers: { ...headers, "X-Mika-Desk": ticket || "" }, body });
+    if (download && response.ok && response.headers.get("Content-Type") === "application/octet-stream") {
+      return await response.blob();
+    }
     if (response.headers.get("Content-Type")?.includes("application/json")) data = await response.json();
   } catch {
     throw { code: write ? "outcome_unknown" : "desk_offline" };
@@ -977,12 +1095,37 @@ async function submit() {
     goal = $("goal"),
     text = goal.value.trim(),
     key = route.key;
-  if (!online || busy || !text || !key || route.kind === "wait") return;
+  const files = attachmentDrafts.get(key) || [];
+  if (!online || busy || (!text && !files.length) || !key || route.kind === "wait") return;
   await work(async () => {
     if (route.kind === "run") {
       const fields = { goal: text };
       if (route.conversation) fields.conversation = route.conversation;
-      const task = await call("run", fields);
+      const uploads = [];
+      let task;
+      try {
+        for (const file of files) {
+          message("notice", t("uploadingFile", { name: file.name, index: uploads.length + 1, total: files.length }));
+          try {
+            const receipt = await deskRequest("/desk/upload", file, { "Content-Type": "application/octet-stream",
+              "X-Mika-Filename": encodeURIComponent(file.name) });
+            uploads.push(receipt.upload_id);
+          } catch (error) {
+            if (error.code === "session") throw error;
+            throw { code: "upload_failed", message: t(error.code === "incompatible_api" ? "filesNeedUpdate" : "uploadRejected", { name: file.name }) };
+          }
+        }
+        if (uploads.length) fields.attachments = uploads;
+        task = await call("run", fields);
+      } catch (error) {
+        if (error.code !== "outcome_unknown") {
+          for (const id of uploads) await call("discard_upload", { upload_id: id }).catch(() => {});
+        }
+        throw error;
+      } finally {
+        if (files.length) message("notice", "");
+      }
+      attachmentDrafts.delete(key);
       drafts.delete(key);
       goal.value = "";
       preferredTask = null;
@@ -1087,6 +1230,26 @@ $("transcript").addEventListener("click", async ev => {
       else expandedGoals.add(id);
       renderTurns();
       break;
+    case "download": {
+      const file = task.files?.find(item => item.id === b.dataset.fileId);
+      if (!file || !online || busy) return;
+      await work(async () => {
+        message("notice", t("downloadingFile", { name: file.name }));
+        try {
+          const blob = await call("download", { task_id: id, file_id: file.id });
+          if (!(blob instanceof Blob) || blob.size !== file.size) throw new Error(t("fileTransferFailed"));
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = file.name;
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
+          message("notice", t("fileSaved"));
+        } catch (error) {
+          message("notice", t([404, 409].includes(error.http_status) || error.code === "file_changed" ? "resultUnavailable" : "fileTransferFailed"));
+        }
+      });
+      break;
+    }
     case "copy":
       try {
         await navigator.clipboard.writeText(task.answer);

@@ -1280,13 +1280,9 @@ class ChatViewModel(
 
         /** 消息末尾每个附件一行:「附件:/workspace/inbox/<名字>(<大小>)」;[files] 是复制进工作区后的 (路径, 字节数)。 */
         internal fun withAttachments(text: String, files: List<Pair<String, Long>>): String =
-            AttachmentLines.compose(text, files.map { (p, n) -> p to sizeLabel(n) })
+            AttachmentLines.composeBytes(text, files)
 
-        fun sizeLabel(bytes: Long): String = when {
-            bytes < 1024 -> "$bytes B"
-            bytes < 1024 * 1024 -> "${(bytes + 512) / 1024} KB"
-            else -> String.format(java.util.Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
-        }
+        fun sizeLabel(bytes: Long): String = AttachmentLines.sizeLabel(bytes)
     }
 }
 

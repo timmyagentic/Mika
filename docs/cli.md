@@ -88,6 +88,18 @@ mika --device SERIAL task list --limit 10 --json
 
 `doctor` 只检查连接/API 和可用的设备状态,`model_configuration` 明确为 unverified。它不会调用模型或提交任务,也不能证明真实手机操作已经验收。结果缺少 `verified` 时表示核实情况未知。付款确认、手机接管和手机本地任务的访问边界与 MCP 共用同一套规则。
 
+## 任务附件与下载
+
+任务 API 声明 `task_files` 时，CLI 可以随任务上传本地文件，并按任务编号下载该轮实际导出的文件。每批最多 9 件、合计 200 MiB。文件按块传输，完整导入对话工作区后才派发任务。回答已有追问和运行中追加仍使用文本。
+
+```bash
+mika task run --goal "核对清单并导出结果" --attach 清单.csv --attach 图片.png --json
+mika task status TASK_ID --json
+mika task download TASK_ID FILE_ID --output 核对结果.csv
+```
+
+`status` 返回的 `files` 含输出文件的编号、名称、字节数和导出时的 SHA-256。下载目标必须是一个新文件，读取失败或内容校验失败时会清理未完成的下载。可下载范围沿用手机保留的远程任务索引。手机重启导致任务编号失效时，已导出的文件仍可从手机的下载目录查看。
+
 ## 浏览器任务台
 
 ```bash
@@ -105,7 +117,11 @@ mika ui --device SERIAL --no-open
 | --- | --- |
 | GET 根路径 | API 版本、服务器版本、能力和输入上限。 |
 | GET /device | 只读设备状态;未提供设备接口时返回 503。 |
-| POST /tasks | goal、可选 conversation;201 返回任务状态和 ID。 |
+| POST /uploads | `name` 和字节数 `size`，返回一次性 `upload_id`。 |
+| POST /uploads/ID | 按顺序发送 `offset` 和 Base64 的 `data`，每块原始数据最多 128 KiB，确认值为 `next_offset`。 |
+| POST /uploads/ID/discard | 空对象，放弃暂存的附件。未使用的编号空闲 30 分钟后失效。 |
+| POST /tasks | `goal`、可选的 `conversation` 和上传编号列表 `attachments`。201 返回任务状态和 ID。 |
+| GET /tasks/ID/files/FILE_ID?offset=N | 返回本轮输出文件自该字节偏移起的一块数据，响应含 `offset` 与 Base64 的 `data`。 |
 | GET /tasks?limit=10 | 最近远程任务;limit 范围 1–50。 |
 | GET /tasks/ID | 当前任务状态。 |
 | POST /tasks/ID/wait | timeout_s 范围 1–50,默认 30;返回状态与 changed。 |

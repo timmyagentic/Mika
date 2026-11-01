@@ -88,6 +88,18 @@ A lost write response, server-side write error or Ctrl-C during a write can leav
 
 `doctor` checks connectivity/API and available device state; it explicitly reports model configuration as unverified. It neither invokes a model nor starts a task, and cannot establish real-device task acceptance. Missing `verified` means unknown. Payment confirmations, phone handoff and access to phone-local tasks retain the same boundaries as MCP.
 
+## Task attachments and downloads
+
+Phones advertising `task_files` accept up to 9 attachments totalling 200 MiB per task. The client transfers them in chunks and the phone imports them into the conversation workspace before starting the task. Answers and steering messages accept text.
+
+```bash
+mika task run --goal "Check the list and export the result" --attach list.csv --attach photo.png --json
+mika task status TASK_ID --json
+mika task download TASK_ID FILE_ID --output checked.csv
+```
+
+Use the file ID, name, size and export digest in the task’s `files` field. The download verifies the exported bytes, requires a new destination file and removes incomplete output on failure. Files can be downloaded while the phone retains the remote task ID. The original export remains in the phone’s Downloads if a restart clears the task index.
+
 ## Browser task desk
 
 ```bash
@@ -105,7 +117,11 @@ All paths below are relative to `/api/v1` and use the same Bearer authentication
 | --- | --- |
 | GET root | API version, server version, capabilities and input limits. |
 | GET /device | Read-only device state; 503 if unavailable. |
-| POST /tasks | goal and optional conversation; 201 with task ID and state. |
+| POST /uploads | Send `name` and byte count `size` to obtain a single-use `upload_id`. |
+| POST /uploads/ID | Send the next `offset` and Base64 `data` (up to 128 KiB raw). The phone acknowledges `next_offset`. |
+| POST /uploads/ID/discard | An empty object discards a pending upload. Unused IDs expire after 30 idle minutes. |
+| POST /tasks | `goal`, optional `conversation` and an optional `attachments` array of upload IDs. Returns 201 with task ID and state. |
+| GET /tasks/ID/files/FILE_ID?offset=N | Read a chunk of a file exported by that task. Returns the byte `offset` and Base64 `data`. |
 | GET /tasks?limit=10 | Recent remote tasks; limit 1–50. |
 | GET /tasks/ID | Current task state. |
 | POST /tasks/ID/wait | timeout_s 1–50, default 30; state and changed. |

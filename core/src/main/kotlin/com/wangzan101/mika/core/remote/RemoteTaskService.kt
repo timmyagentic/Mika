@@ -32,15 +32,26 @@ data class RemoteSteerReceipt(val taskId: String, val messageId: String)
 class RemoteTaskService(private val tasks: RemoteTasks, private val pollMs: Long = 250) {
     init { require(pollMs > 0) }
 
-    fun start(goal: String, conversation: String? = null): RemoteTask {
-        val clean = required(goal, "goal", MAX_GOAL)
+    val fileAccess get() = tasks.fileAccess
+
+    fun start(goal: String, conversation: String? = null, attachments: List<String> = emptyList()): RemoteTask {
         val thread = conversation?.trim()?.takeIf { it.isNotEmpty() }
         if (thread != null && !isConversation(thread)) throw RemoteTaskError.BadConversation()
-        return when (val r = tasks.start(clean, thread)) {
+        if (attachments.isEmpty()) return launch(required(goal, "goal", MAX_GOAL), thread)
+        val access = fileAccess ?: invalid("This phone does not support task attachments")
+        val clean = goal.trim()
+        if (clean.length > MAX_GOAL) invalid("goal is too long")
+        val target = thread ?: newConversation()
+        return access.uploads.consume(attachments) { files ->
+            access.start(target, clean, files) { withPaths -> launch(withPaths, target) }
+        }
+    }
+
+    private fun launch(goal: String, thread: String?): RemoteTask =
+        when (val r = tasks.start(goal, thread)) {
             is StartOutcome.Started -> r.task
             is StartOutcome.Refused -> throw RemoteTaskError.General(RemoteTaskError.Code.UNAVAILABLE, r.message)
         }
-    }
 
     fun get(id: String): RemoteTask {
         val clean = id.trim()

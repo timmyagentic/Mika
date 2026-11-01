@@ -2,8 +2,11 @@
 """Mika's task API client. Standard library only; usable outside the source tree."""
 
 import argparse
+import base64
+import binascii
 import contextlib
 import http.client
+import hashlib
 import json
 import math
 import os
@@ -22,6 +25,9 @@ PHONE_FILES = "/sdcard/Android/data/com.wangzan101.mika/files"
 INFO_FILE = PHONE_FILES + "/mcp-usb.json"
 CONNECT_SCRIPT = PHONE_FILES + "/connect-computer.sh"
 MAX_RESPONSE = 4 * 1024 * 1024
+FILE_CHUNK = 128 * 1024
+MAX_ATTACH_BYTES = 200 * 1024 * 1024
+MAX_ATTACH_FILES = 9
 HANDOFF = {"waiting_for_answer", "waiting_on_phone"}
 TERMINAL = {"done", "failed", "cancelled"}
 STATUSES = TERMINAL | HANDOFF | {"starting", "queued", "running", "paused"}
@@ -331,11 +337,134 @@ def recent_tasks(client, limit):
     return result
 
 
+def require_files(info):
+    if "task_files" not in info["capabilities"]:
+        raise CliError("incompatible_api", "This phone does not support task files. Update Mika to use attachments and downloads.")
+
+
+def discard_upload(client, upload_id):
+    with contextlib.suppress(CliError):
+        client.request("POST", "/uploads/" + upload_id + "/discard", {})
+
+
+def upload_file(client, name, size, stream):
+    if not 0 <= size <= MAX_ATTACH_BYTES:
+        raise CliError("input", "Attachments must fit within 200 MiB.")
+    upload_id = client.request("POST", "/uploads", {"name": name, "size": size}).get("upload_id")
+    if not isinstance(upload_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", upload_id):
+        raise CliError("protocol", "Invalid upload receipt.")
+    try:
+        offset = 0
+        while offset < size:
+            chunk = stream.read(min(FILE_CHUNK, size - offset))
+            if not chunk:
+                raise CliError("input", "The source file ended before the upload was complete.")
+            reply = client.request("POST", "/uploads/" + upload_id, {
+                "offset": offset, "data": base64.b64encode(chunk).decode("ascii")})
+            offset += len(chunk)
+            if reply.get("next_offset") != offset:
+                raise CliError("protocol", "The phone did not confirm this attachment chunk.")
+        return upload_id
+    except BaseException:
+        discard_upload(client, upload_id)
+        raise
+
+
+def result_file(client, task_id, file_id):
+    result = task_snapshot(client.request("GET", "/tasks/" + task_id), client, task_id=task_id)
+    for item in result.get("files", []):
+        if isinstance(item, dict) and item.get("id") == file_id:
+            if type(item.get("size")) is not int or not 0 <= item["size"] <= 100 * 1024 * 1024:
+                raise CliError("protocol", "Invalid result file size.")
+            return item
+    raise CliError("file_not_found", "This file is not available for the selected task.", 1, http_status=404)
+
+
+def file_chunks(client, task_id, item):
+    digest = hashlib.sha256()
+    offset = 0
+    while True:
+        part = client.request("GET", "/tasks/%s/files/%s?offset=%d" % (task_id, item["id"], offset))
+        try:
+            data = base64.b64decode(part["data"], validate=True)
+        except (KeyError, TypeError, ValueError, binascii.Error):
+            raise CliError("protocol", "Invalid file data from the phone.") from None
+        remaining = item["size"] - offset
+        if part.get("offset") != offset or len(data) != min(FILE_CHUNK, remaining):
+            raise CliError("file_changed", "The result file is incomplete or changed on the phone.")
+        digest.update(data)
+        if len(data) == remaining and item.get("sha256") is not None and digest.hexdigest() != item["sha256"]:
+            raise CliError("file_changed", "The phone file no longer matches what the task exported.")
+        yield data
+        offset += len(data)
+        if offset == item["size"]:
+            return
+
+
+def submit_task(client, goal, conversation, upload_ids):
+    body = {"goal": goal}
+    if conversation is not None:
+        body["conversation"] = conversation
+    if upload_ids:
+        body["attachments"] = upload_ids
+    return task_snapshot(client.request("POST", "/tasks", body, mutation=True), client, mutation=True)
+
+
+def run_with_files(client, args, info):
+    ids = list(getattr(args, "attachments", []))  # The local desk has already staged these.
+    paths = [Path(name) for name in getattr(args, "attach", [])]
+    if ids or paths:
+        require_files(info)
+    try:
+        if paths:
+            if len(paths) > MAX_ATTACH_FILES or any(not p.is_file() for p in paths) or sum(p.stat().st_size for p in paths) > MAX_ATTACH_BYTES:
+                raise CliError("input", "Choose up to 9 regular files totalling at most 200 MiB.")
+            for path in paths:
+                with path.open("rb") as stream:
+                    ids.append(upload_file(client, path.name, os.fstat(stream.fileno()).st_size, stream))
+        task = submit_task(client, args.goal, args.conversation, ids)
+        ids.clear()  # The phone consumed these in the accepted submission.
+        return task
+    except CliError as exc:
+        if exc.code == "outcome_unknown":
+            ids.clear()  # Submission may still be consuming them. Unused uploads expire.
+        raise
+    except OSError:
+        raise CliError("input", "Could not read an attachment on this computer.") from None
+    finally:
+        # Browser-staged uploads belong to the browser. Clean up files staged by this CLI invocation.
+        if paths:
+            for upload_id in ids:
+                discard_upload(client, upload_id)
+
+
+def save_result(client, task_id, file_id, output):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", file_id):
+        raise CliError("arguments", "Use a file ID returned by task status.")
+    item = result_file(client, task_id, file_id)
+    target = Path(output)
+    try:
+        stream = target.open("xb")
+        try:
+            with stream:
+                for chunk in file_chunks(client, task_id, item):
+                    stream.write(chunk)
+        except BaseException:
+            target.unlink(missing_ok=True)
+            raise
+    except OSError:
+        raise CliError("output", "Choose a new output file in a writable directory.") from None
+    return {"file": str(target), "size": item["size"], "task_id": task_id}
+
+
 def execute(args, secrets):
     # Validate inputs before opening a connection or invoking the bootstrap script.
     if args.command == "task":
         if args.action == "run":
-            args.goal = text_input(args.goal, args.goal_file, "goal")
+            if (getattr(args, "attach", None) or getattr(args, "attachments", None)) and not args.goal and args.goal_file is None:
+                args.goal = ""
+            else:
+                args.goal = text_input(args.goal, args.goal_file, "goal")
         if args.action in {"answer", "steer"}:
             args.text = text_input(args.text, args.text_file, args.action)
         if hasattr(args, "task_id") and not re.fullmatch(r"[A-Za-z0-9_-]+", args.task_id):
@@ -360,10 +489,10 @@ def execute(args, secrets):
             raise CliError("incompatible_api", "This Mika APK does not support task steering; update the phone app.")
         path = "/tasks" + ("/" + args.task_id if hasattr(args, "task_id") else "")
         if action == "run":
-            body = {"goal": args.goal}
-            if args.conversation is not None:
-                body["conversation"] = args.conversation
-            return task_snapshot(client.request("POST", path, body, mutation=True), client, mutation=True)
+            return run_with_files(client, args, info)
+        if action == "download":
+            require_files(info)
+            return save_result(client, args.task_id, args.file_id, args.output)
         if action == "list":
             return recent_tasks(client, args.limit)
         if action in {"status", "wait"}:
@@ -429,9 +558,14 @@ def parser():
     task = sub.add_parser("task", help="Run and inspect phone tasks", parents=[common])
     actions = task.add_subparsers(dest="action", required=True)
     run = actions.add_parser("run", parents=[common], help="Submit once; return the task ID immediately")
-    goal = run.add_mutually_exclusive_group(required=True)
+    goal = run.add_mutually_exclusive_group()
     goal.add_argument("--goal")
     goal.add_argument("--goal-file", help="UTF-8 file, or - for stdin")
+    run.add_argument("--attach", action="append", default=[], metavar="FILE", help="Attach a local file (repeatable)")
+    download = actions.add_parser("download", parents=[common], help="Save one file exported by a task")
+    download.add_argument("task_id")
+    download.add_argument("file_id", help="ID in the task's files list")
+    download.add_argument("--output", required=True, help="New file path on this computer")
     run.add_argument("--conversation", help="Continue a conversation returned by a previous remote task")
     for name in ["status", "wait", "answer", "steer", "cancel"]:
         cmd = actions.add_parser(name, parents=[common])

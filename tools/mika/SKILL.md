@@ -43,6 +43,8 @@ mika --device SERIAL task wait TASK_ID --timeout 45 --json
 mika --device SERIAL task status TASK_ID --json
 ```
 
+For a task that needs a file on this computer, add `--attach PATH` to `task run` for each user-selected input (up to 9 files totalling 200 MiB). When a task returns `files`, save the requested result with `mika task download TASK_ID FILE_ID --output NEW_PATH` using the same phone connection. The file ID comes from that task’s status. A path in answer text alone is not a downloadable result.
+
 Keep the returned task ID and conversation ID. A successful submission only means that Mika accepted the task.
 
 Wait rule: call `task wait --timeout 45` (allowed 1-50) in the foreground, one call at a time, and re-check the returned state each time. A wait never cancels or resubmits; a timeout is not a failure, so never resubmit on timeout. Stop and report to the user when the task needs an answer or phone takeover, or after a reasonable budget (for example 10-15 waits, longer if progress is clearly advancing). Do not build a background polling loop.

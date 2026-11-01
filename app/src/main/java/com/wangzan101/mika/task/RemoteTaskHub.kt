@@ -2,6 +2,9 @@ package com.wangzan101.mika.task
 
 import android.content.Context
 import android.util.Log
+import android.os.Build
+import com.wangzan101.mika.chat.SharedFile
+import com.wangzan101.mika.core.remote.RemoteTaskFiles
 import com.wangzan101.mika.core.agent.FailKind
 import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.core.mcp.McpTaskHost
@@ -32,6 +35,16 @@ class RemoteTaskHub(
     private class Record(val id: String, val conversation: String, val goal: String, val createdAtMs: Long) {
         @Volatile var final: TaskState? = null
         @Volatile var steers: List<RemoteSteer> = emptyList()
+        @Volatile var files: List<SharedFile> = emptyList()
+    }
+
+    override val fileAccess: RemoteTaskFiles? by lazy {
+        if ("arm64-v8a" in Build.SUPPORTED_ABIS) PhoneTaskFiles(context, ::exported) else null
+    }
+
+    private fun exported(id: String): List<SharedFile> {
+        val record = synchronized(this) { records[id] } ?: return emptyList()
+        return live(id)?.sharedFiles?.value ?: record.files
     }
 
     private val buses = HashMap<RunId, RunEventBus>()
@@ -101,17 +114,19 @@ class RemoteTaskHub(
         val state = end ?: run?.state?.value
             ?: if (clock() - r.createdAtMs > LOST_MS) TaskState.Failed("The task never started on the phone.", FailKind.Environment) else null
         return RemoteTask(r.id, r.conversation, r.goal, r.createdAtMs, state,
-            if (end != null) r.steers else run?.let { remoteSteers(it.steers.value) }.orEmpty())
+            if (end != null) r.steers else run?.let { remoteSteers(it.steers.value) }.orEmpty(),
+            (run?.sharedFiles?.value ?: r.files).map { it.remoteFile() })
     }
 
     @Synchronized fun attach(id: String, source: RunEventBus): AutoCloseable? =
         buses[RunId(id)]?.let { sink -> source.subscribe(sink) }
 
     /** 任务收尾(含排队时被取消、服务被系统停掉):记下终态,之后状态都从这里读。 */
-    @Synchronized fun ended(id: String, end: TaskState, steers: List<SteerNote>) {
+    @Synchronized fun ended(id: String, end: TaskState, steers: List<SteerNote>, files: List<SharedFile> = emptyList()) {
         records[id]?.let { record ->
             // 由收尾方传快照:排队取消可能已移出中心,服务中断也可能来不及改消息展示状态。
             record.steers = remoteSteers(steers, finished = true)
+            record.files = files
             record.final = end
         }
         buses.remove(RunId(id))?.event(RunEvent.State(clock(), "mcp_task_ended", end::class.simpleName.orEmpty()))

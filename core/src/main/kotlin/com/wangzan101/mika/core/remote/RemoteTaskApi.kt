@@ -4,6 +4,7 @@ import com.wangzan101.mika.core.device.DeviceAccess
 import com.wangzan101.mika.core.device.toJson
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -13,7 +14,9 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import java.io.IOException
 import java.net.URLDecoder
+import java.util.Base64
 
 /** 普通 HTTP/JSON 适配器。无需 MCP 握手、工具发现或 tools/call;认证由 RemoteHost 统一执行。 */
 class RemoteTaskApi(
@@ -41,12 +44,34 @@ class RemoteTaskApi(
 
     private fun route(req: HttpRequest): HttpResponse {
         val query = query(req)
+        UPLOAD.matchEntire(req.path)?.let { match ->
+            if (query.isNotEmpty()) invalid("Uploads do not accept query parameters")
+            return upload(req, match.groupValues[1], match.groupValues[2])
+        }
+        RESULT.matchEntire(req.path)?.let { match ->
+            method(req, "GET")
+            if (query.keys != setOf("offset")) invalid("An offset is required")
+            val offset = query["offset"]?.toLongOrNull() ?: invalid("Invalid file offset")
+            val (taskId, fileId) = match.destructured
+            val access = fileAccess()
+            val file = service.get(taskId).files.find { it.id == fileId }
+                ?: throw ApiError(404, "file_not_found", "No such file in this task")
+            if (offset !in 0..file.size) invalid("Invalid file offset")
+            val bytes = fileIO { access.read(taskId, file, offset) }
+            return ok(buildJsonObject {
+                put("offset", offset); put("data", Base64.getEncoder().encodeToString(bytes))
+            })
+        }
         if (req.path != "$ROOT/tasks" && query.isNotEmpty()) invalid("This endpoint accepts no query parameters")
         if (req.path == ROOT) {
             method(req, "GET")
             return ok(buildJsonObject {
                 put("api_version", 1); put("server_version", serverVersion)
-                putJsonArray("capabilities") { add("tasks"); add("task_steer"); if (device != null) add("device_state") }
+                putJsonArray("capabilities") {
+                    add("tasks"); add("task_steer")
+                    if (device != null) add("device_state")
+                    if (service.fileAccess != null) add("task_files")
+                }
                 putJsonObject("limits") {
                     put("max_wait_s", RemoteTaskService.MAX_WAIT_S)
                     put("max_goal", RemoteTaskService.MAX_GOAL)
@@ -72,8 +97,14 @@ class RemoteTaskApi(
                 }
                 "POST" -> {
                     if (query.isNotEmpty()) invalid("Task submission accepts no query parameters")
-                    val body = body(req, setOf("goal", "conversation"))
-                    ok(RemoteStatus.describe(service.start(string(body, "goal").orEmpty(), string(body, "conversation"))), 201)
+                    val b = body(req, setOf("goal", "conversation", "attachments"))
+                    val ids = b["attachments"]?.let { value ->
+                        (value as? JsonArray)?.map {
+                            (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content ?: invalid("Expected upload IDs")
+                        } ?: invalid("attachments must be an array")
+                    }.orEmpty()
+                    val task = fileIO { service.start(string(b, "goal").orEmpty(), string(b, "conversation"), ids) }
+                    ok(RemoteStatus.describe(task), 201)
                 }
                 else -> wrongMethod("GET, POST")
             }
@@ -121,6 +152,34 @@ class RemoteTaskApi(
         }
     }
 
+    private fun fileAccess() = service.fileAccess ?: throw ApiError(404, "unsupported", "Task files are unavailable")
+
+    private fun upload(req: HttpRequest, id: String, action: String): HttpResponse {
+        method(req, "POST")
+        val uploads = fileAccess().uploads
+        if (id.isEmpty()) {
+            val b = body(req, setOf("name", "size"))
+            val name = string(b, "name") ?: invalid("A file name is required")
+            val size = integer(b, "size") ?: invalid("A file size is required")
+            val created = fileIO { uploads.create(name, size.toLong()) }
+            return ok(buildJsonObject { put("upload_id", created) }, 201)
+        }
+        if (action.isNotEmpty()) {
+            body(req, emptySet())
+            uploads.discard(id)
+            return ok(buildJsonObject { put("discarded", true) })
+        }
+        val b = body(req, setOf("offset", "data"))
+        val offset = integer(b, "offset") ?: invalid("An offset is required")
+        val encoded = string(b, "data") ?: invalid("A file chunk is required")
+        val bytes = try { Base64.getDecoder().decode(encoded) } catch (_: IllegalArgumentException) { invalid("Invalid file chunk") }
+        val next = fileIO { uploads.append(id, offset.toLong(), bytes) }
+        return ok(buildJsonObject { put("next_offset", next) })
+    }
+
+    private fun <T> fileIO(block: () -> T): T = try { block() }
+        catch (_: IOException) { throw ApiError(409, "file_unavailable", "The file could not be read or stored on the phone") }
+
     private fun body(req: HttpRequest, allowed: Set<String>): JsonObject {
         if (req.header("content-type")?.substringBefore(';')?.trim()?.lowercase() != "application/json")
             throw ApiError(415, "unsupported_media_type", "Content-Type must be application/json")
@@ -163,6 +222,8 @@ class RemoteTaskApi(
     companion object {
         const val ROOT = "/api/v1"
         private val ID = Regex("[A-Za-z0-9_-]+")
+        private val UPLOAD = Regex("$ROOT/uploads(?:/([A-Za-z0-9_-]+)(/discard)?)?")
+        private val RESULT = Regex("$ROOT/tasks/([A-Za-z0-9_-]+)/files/([A-Za-z0-9_-]+)")
         fun error(status: Int, code: String, message: String, headers: Map<String, String> = emptyMap()) =
             HttpResponse.json(status, buildJsonObject { putJsonObject("error") {
                 put("code", code); put("message", message)

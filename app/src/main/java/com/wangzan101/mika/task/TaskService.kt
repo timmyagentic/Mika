@@ -392,7 +392,7 @@ class TaskService : Service() {
                 }
             }.onFailure { Log.w(TAG, "result notification failed", it) }
             if (delivered) center.markDelivered(run)
-            run.mcpExternalId?.let { (application as com.wangzan101.mika.MikaApp).remoteTasks.ended(it, end, run.steers.value) }
+            run.mcpExternalId?.let { (application as com.wangzan101.mika.MikaApp).remoteTasks.ended(it, end, run.steers.value, files = run.sharedFiles.value) }
             onRunEnded(run, store)
         }
     }
@@ -467,7 +467,7 @@ class TaskService : Service() {
         run.handoffUnconsumed(cancelled = true)
         run.end(TaskState.Cancelled)
         recordTurn(ConversationStore.shared(this), run.conversationId, run.goal, TaskState.Cancelled, null)
-        run.mcpExternalId?.let { (application as com.wangzan101.mika.MikaApp).remoteTasks.ended(it, TaskState.Cancelled, run.steers.value) }
+        run.mcpExternalId?.let { (application as com.wangzan101.mika.MikaApp).remoteTasks.ended(it, TaskState.Cancelled, run.steers.value, files = run.sharedFiles.value) }
         publishRuns()
         center.queued().forEachIndexed { i, q -> q.queue(i + 1) }
     }
@@ -746,7 +746,7 @@ class TaskService : Service() {
             // 标中断后当场善后(定时窗口、补送、告知、写进对话):进程还在,不等下次启动;用 App 级作用域,服务没了也做完
             center.store.interruptUnfinished()
             val app = application as com.wangzan101.mika.MikaApp
-            center.runs().forEach { r -> r.mcpExternalId?.let { app.remoteTasks.ended(it, TaskState.Failed(tr(R.string.task_interrupted), FailKind.Environment), r.steers.value) } }
+            center.runs().forEach { r -> r.mcpExternalId?.let { app.remoteTasks.ended(it, TaskState.Failed(tr(R.string.task_interrupted), FailKind.Environment), r.steers.value, files = r.sharedFiles.value) } }
             (application as com.wangzan101.mika.MikaApp).runRecovery.settleInterrupted()
             taskState._state.value = TaskState.Failed(tr(R.string.task_interrupted), FailKind.Environment)
             taskState._runs.value = emptyList()

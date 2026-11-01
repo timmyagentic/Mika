@@ -18,9 +18,9 @@ from test_mika_cli import api, DISCOVERY, SCRIPT, SNAPSHOT, TOKEN
 
 
 @contextmanager
-def desk(*args, env=None):
+def desk(*args, env=None, script=SCRIPT):
     # Isolated mode, as an agent may run the copied Skill script, must still find the desk files.
-    with subprocess.Popen([sys.executable, "-I", str(SCRIPT), "ui", "--no-open", *args], stdout=subprocess.PIPE,
+    with subprocess.Popen([sys.executable, "-I", str(script), "ui", "--no-open", *args], stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, text=True, env=env) as proc:
         try:
             url = urlsplit(proc.stdout.readline().strip())

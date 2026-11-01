@@ -377,6 +377,20 @@ dd { margin: 0; }
 .composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .compose-context { display: flex; align-items: center; gap: 6px; color: var(--muted); min-width: 0; font-size: 12px; }
 .compose-context .ico { width: 13px; height: 13px; }
+.file-tray, .result-files { display: flex; flex-wrap: wrap; gap: 6px; }
+.file-tray:not(:empty) { padding-bottom: 8px; }
+.result-files:not(:empty) { margin-block: 8px; }
+.file-chip, .result-files button, .file-action {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0;
+}
+.file-chip, .result-files button {
+  border: 1px solid var(--line); border-radius: 7px; padding: 4px 7px; font-size: 12px;
+}
+.file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip small, .result-files small { color: var(--muted); flex: none; }
+.file-chip .ico, .result-files .ico, .file-action .ico { width: 16px; height: 16px; flex: none; }
+.file-chip button { display: grid; place-items: center; min-width: 24px; min-height: 24px; }
+.file-action { color: var(--ink); padding: 5px; }
 #submit-goal {
   display: grid;
   place-items: center;

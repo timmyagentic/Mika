@@ -232,7 +232,7 @@ class ConversationStore(private val dir: File) {
     private fun fileOf(e: kotlinx.serialization.json.JsonElement): SharedFile? {
         val o = e as? JsonObject ?: return null
         fun field(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull
-        return SharedFile(field("name") ?: return null, field("size")?.toLongOrNull() ?: 0, field("savedAs") ?: return null, field("uri") ?: return null)
+        return SharedFile(field("name") ?: return null, field("size")?.toLongOrNull() ?: 0, field("savedAs") ?: return null, field("uri") ?: return null, field("sha256"))
     }
 
     @Synchronized
@@ -292,7 +292,10 @@ class ConversationStore(private val dir: File) {
                     buildJsonObject { put("text", n.text); n.draftId?.let { d -> put("draftId", d) }; n.suspended?.let { x -> put("suspended", x) } }
                 }))
                 if (fs.isNotEmpty()) put("files", JsonArray(fs.map { f ->
-                    buildJsonObject { put("name", f.name); put("size", f.size); put("savedAs", f.savedAs); put("uri", f.uri) }
+                    buildJsonObject {
+                        put("name", f.name); put("size", f.size); put("savedAs", f.savedAs); put("uri", f.uri)
+                        f.sha256?.let { put("sha256", it) }
+                    }
                 }))
             }
         })

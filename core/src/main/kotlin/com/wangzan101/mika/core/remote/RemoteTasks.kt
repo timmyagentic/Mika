@@ -1,6 +1,7 @@
 package com.wangzan101.mika.core.remote
 
 import com.wangzan101.mika.core.agent.TaskState
+import com.wangzan101.mika.core.agent.AttachmentLines
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
@@ -15,6 +16,7 @@ data class RemoteTask(
     val createdAtMs: Long,
     val state: TaskState?,
     val steers: List<RemoteSteer> = emptyList(),
+    val files: List<TaskFile> = emptyList(),
 )
 
 /** 只报告电脑追加的消息;joined 表示进入当前任务上下文,不是执行成功。 */
@@ -30,6 +32,7 @@ sealed interface StartOutcome {
  * 只认电脑交来的任务(按 [RemoteTask.id]),手机上发起的任务看不到也动不了。
  */
 interface RemoteTasks {
+    val fileAccess: RemoteTaskFiles? get() = null
     fun start(goal: String, conversation: String?): StartOutcome
     fun get(id: String): RemoteTask?
     /** 新的在前。 */
@@ -81,6 +84,13 @@ object RemoteStatus {
         put("status", status)
         put("conversation", t.conversation)
         put("goal", t.goal)
+        val input = AttachmentLines.parse(t.goal)
+        if (input.files.isNotEmpty()) {
+            put("request_text", input.words)
+            putJsonArray("input_files") { input.files.forEach { (path, size) ->
+                add(buildJsonObject { put("name", path.substringAfterLast('/')); put("size_label", size) })
+            } }
+        }
         put("started_at_ms", t.createdAtMs)
         when (s) {
             is TaskState.Running -> {
@@ -119,6 +129,12 @@ object RemoteStatus {
                 put("failure_kind", s.kind.name.lowercase())
             }
             null, TaskState.Idle, TaskState.Cancelled -> Unit
+        }
+        if (t.files.isNotEmpty()) putJsonArray("files") {
+            t.files.forEach { file -> add(buildJsonObject {
+                put("id", file.id); put("name", file.name); put("size", file.size)
+                file.sha256?.let { put("sha256", it) }
+            }) }
         }
         put("answerable", s is TaskState.WaitingInput)
         if (t.steers.isNotEmpty()) putJsonArray("steers") {
