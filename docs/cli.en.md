@@ -98,7 +98,7 @@ mika task status TASK_ID --json
 mika task download TASK_ID FILE_ID --output checked.csv
 ```
 
-Use the file ID, name, size and export digest in the task’s `files` field. The download verifies the exported bytes, requires a new destination file and removes incomplete output on failure. Files can be downloaded while the phone retains the remote task ID. The original export remains in the phone’s Downloads if a restart clears the task index.
+Use the file ID, name, size and export digest in the task’s `files` field. The CLI stages the download in the destination directory and creates the requested file only after verification. An existing file is preserved. On macOS and Linux volumes without hard links, such as exFAT, it copies the verified file into an exclusively created destination. Check that file if the final local write is interrupted. Files can be downloaded while the phone retains the remote task ID. The original export remains in the phone’s Downloads if a restart clears the task index.
 
 ## Browser task desk
 

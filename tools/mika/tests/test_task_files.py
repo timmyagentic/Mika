@@ -1,12 +1,15 @@
 """File transfer contract at the desktop entry points. No phone or model credentials needed."""
 import base64
+import subprocess
+import sys
+import threading
 import hashlib
 import tempfile
 import unittest
 from pathlib import Path
 
 import test_mika_cli
-from test_mika_cli import DISCOVERY, SNAPSHOT, TOKEN, api
+from test_mika_cli import DISCOVERY, SCRIPT, SNAPSHOT, TOKEN, api
 from test_mika_desk import desk, request
 
 
@@ -69,6 +72,42 @@ class TaskFilesTest(unittest.TestCase):
             self.assertNotEqual(0, rc.returncode)
             self.assertEqual("file_changed", error["error"]["code"])
             self.assertFalse(out.exists())
+
+    def test_output_name_is_reserved_for_verified_bytes(self):
+        for action in ("terminate", "create_during_download"):
+            with self.subTest(action=action):
+                second = threading.Event()
+                resume = threading.Event()
+
+                def wait_on_second_chunk(method, path, body):
+                    if path.endswith("offset=131072"):
+                        second.set()
+                        resume.wait(10)
+                    return self.respond(method, path, body)
+
+                with api(wait_on_second_chunk) as phone:
+                    out = self.directory / action
+                    with subprocess.Popen([sys.executable, str(SCRIPT), "--url",
+                            f"http://127.0.0.1:{phone.server_port}", "--token-file", str(self.token_file),
+                            "task", "download", "t1", "export", "--output", str(out)],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+                        try:
+                            self.assertTrue(second.wait(5))
+                            self.assertFalse(out.exists(), "unverified bytes are visible at the final path")
+                            if action == "terminate":
+                                process.terminate()
+                                process.wait(timeout=5)
+                                self.assertFalse(out.exists())
+                            else:
+                                out.write_bytes(b"created by another process")
+                                resume.set()
+                                process.communicate(timeout=10)
+                                self.assertNotEqual(0, process.returncode)
+                                self.assertEqual(b"created by another process", out.read_bytes())
+                        finally:
+                            resume.set()
+                            if process.poll() is None:
+                                process.kill()
 
     def test_changed_file_of_the_same_size_is_not_delivered(self):
         def changed(method, path, body):

@@ -5,6 +5,7 @@ import argparse
 import base64
 import binascii
 import contextlib
+import errno
 import http.client
 import hashlib
 import json
@@ -12,8 +13,10 @@ import math
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import urllib.error
 import urllib.parse
@@ -438,22 +441,44 @@ def run_with_files(client, args, info):
                 discard_upload(client, upload_id)
 
 
+def publish_download(staged, target):
+    # Both paths are on the same filesystem. Publishing must fail if another writer won the name.
+    if os.name == "nt":
+        os.rename(staged, target)  # Windows rename never replaces an existing name.
+        return
+    try:
+        os.link(staged, target)
+    except OSError as exc:
+        if exc.errno not in {errno.EPERM, errno.ENOTSUP, errno.ENOSYS}:
+            raise
+        # exFAT and some network shares have no hard links. Only create a destination
+        # after verification, with exclusive creation even if it appeared mid-transfer.
+        with staged.open("rb") as source, target.open("xb") as output:
+            try:
+                shutil.copyfileobj(source, output, length=1024 * 1024)
+                output.flush()
+            except OSError:
+                raise CliError("output", "The verified file could not be fully written to this volume. Check the output file.") from None
+
+
 def save_result(client, task_id, file_id, output):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", file_id):
         raise CliError("arguments", "Use a file ID returned by task status.")
     item = result_file(client, task_id, file_id)
     target = Path(output)
     try:
-        stream = target.open("xb")
-        try:
-            with stream:
+        if os.path.lexists(target):
+            raise FileExistsError
+        with tempfile.TemporaryDirectory(prefix=".mika-download-", dir=target.parent) as directory:
+            staged = Path(directory) / "file"
+            with staged.open("xb") as stream:
                 for chunk in file_chunks(client, task_id, item):
                     stream.write(chunk)
-        except BaseException:
-            target.unlink(missing_ok=True)
-            raise
-    except OSError:
-        raise CliError("output", "Choose a new output file in a writable directory.") from None
+            publish_download(staged, target)
+    except FileExistsError:
+        raise CliError("output", "The output file already exists. Choose a new file name.") from None
+    except OSError as exc:
+        raise CliError("output", "Could not save the result file: " + str(exc.strerror or exc)) from None
     return {"file": str(target), "size": item["size"], "task_id": task_id}
 
 
