@@ -826,10 +826,7 @@ class ProviderStore(
         verifiedModels = o["verifiedModels"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty(),
         contextSettings = (o["contextSettings"] as? JsonObject).orEmpty().mapNotNull { (model, raw) ->
             val entry = raw as? JsonObject ?: return@mapNotNull null
-            // 兼容试用过旧草稿的配置，百分比恢复为自动。
-            val old = (entry["threshold"] as? JsonObject)?.takeIf { it["mode"] == JsonPrimitive("tokens") }
-            val settings = ModelContextSettings(entry.positiveInt("windowTokens"),
-                entry.positiveInt("triggerTokens") ?: old?.positiveInt("value"))
+            val settings = ModelContextSettings(entry.positiveInt("windowTokens"), entry.positiveInt("triggerTokens"))
             if (settings == ModelContextSettings()) null else model to settings
         }.toMap(),
         models = o["models"]?.jsonArray?.map { e ->

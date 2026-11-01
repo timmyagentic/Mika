@@ -513,7 +513,7 @@ private fun ModelContextControl(ui: ModelSetupUi, role: ModelRole,
     val modelWindow = cfg.capabilities.contextTokens
     val limits = settings.limits(modelWindow)
     val badWindow = window.isNotBlank() && settings.windowTokens == null
-    val badTrigger = trigger.isNotBlank() && (settings.triggerTokens == null || (!badWindow && !settings.validFor(modelWindow)))
+    val badTrigger = trigger.isNotBlank() && (settings.triggerTokens == null || (!badWindow && settings.triggerTokens != limits.trigger))
     val keyboard = KeyboardOptions(keyboardType = KeyboardType.Number)
     AlertDialog(
         onDismissRequest = { open = false },

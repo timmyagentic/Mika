@@ -107,14 +107,14 @@ class ProviderStoreTest {
         assertEquals(24_000, saved.limits(s.modelFor(ModelRole.Main)!!.capabilities.contextTokens).trigger)
     }
 
-    @Test fun draftSettingsRetainAbsoluteTokensAndWindowsWhileMissingOrInvalidFieldsUseAuto() {
+    @Test fun missingContextFieldsUseAutoAndMalformedEntriesDoNotDiscardOtherModels() {
         val s = store()
         val p = connected(s)
         s.use(ModelRole.Main, p.id, "m1", none)
         val file = File(tmp.root, "providers.json")
         val original = file.readText()
         assertNull(s.modelFor(ModelRole.Main)!!.capabilities.compactionTriggerTokens)
-        val entries = """{"m1":{"windowTokens":1000000,"threshold":{"mode":"percent","value":80}},"m2":{"threshold":{"mode":"tokens","value":600000}},"bad":{"triggerTokens":{}}}"""
+        val entries = """{"m1":{"windowTokens":1000000},"m2":{"triggerTokens":600000},"bad":{"triggerTokens":{}}}"""
         file.writeText(original.replace("\"services\":[{", "\"services\":[{\"contextSettings\":$entries,"))
         assertEquals(mapOf("m1" to ModelContextSettings(1_000_000), "m2" to ModelContextSettings(triggerTokens = 600_000)),
             store().provider(p.id)!!.contextSettings)
