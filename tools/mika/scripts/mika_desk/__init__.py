@@ -30,7 +30,12 @@ def command(data):
     if not isinstance(data, dict) or not all(isinstance(value, str) for value in data.values()):
         raise ValueError
     action = data.get("action")
-    if action not in FIELDS or data.keys() != FIELDS[action] | {"action"}:
+    if action not in FIELDS:
+        raise ValueError
+    expected = FIELDS[action] | {"action"}
+    if action == "run" and "conversation" in data:
+        expected.add("conversation")
+    if data.keys() != expected:
         raise ValueError
     if "task_id" in data and not re.fullmatch(r"[A-Za-z0-9_-]+", data["task_id"]):
         raise ValueError
@@ -92,8 +97,8 @@ class Desk(ThreadingHTTPServer):
                         "transport": transport["transport"], "server_version": info.get("server_version"),
                         "capabilities": info["capabilities"], "device": device, "tasks": tasks}
 
-        args = argparse.Namespace(**{**vars(self.args), **data, "command": "task",
-                                     "goal_file": None, "text_file": None, "conversation": None})
+        args = argparse.Namespace(**{**vars(self.args), "conversation": None, **data, "command": "task",
+                                     "goal_file": None, "text_file": None})
         return execute(args, sensitive)
 
 

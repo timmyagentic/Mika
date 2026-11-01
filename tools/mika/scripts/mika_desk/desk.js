@@ -1,497 +1,1096 @@
 "use strict";
 
-const $ = (id) => document.getElementById(id);
-
-// Each entry is [Simplified Chinese, English]. Chinese browsers get Chinese; every other language gets English.
 const STRINGS = {
-  title: ["电脑任务台 · Mika", "Task desk · Mika"],
-  workspace: ["个人工作区", "Personal workspace"],
-  heading: ["电脑任务台", "Task desk"],
-  intro: ["把任务交给手机，查看进展，处理需要你的问题。", "Hand tasks to your phone, follow their progress and answer its questions."],
-  autoUpdate: ["自动更新", "Updates automatically"],
-  refreshNow: ["立即更新", "Update now"],
-  connectingPhone: ["正在连接手机", "Connecting to the phone"],
+  title: ["Mika · 会话桌面", "Mika · Conversation desk"],
+  heading: ["会话桌面", "Conversation desk"],
+  displayLanguage: ["界面语言", "Language"],
+  browserLanguage: ["跟随浏览器", "Browser default"],
+  newChat: ["新对话", "New chat"],
+  recentChats: ["最近会话", "Recent conversations"],
+  conversations: ["会话导航", "Conversations"],
+  currentChat: ["当前对话", "Current conversation"],
+  openNav: ["打开会话导航", "Open conversations"],
+  closeNav: ["关闭会话导航", "Close navigation"],
+  myPhone: ["我的手机", "My phone"],
+  networkPhone: ["局域网手机", "Network phone"],
+  adbPhone: ["ADB 手机", "ADB phone"],
   connectionDetails: ["连接详情", "Connection details"],
-  deviceForSession: ["本次使用的设备", "Phone for this session"],
-  chooseDevice: ["选择设备", "Choose phone"],
-  deviceStatus: ["设备状态", "Phone status"],
-  connectedPhone: ["连接的手机", "Phone"],
-  waitingToRead: ["等待读取", "Not read yet"],
+  connectedPhone: ["连接的手机", "Connected phone"],
   taskService: ["任务服务", "Task service"],
-  connecting: ["正在连接", "Connecting"],
   phoneState: ["手机状态", "Phone state"],
+  chooseDevice: ["选择设备", "Choose a phone"],
+  usePhone: ["使用此设备", "Use this phone"],
+  refreshNow: ["立即更新", "Update now"],
+  updated: ["更新于 {time}", "Updated {time}"],
+  autoUpdate: ["自动更新", "Updates automatically"],
+  connecting: ["连接中", "Connecting"],
+  connected: ["已连接", "Connected"],
+  online: ["在线", "Online"],
+  offline: ["未连接", "Offline"],
+  choosing: ["待选机", "Choose phone"],
+  unlocked: ["已解锁", "Unlocked"],
+  locked: ["已锁屏", "Locked"],
+  screenOff: ["未亮屏", "Screen off"],
   unknown: ["未知", "Unknown"],
-  modelSetup: ["模型配置", "Model setup"],
-  unverified: ["未验证", "Not verified"],
-  newTask: ["新建任务", "New task"],
-  goalPlaceholder: ["描述任务，Enter 发送，Shift+Enter 换行", "Describe the task. Enter sends, Shift+Enter adds a line"],
-  submitGoal: ["交给手机", "Send to phone"],
-  recentTasks: ["近期任务", "Recent tasks"],
-  recentHint: ["显示最近 50 个远程任务，需要你处理的在前。", "The latest 50 remote tasks; ones that need you come first."],
-  taskDetail: ["任务详情", "Task details"],
-  detailEmpty: ["选择一件任务，查看手机返回的进度或结果。", "Pick a task to see the progress or result the phone reports."],
-  taskGoal: ["任务目标", "Goal"],
-  taskId: ["任务编号", "Task ID"],
-  cancelTask: ["取消任务", "Cancel task"],
+  helperOnline: ["助手在线", "Helper online"],
+  helperOffline: ["助手离线", "Helper offline"],
+  recentHint: ["按对话归集最近 50 个远程任务", "Grouped from the latest 50 remote tasks"],
+  noChats: ["还没有近期会话", "No recent conversations"],
+  newHeading: ["想让手机帮你做什么？", "What can your phone do for you?"],
+  newHint: ["把要做的事告诉 Mika。它的进展、追问和答复会出现在这里。", "Tell Mika what you want done. Its updates, questions, and replies will appear here."],
+  connectHint: ["连接手机后就可以派任务。", "Connect a phone to send a task."],
+  loading: ["正在读取会话…", "Reading conversations…"],
+  unavailableChat: ["这段会话不在近期任务中", "This conversation is no longer available"],
+  unavailableHint: ["从左侧选择其他会话，或新建对话。", "Choose another conversation or start a new one."],
+  remoteTask: ["远程任务", "Remote task"],
+  rounds: ["{n} 轮", "{n} turns"],
+  round: ["第 {n} 轮", "Turn {n}"],
+  attention: ["待回答", "Answer"],
+  handoff: ["接管", "On phone"],
+  active: ["进行中", "Active"],
   starting: ["正在启动", "Starting"],
   running: ["进行中", "Running"],
   paused: ["已暂停", "Paused"],
   waiting_for_answer: ["等你回答", "Needs your answer"],
-  waiting_on_phone: ["需要手机接管", "Needs you on the phone"],
+  waiting_on_phone: ["需手机接管", "Needs you on the phone"],
   done: ["已返回结果", "Result returned"],
   failed: ["未能完成", "Not completed"],
   cancelled: ["已取消", "Cancelled"],
-  msgStarting: ["任务已交给手机，正在等待启动。", "The phone has the task and is about to start."],
+  msgStarting: ["任务已交给手机，正在等待启动。", "The phone accepted the task and is about to start."],
   msgRunning: ["Mika 正在执行任务。", "Mika is working on the task."],
   msgPaused: ["正在等待手机继续执行。", "Waiting for the phone to continue."],
+  waitingCondition: ["等待条件", "Waiting for"],
   msgQuestion: ["Mika 正在等你回答。", "Mika is waiting for your answer."],
   msgConfirm: ["请在手机上确认这一步。", "Confirm this step on the phone."],
   msgHandoff: ["请在手机上接管这一步。", "Take over this step on the phone."],
-  msgNoAnswer: ["手机未附上答复正文。", "The phone returned no answer text."],
-  msgNoReason: ["手机未附上失败原因。", "The phone gave no reason for the failure."],
-  msgCancelled: ["任务已停止。", "The task stopped."],
-  emptyOnline: ["最近还没有远程任务。可以从上方开始第一件事。", "No remote tasks yet. Start one above."],
-  emptyOffline: ["连接手机后，在这里查看近期任务。", "Recent tasks appear here once the phone is connected."],
-  handoffGuide: ["打开手机上的 Mika 通知处理，完成后这里会自动更新。", "Open Mika's notification on the phone; this page updates when you are done."],
-  remoteTask: ["远程任务", "Remote task"],
-  stepN: ["第 {n} 步", "Step {n}"],
-  waitingFor: ["等待条件", "Waiting for"],
+  msgNoAnswer: ["手机没有附上答复正文。", "The phone returned no answer text."],
+  msgNoReason: ["手机没有附上失败原因。", "The phone gave no failure reason."],
+  msgCancelled: ["这轮任务已停止。", "This turn was stopped."],
+  handoffGuide: ["打开手机上的 Mika 通知处理，完成后这里会自动更新。", "Open Mika’s notification on the phone; this conversation updates automatically."],
   verified: ["已核实", "Verified"],
   verifyFailed: ["核实未通过", "Verification failed"],
-  verifyUnknown: ["核实状态未知", "Verification unknown"],
+  verifyUnknown: ["未报告核实结果", "Verification not reported"],
   verification: ["核实情况", "Verification"],
-  steerReceived: ["已收到", "Received"],
-  steerJoined: ["已加入任务上下文", "Added to the task"],
-  steerNotApplied: ["未被采用", "Not used"],
-  steers: ["追加要求", "Added instructions"],
-  answerLabel: ["回答追问", "Answer the question"],
-  steerLabel: ["追加要求", "Add instructions"],
-  answerSend: ["发送回答", "Send answer"],
-  steerSend: ["追加到此任务", "Add to this task"],
-  answerPlaceholder: ["输入你的回答…", "Type your answer…"],
-  steerPlaceholder: ["补充本次任务的要求…", "Add requirements for this task…"],
-  errSession: ["专用链接已失效，请打开当前任务台的链接。", "This private link is no longer valid. Open the link the running desk printed."],
-  errDeviceSelection: ["请连接手机，或从已在线的设备中选择一台。", "Connect a phone, or choose one of the online phones."],
-  errDevicePinned: ["本次任务台已选定手机，即将重新读取。", "This desk already uses another phone; reading it again."],
-  errAdb: ["无法读取指定手机。请检查 ADB 连接，并确认已对这台手机运行 mika connect。", "Cannot read the selected phone. Check the ADB connection and run mika connect for this phone."],
-  errAdbUnavailable: ["找不到 adb，请先安装 Android platform-tools。", "adb was not found. Install Android platform-tools first."],
-  errDeviceOffline: ["这台手机已离线，重新连接后会自动更新。", "The phone is offline. The desk updates once it reconnects."],
-  errStale: ["手机已重启。请重新对这台手机运行 mika connect，任务台会自动重连。", "The phone restarted. Run mika connect for it again; the desk reconnects by itself."],
-  errConnection: ["未能读取手机回复，任务台会自动重试连接。", "No reply from the phone. The desk keeps retrying."],
-  errDeskOffline: ["无法读取本机任务台，请检查本机服务是否在运行。", "Cannot reach the local desk. Check that mika ui is still running."],
-  errOutcomeUnknown: ["操作可能已到达手机。请核对任务列表，再决定是否重新提交。", "The request may have reached the phone. Check the task list before sending it again."],
+  expandGoal: ["展开要求", "Show full request"],
+  collapseGoal: ["收起要求", "Collapse request"],
+  viewProcess: ["查看过程", "View process"],
+  closeProcess: ["收起过程", "Close process"],
+  process: ["执行过程", "Execution process"],
+  copyResult: ["复制结果", "Copy result"],
+  copied: ["已复制结果。", "Result copied."],
+  copyFailed: ["未能复制，可以直接选择答复文字。", "Could not copy. You can select the reply text instead."],
+  cancelTask: ["取消本轮", "Cancel turn"],
+  confirmCancel: ["向手机发送这轮任务的取消请求？", "Ask the phone to cancel this turn?"],
+  targetTurn: ["处理这轮", "Respond to this turn"],
+  message: ["给 Mika 的消息", "Message to Mika"],
+  newPlaceholder: ["把任务交给手机…", "Give your phone a task…"],
+  followPlaceholder: ["接着这段对话说…", "Continue this conversation…"],
+  askPlaceholder: ["回答 Mika 的问题…", "Answer Mika’s question…"],
+  steerPlaceholder: ["补充这轮任务的要求…", "Add instructions to this turn…"],
+  onPhonePlaceholder: ["请在手机上完成这一步…", "Complete this step on the phone…"],
+  waitingPlaceholder: ["等待手机继续…", "Waiting for the phone…"],
+  noConversation: ["要发送新的要求，请选「新对话」。", "Start a new chat to send another request."],
+  continueChat: ["继续此对话", "Continue this conversation"],
+  reply: ["回答追问", "Answer question"],
+  steer: ["追加要求", "Add instructions"],
+  submit: ["交给手机", "Send to phone"],
+  sendAnswer: ["发送回答", "Send answer"],
+  sendSteer: ["追加到本轮", "Add to this turn"],
+  sendContinue: ["在此对话继续", "Continue in this conversation"],
+  startAt: ["开始时间", "Started"],
+  phoneReport: ["手机当前记录", "Latest phone report"],
+  observed: ["本页看到的进展", "Progress seen in this tab"],
+  noSteps: ["手机未提供这轮的历史步骤。", "The phone did not provide past steps for this turn."],
+  observingNow: ["后续收到的步骤和状态变化会显示在这里。", "New steps and state changes will appear here as they arrive."],
+  recentChanges: ["显示最近 {n} 次变化。", "Showing the last {n} changes."],
+  stepN: ["第 {n} 步", "Step {n}"],
+  original: ["任务信息", "Task information"],
+  taskGoal: ["原始要求", "Original request"],
+  taskId: ["任务编号", "Task ID"],
+  observationText: ["手机返回", "Phone update"],
+  steerRecords: ["追加要求", "Added instructions"],
+  received: ["手机已收到", "Received by the phone"],
+  joined: ["已加入任务上下文", "Added to the task context"],
+  not_applied: ["未被采用", "Not applied"],
+  questionFromPhone: ["Mika 的追问", "Mika asked"],
+  yourAnswer: ["你的回答", "Your answer"],
+  yourSteer: ["你的追加要求", "Your instructions"],
+  cancelSent: ["已送出取消请求，以手机返回的状态为准。", "Cancellation requested. The phone will report the final state."],
+  notAccepted: ["手机未接受这次操作，请查看当前状态。", "The phone did not accept this request. Check the current state."],
+  errSession: ["当前任务台会话已失效，请重新打开任务台链接。", "This desk session expired. Reopen the current desk link."],
+  errDeviceSelection: ["请连接手机，或从在线设备中选择一台。", "Connect a phone or choose an online device."],
+  errDevicePinned: ["这个任务台已选择另一台手机，请重新读取。", "This desk already uses another phone. Refresh its state."],
+  errAdb: ["无法读取所选手机，请检查 ADB 连接。", "Cannot read the selected phone. Check its ADB connection."],
+  errAdbUnavailable: ["找不到 adb，请先安装 Android platform-tools。", "adb is not available. Install Android platform-tools."],
+  errDeviceOffline: ["这台手机已离线，重连后会自动更新。", "This phone is offline. Updates resume after reconnection."],
+  errStale: ["手机已重启，请重新运行 mika connect。", "The phone restarted. Run mika connect again."],
+  errConnection: ["未能读取手机回复，任务台会自动重连。", "No reply from the phone. The desk will reconnect."],
+  errDeskOffline: ["无法读取本机任务台，请检查它是否仍在运行。", "Cannot reach the local desk. Check that it is running."],
+  errOutcomeUnknown: ["操作可能已到达手机。请核对会话，再决定是否重新提交。", "The request may have reached the phone. Check the conversation before sending again."],
+  errConflict: ["这轮的状态已改变，正在读取手机的最新状态。", "This turn changed. Reading its latest state."],
   errFallback: ["暂时无法更新任务。", "Cannot update tasks right now."],
-  keptList: ["列表保留上次读取的内容。", "The list shows the last successful read."],
-  connected: ["已连接", "Connected"],
-  unlocked: ["已解锁", "Unlocked"],
-  locked: ["已锁屏", "Locked"],
-  screenOff: ["未亮屏", "Screen off"],
-  screenUnknown: ["屏幕状态未知", "Screen state unknown"],
-  helperOnline: ["助手在线", "Helper online"],
-  helperOffline: ["助手离线", "Helper offline"],
-  phoneConnected: ["手机已连接", "Phone connected"],
-  awaitingChoice: ["等待选机", "Waiting for a choice"],
-  awaitingReconnect: ["等待重新连接", "Waiting to reconnect"],
-  rereading: ["正在重新读取手机状态", "Reading the phone again"],
-  pickPhone: ["请选择本次使用的手机", "Choose the phone for this session"],
-  waitPhone: ["等待手机重新连接", "Waiting for the phone to reconnect"],
-  toReread: ["待重新读取", "Waiting to read again"],
-  taskGone: ["手机已找不到上次选中的任务。进程重启后远程编号可能失效。", "The phone no longer knows the selected task. Remote task IDs can expire when Mika restarts."],
-  taskAccepted: ["手机已接收任务，后续进展会自动更新。", "The phone accepted the task. Progress updates here automatically."],
-  answerAccepted: ["手机已收到回答。", "The phone received your answer."],
-  steerAccepted: ["手机已收到追加要求，采用情况会自动更新。", "The phone received your instructions. Whether they are used updates here."],
-  notAccepted: ["手机未接受这次操作。", "The phone did not accept this request."],
-  confirmCancel: ["向手机发送此任务的取消请求？", "Ask the phone to cancel this task?"],
-  cancelSent: ["已送出取消请求，以手机返回的状态为准。", "Cancel request sent. The task's state on the phone is what counts."],
-  cancelRejected: ["手机未接受取消请求，请查看当前状态。", "The phone did not accept the cancel request. Check the current state."],
+  keptList: ["保留上次读取的会话。", "Showing the last successful read."],
+  taskGone: ["手机已找不到之前选中的任务。", "The phone no longer knows the previously selected task."],
 };
-const lang = (navigator.languages?.[0] || navigator.language || "").toLowerCase().startsWith("zh") ? 0 : 1;
+
+const $ = id => document.getElementById(id);
+const browserLanguage = navigator.languages?.[0] || navigator.language || "en";
+let lang;
 const t = (key, vars = {}) => STRINGS[key][lang].replace(/\{(\w+)\}/g, (_, name) => vars[name]);
-document.documentElement.lang = lang === 0 ? "zh-CN" : "en";
-document.title = t("title");
-for (const node of document.querySelectorAll("[data-i18n]")) node.textContent = t(node.dataset.i18n);
-for (const node of document.querySelectorAll("[data-i18n-placeholder]")) node.placeholder = t(node.dataset.i18nPlaceholder);
-for (const node of document.querySelectorAll("[data-i18n-label]")) node.setAttribute("aria-label", t(node.dataset.i18nLabel));
+function applyLanguage() {
+  const pref = localStorage.getItem("mikaDeskLanguage");
+  $("language").value = pref === "zh" || pref === "en" ? pref : "auto";
+  lang = (pref === "zh" || pref === "en" ? pref : browserLanguage).toLowerCase().startsWith("zh") ? 0 : 1;
+  document.documentElement.lang = lang ? "en" : "zh-CN";
+  document.title = t("title");
+  for (const node of document.querySelectorAll("[data-i18n]")) node.textContent = t(node.dataset.i18n);
+  for (const node of document.querySelectorAll("[data-i18n-label]"))
+    node.setAttribute("aria-label", t(node.dataset.i18nLabel));
+}
+applyLanguage();
 
 const tones = {
-  starting: "active", running: "active", paused: "", waiting_for_answer: "attention", waiting_on_phone: "attention",
-  done: "good", failed: "bad", cancelled: "",
+  starting: "active",
+  running: "active",
+  paused: "",
+  waiting_for_answer: "attention",
+  waiting_on_phone: "attention",
+  done: "",
+  failed: "bad",
+  cancelled: ""
 };
 const terminal = new Set(["done", "failed", "cancelled"]);
-// The session secret arrives once in the link's fragment and then lives only in this tab.
+const fresh = "@new";
+const isActive = task => !terminal.has(task.status);
+const urgency = task => (tones[task.status] === "attention" ? 0 : isActive(task) ? 1 : 2);
+const threadOf = task => (task.conversation ? "chat:" + task.conversation : "task:" + task.task_id);
+const date = ms =>
+  new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+const clock = ms =>
+  new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const byId = (items, id) => items?.find(task => task.task_id === id);
+const label = task =>
+  (task?.goal || "")
+    .trim()
+    .split(/[\r\n。！？!?；;]/, 1)[0]
+    .trim() || t("remoteTask");
+function groupTasks(tasks) {
+  const threads = new Map();
+  // API order is newest first (including ties); show turns oldest first inside each conversation.
+  for (const task of tasks) {
+    const key = threadOf(task);
+    if (!threads.has(key)) threads.set(key, { key, turns: [], primary: task });
+    const group = threads.get(key);
+    group.turns.push(task);
+    if (urgency(task) < urgency(group.primary)) group.primary = task;
+  }
+  const ordered = [...threads.values()].sort((a, b) => urgency(a.primary) - urgency(b.primary));
+  for (const thread of ordered) thread.turns.reverse();
+  return ordered;
+}
+
+// The private launch link is the only source of the browser session.
 const ticket = location.hash.slice(1) || sessionStorage.getItem("deskSession");
 if (location.hash) {
   sessionStorage.setItem("deskSession", ticket);
-  sessionStorage.removeItem("selectedTask");
+  for (const key of ["deskGroup", "selectedTask"]) sessionStorage.removeItem(key);
   history.replaceState(null, "", location.pathname);
 }
-let overview = null;
-let selectedId = sessionStorage.getItem("selectedTask");
-let selected = null;
-let online = false;
-let openedForConnectionProblem = false;
-let busy = false;
-let replyKey = "";
-const replyDrafts = new Map();
-let updateTimer;
-let observing = false;
-let revision = 0;
-let retryDelay = 0;
-let writeWarning = "";
+let overview = null,
+  groups = [],
+  groupKey = sessionStorage.getItem("deskGroup"),
+  anchorId = sessionStorage.getItem("selectedTask");
+let inspectId = null,
+  selectedObservation = null,
+  preferredTask = null,
+  online = false,
+  busy = false,
+  observing = false;
+let revision = 0,
+  updateTimer,
+  retryDelay = 0,
+  writeWarning = "",
+  autoDisclosure = false;
+const drafts = new Map(),
+  observed = new Map(),
+  exchanges = new Map(),
+  expandedGoals = new Set();
+let composerKey = "",
+  transcriptKey = "",
+  transcriptSignature = "",
+  navSignature = "",
+  processSignature = "";
+const group = () => groups.find(item => item.key === groupKey);
+function currentTask(g = group()) {
+  if (!g) return null;
+  const preferred = byId(g.turns, preferredTask);
+  return preferred && isActive(preferred) ? preferred : g.primary;
+}
+
+function rememberGroup(key, anchor) {
+  groupKey = key;
+  anchorId = anchor || null;
+  if (key) sessionStorage.setItem("deskGroup", key);
+  else sessionStorage.removeItem("deskGroup");
+  if (anchorId) sessionStorage.setItem("selectedTask", anchorId);
+  else sessionStorage.removeItem("selectedTask");
+}
+
+function chooseGroup(key) {
+  const g = groups.find(i => i.key === key);
+  preferredTask = null;
+  inspectId = null;
+  rememberGroup(key, g ? currentTask(g)?.task_id : null);
+  setNav(false);
+  invalidate();
+  render();
+  schedule();
+}
+
+function setNav(open) {
+  const closing = !open && $("workspace").classList.contains("nav-open");
+  $("workspace").classList.toggle("nav-open", open);
+  $("open-nav").setAttribute("aria-expanded", String(open));
+  if (open) ($("threads").querySelector('[aria-current="true"]') || $("new-chat")).focus();
+  if (closing) $("open-nav").focus();
+}
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function icon(name) {
+  const ns = "http://www.w3.org/2000/svg",
+    n = document.createElementNS(ns, "svg"),
+    use = document.createElementNS(ns, "use");
+  n.setAttribute("class", "ico");
+  n.setAttribute("aria-hidden", "true");
+  use.setAttribute("href", "#i-" + name);
+  n.append(use);
+  return n;
+}
+
+function commandButton(action, name, glyph, id) {
+  const b = el("button");
+  b.type = "button";
+  b.dataset.action = action;
+  if (id) b.dataset.task = id;
+  if (glyph) b.append(icon(glyph));
+  b.append(el("span", "", name));
+  return b;
+}
 
 function message(id, text) {
   if ($(id).textContent !== text) $(id).textContent = text;
   $(id).hidden = !text;
 }
 
-function element(tag, text, className) {
-  const node = document.createElement(tag);
-  node.textContent = text;
-  if (className) node.className = className;
+function taskMessage(task) {
+  switch (task.status) {
+    case "starting":
+      return t("msgStarting");
+    case "running":
+      return task.progress || t("msgRunning");
+    case "paused":
+      return task.progress || task.waiting_for || t("msgPaused");
+    case "waiting_for_answer":
+      return task.question || t("msgQuestion");
+    case "waiting_on_phone":
+      return (
+        task.message ||
+        task.progress ||
+        task.reason ||
+        t(task.waiting_for === "confirmation" ? "msgConfirm" : "msgHandoff")
+      );
+    case "done":
+      return task.answer || t("msgNoAnswer");
+    case "failed":
+      return task.reason || task.failure_kind || t("msgNoReason");
+    case "cancelled":
+      return t("msgCancelled");
+  }
+}
+
+function verification(task) {
+  return t(task.verified === true ? "verified" : task.verified === false ? "verifyFailed" : "verifyUnknown");
+}
+
+function noteProgress(tasks) {
+  const ids = new Set(tasks.map(task => task.task_id));
+  for (const map of [observed, exchanges, expandedGoals])
+    for (const id of map.keys()) if (!ids.has(id)) map.delete(id);
+  for (const task of tasks) {
+    // Finished snapshots are results, not an archive of earlier phone steps.
+    if (!isActive(task)) continue;
+    // Compare phone fields. Translating a fallback message does not change what the phone reported.
+    const { status, step, progress, question, message, reason, waiting_for } = task;
+    const item = { status, step, progress, question, message, reason, waiting_for };
+    let history = observed.get(task.task_id);
+    if (!history) {
+      history = { rows: [], trimmed: false };
+      observed.set(task.task_id, history);
+    }
+    const prev = history.rows.at(-1);
+    if (prev && Object.keys(item).every(field => prev[field] === item[field])) continue;
+    history.rows.push({ ...item, at: Date.now() });
+    if (history.rows.length > 60) {
+      history.rows.shift();
+      history.trimmed = true;
+    }
+  }
+}
+
+function renderNav() {
+  $("new-chat").setAttribute("aria-current", String(groupKey === fresh));
+  $("count").textContent = groups.length || "";
+  $("count").title = t("recentHint");
+  const rows = groups.map(g => {
+    const task = g.primary;
+    const shortLabel = { waiting_for_answer: "attention", waiting_on_phone: "handoff" }[task.status];
+    const marker = isActive(task) ? t(shortLabel || task.status) : "";
+    return { key: g.key, name: label(g.turns[0]), count: g.turns.length, marker };
+  });
+  const signature = JSON.stringify([rows, groupKey, busy, !!overview]);
+  if (signature === navSignature) return;
+  navSignature = signature;
+  const list = $("threads"),
+    focus = document.activeElement?.dataset.group;
+  list.replaceChildren();
+  if (!rows.length) list.append(el("p", "nav-empty", t(overview ? "noChats" : "loading")));
+  for (const row of rows) {
+    const b = el("button", "conversation");
+    b.type = "button";
+    b.dataset.group = row.key;
+    b.disabled = busy;
+    b.setAttribute("aria-current", String(row.key === groupKey));
+    b.title = row.name + " · " + t("rounds", { n: row.count });
+    b.append(icon("chat"), el("span", "name", row.name));
+    if (row.marker) b.append(el("small", "", row.marker));
+    list.append(b);
+    if (focus === row.key && !busy) b.focus({ preventScroll: true });
+  }
+}
+
+function scrollAnchor() {
+  const sc = $("scroll-thread"),
+    top = sc.getBoundingClientRect().top;
+  const child = Array.from($("transcript").children).find(
+    n => n.dataset.id && n.getBoundingClientRect().bottom > top
+  );
+  return {
+    end: sc.scrollHeight - sc.clientHeight - sc.scrollTop < 28,
+    id: child?.dataset.id,
+    offset: child ? child.getBoundingClientRect().top - top : 0
+  };
+}
+
+function restoreScroll(a, reset = false) {
+  const sc = $("scroll-thread");
+  if (reset || a.end) {
+    sc.scrollTop = sc.scrollHeight;
+    return;
+  }
+  const n = Array.from($("transcript").children).find(item => item.dataset.id === a.id);
+  if (n) sc.scrollTop += n.getBoundingClientRect().top - sc.getBoundingClientRect().top - a.offset;
+}
+
+function addTurn(task, index) {
+  const id = task.task_id,
+    node = el("article", "turn");
+  node.dataset.id = id;
+  const turn = t("round", { n: index + 1 });
+  node.setAttribute("aria-label", turn);
+  node.append(el("div", "turn-label", turn + (task.started_at_ms ? " · " + date(task.started_at_ms) : "")));
+  const request = el("div", "request"),
+    goal = task.goal || t("remoteTask"),
+    chars = Array.from(goal),
+    long = chars.length > 160;
+  request.append(el("p", "", long && !expandedGoals.has(id) ? chars.slice(0, 150).join("") + "…" : goal));
+  if (long) {
+    const b = commandButton("goal", t(expandedGoals.has(id) ? "collapseGoal" : "expandGoal"), "", id);
+    b.className = "expand-text";
+    b.setAttribute("aria-expanded", String(expandedGoals.has(id)));
+    request.append(b);
+  }
+  node.append(request);
+  for (const item of exchanges.get(id) || []) {
+    if (item.question) node.append(el("p", "guidance", item.question));
+    const msg = el("div", "request extra-input");
+    msg.append(el("small", "", t(item.mode === "answer" ? "yourAnswer" : "yourSteer")), el("p", "", item.text));
+    node.append(msg);
+  }
+  const author = el("div", "author"),
+    logo = el("img");
+  logo.src = "/mika-logo.png";
+  logo.width = 18;
+  logo.height = 18;
+  logo.alt = "";
+  const state = el("span", "state", t(task.status));
+  state.dataset.tone = tones[task.status];
+  author.append(logo, el("span", "", "Mika"), state);
+  if (task.status === "done") {
+    const mark = el("span", "verification", "· " + verification(task));
+    mark.dataset.tone = task.verified === true ? "good" : task.verified === false ? "warn" : "";
+    author.append(mark);
+  } else if (task.status === "running" && task.step != null)
+    author.append(el("span", "state", t("stepN", { n: task.step })));
+  const process = commandButton("process", t("viewProcess"), "process", id);
+  process.className = "turn-process";
+  process.setAttribute("aria-controls", "process-panel");
+  process.setAttribute("aria-expanded", String(inspectId === id));
+  node.append(author, process, el("p", "answer", taskMessage(task)));
+  if (task.status === "paused" && task.progress && task.waiting_for && task.progress !== task.waiting_for) {
+    node.append(el("p", "guidance", t("waitingCondition") + " · " + task.waiting_for));
+  }
+  if (task.status === "waiting_on_phone")
+    node.append(el("p", "guidance", [task.app, t("handoffGuide")].filter(Boolean).join(" · ")));
+  const tools = el("div", "turn-tools");
+  if (task.status === "done" && task.answer) tools.append(commandButton("copy", t("copyResult"), "copy", id));
+  if (isActive(task)) {
+    if (
+      currentTask()?.task_id !== id &&
+      (task.status === "waiting_for_answer" ||
+        (task.status === "running" && overview?.capabilities.includes("task_steer")))
+    )
+      tools.append(commandButton("target", t("targetTurn"), "reply", id));
+    const stop = commandButton("cancel", t("cancelTask"), "", id);
+    stop.disabled = busy || !online;
+    tools.append(stop);
+  }
+  if (tools.childElementCount) node.append(tools);
   return node;
 }
 
-function badge(node, status) {
-  node.textContent = status in tones ? t(status) : status;
-  node.dataset.tone = tones[status] || "";
+function renderTurns() {
+  const g = group(),
+    container = $("transcript");
+  const signature = JSON.stringify([
+    groupKey,
+    g?.turns || [],
+    !!overview,
+    online,
+    busy,
+    preferredTask,
+    [...expandedGoals],
+    g?.turns.map(task => exchanges.get(task.task_id)?.length || 0)
+  ]);
+  if (signature === transcriptSignature) return;
+  transcriptSignature = signature;
+  const reset = transcriptKey !== groupKey;
+  transcriptKey = groupKey;
+  const pos = scrollAnchor(),
+    focus = document.activeElement,
+    ft = focus?.dataset.task,
+    fa = focus?.dataset.action;
+  container.replaceChildren();
+  if (g) {
+    g.turns.forEach((task, index) => container.append(addTurn(task, index)));
+  } else {
+    const empty = el("div", "empty"),
+      missing = !!groupKey && groupKey !== fresh && !!overview;
+    empty.append(
+      el("h2", "", t(missing ? "unavailableChat" : overview ? "newHeading" : "loading")),
+      el("p", "", t(missing ? "unavailableHint" : online ? "newHint" : "connectHint"))
+    );
+    container.append(empty);
+  }
+  if (ft && fa)
+    Array.from(container.querySelectorAll("button"))
+      .find(b => b.dataset.task === ft && b.dataset.action === fa)
+      ?.focus({ preventScroll: true });
+  restoreScroll(pos, reset);
 }
 
-function choose(task) {
-  selected = task;
-  selectedId = task?.task_id || null;
-  if (selectedId) sessionStorage.setItem("selectedTask", selectedId);
-  else sessionStorage.removeItem("selectedTask");
+function processSection(name, child) {
+  const sec = el("section", "process-section");
+  sec.append(el("h3", "", name), child);
+  return sec;
 }
 
-function taskMessage(task) {
-  switch (task.status) {
-    case "starting": return t("msgStarting");
-    case "running": return task.progress || t("msgRunning");
-    case "paused": return task.progress || task.waiting_for || t("msgPaused");
-    case "waiting_for_answer": return task.question || t("msgQuestion");
-    case "waiting_on_phone":
-      return task.message || task.progress || task.reason ||
-        t(task.waiting_for === "confirmation" ? "msgConfirm" : "msgHandoff");
-    case "done": return task.answer || t("msgNoAnswer");
-    case "failed": return task.reason || task.failure_kind || t("msgNoReason");
-    case "cancelled": return t("msgCancelled");
+function renderProcess() {
+  const g = group(),
+    task = byId(g?.turns, inspectId);
+  if (inspectId && !task) inspectId = null;
+  const open = !!task;
+  $("workspace").classList.toggle("with-process", open);
+  $("process-panel").hidden = !open;
+  const toggle = $("toggle-process");
+  toggle.hidden = !g;
+  toggle.setAttribute("aria-expanded", String(open));
+  toggle.querySelector("span").textContent = t(open ? "closeProcess" : "viewProcess");
+  for (const b of $("transcript").querySelectorAll('[data-action="process"]'))
+    b.setAttribute("aria-expanded", String(open && b.dataset.task === inspectId));
+  if (!open) {
+    processSignature = "";
+    return;
+  }
+  const hist = observed.get(inspectId),
+    n = g.turns.indexOf(task) + 1;
+  const rows = hist?.rows || [],
+    focusedRow = rows.includes(selectedObservation) ? selectedObservation : rows.at(-1);
+  const sig = JSON.stringify([task, n, rows.length, rows.at(-1)?.at, hist?.trimmed, rows.indexOf(focusedRow)]);
+  if (sig === processSignature) return;
+  processSignature = sig;
+  const content = $("process-content"),
+    keepDetails = content.dataset.id === inspectId && content.querySelector("details")?.open;
+  const focusStep =
+    content.contains(document.activeElement) && document.activeElement.hasAttribute("data-observation");
+  if (content.dataset.id !== inspectId) content.scrollTop = 0;
+  content.dataset.id = inspectId;
+  content.replaceChildren();
+  content.append(el("p", "process-meta", t("round", { n }) + " · " + t(task.status)));
+  const timeline = el("div");
+  if (rows.length) {
+    const list = el("ol", "events");
+    for (const [i, row] of rows.entries()) {
+      const item = el("li"),
+        button = el("button", "event-choice");
+      button.type = "button";
+      button.dataset.observation = String(i);
+      button.setAttribute("aria-pressed", String(row === focusedRow));
+      const description = taskMessage(row);
+      button.append(
+        el("span", "event-step", row.step != null ? t("stepN", { n: row.step }) : t(row.status)),
+        el("span", "event-title", description)
+      );
+      button.title = description;
+      item.append(button);
+      list.append(item);
+    }
+    timeline.append(list);
+    if (hist.trimmed) timeline.append(el("p", "process-note", t("recentChanges", { n: hist.rows.length })));
+  } else timeline.append(el("p", "process-note", t(isActive(task) ? "observingNow" : "noSteps")));
+  content.append(processSection(t("observed"), timeline));
+  if (focusedRow) {
+    const reading = el("div", "event-reading");
+    reading.append(
+      el("div", "observed-at", clock(focusedRow.at) + " · " + t(focusedRow.status)),
+      el("p", "event-body", taskMessage(focusedRow))
+    );
+    content.append(processSection(t("observationText"), reading));
+  }
+  if (task.status === "failed" || task.status === "cancelled")
+    content.append(processSection(t("phoneReport"), el("p", "process-value", taskMessage(task))));
+  if (task.status === "done")
+    content.append(
+      processSection(
+        t("verification"),
+        el(
+          "p",
+          "process-value",
+          [verification(task), task.verification_note, ...(task.unconfirmed || [])].filter(Boolean).join("\n")
+        )
+      )
+    );
+  if (task.steers?.length)
+    content.append(
+      processSection(
+        t("steerRecords"),
+        el(
+          "p",
+          "process-value",
+          task.steers.map((s, i) => i + 1 + ". " + (STRINGS[s.state] ? t(s.state) : s.state)).join("\n")
+        )
+      )
+    );
+  if (task.started_at_ms)
+    content.append(processSection(t("startAt"), el("p", "process-value", date(task.started_at_ms))));
+  const details = el("details", "process-facts");
+  details.open = !!keepDetails;
+  details.append(el("summary", "", t("original")));
+  const fields = el("dl");
+  fields.append(
+    el("dt", "", t("taskGoal")),
+    el("dd", "", task.goal || "—"),
+    el("dt", "", t("taskId")),
+    el("dd", "", task.task_id)
+  );
+  details.append(fields);
+  content.append(details);
+  if (focusStep) content.querySelector('.event-choice[aria-pressed="true"]')?.focus({ preventScroll: true });
+}
+
+function toggleProcess(id, forceClose = false) {
+  const pos = scrollAnchor();
+  inspectId = forceClose || inspectId === id ? null : id;
+  selectedObservation = null;
+  setNav(false);
+  renderProcess();
+  restoreScroll(pos);
+}
+
+function composeTarget() {
+  const g = group(),
+    task = currentTask(g);
+  if (!g) {
+    if (groupKey && groupKey !== fresh) return { kind: "wait", mode: "unavailableChat", hint: "unavailableHint" };
+    return { kind: "run", key: fresh, mode: "newChat", hint: "newPlaceholder", send: "submit" };
+  }
+  const turn = g.turns.indexOf(task) + 1;
+  if (task.status === "waiting_for_answer")
+    return {
+      kind: "answer",
+      key: JSON.stringify(["answer", task.task_id, task.question]),
+      task,
+      turn,
+      mode: "reply",
+      hint: "askPlaceholder",
+      send: "sendAnswer",
+      options: task.options
+    };
+  if (task.status === "running" && overview?.capabilities.includes("task_steer"))
+    return {
+      kind: "steer",
+      key: "steer:" + task.task_id,
+      task,
+      turn,
+      mode: "steer",
+      hint: "steerPlaceholder",
+      send: "sendSteer"
+    };
+  if (isActive(task))
+    return {
+      kind: "wait",
+      task,
+      turn,
+      mode: task.status,
+      hint: task.status === "waiting_on_phone" ? "onPhonePlaceholder" : "waitingPlaceholder"
+    };
+  if (task.conversation)
+    return {
+      kind: "run",
+      key: "continue:" + g.key,
+      conversation: task.conversation,
+      mode: "continueChat",
+      hint: "followPlaceholder",
+      send: "sendContinue"
+    };
+  return { kind: "wait", mode: "noConversation", hint: "noConversation" };
+}
+let optionsSignature = "";
+function syncComposer() {
+  const route = composeTarget(),
+    goal = $("goal"),
+    key = route.key || "";
+  if (key !== composerKey) {
+    goal.value = drafts.get(key) || "";
+    composerKey = key;
+  }
+  goal.placeholder = t(route.hint);
+  goal.maxLength = route.kind === "answer" ? 2000 : 4000;
+  goal.readOnly = busy;
+  goal.disabled = route.kind === "wait";
+  $("compose-mode").textContent = (route.turn ? t("round", { n: route.turn }) + " · " : "") + t(route.mode);
+  $("compose-label").textContent = t(route.send || "message");
+  $("submit-goal").setAttribute("aria-label", t(route.send || "submit"));
+  $("submit-goal").title = t(route.send || "submit");
+  $("submit-goal").disabled = !online || busy || route.kind === "wait" || !goal.value.trim();
+  const opts = Array.isArray(route.options) ? route.options : [];
+  const sig = JSON.stringify([key, opts, busy, online]);
+  if (sig === optionsSignature) return;
+  optionsSignature = sig;
+  const box = $("options"),
+    focused = box.contains(document.activeElement) ? document.activeElement.textContent : null;
+  box.replaceChildren();
+  for (const option of opts) {
+    const b = el("button", "", option);
+    b.type = "button";
+    b.disabled = busy || !online;
+    b.addEventListener("click", () => {
+      goal.value = option;
+      goal.dispatchEvent(new Event("input"));
+      goal.focus();
+    });
+    box.append(b);
+    if (focused === option && !b.disabled) b.focus({ preventScroll: true });
   }
 }
 
 function render() {
-  const locked = busy || !online;
+  const g = group();
+  const title = g ? label(g.turns[0]) : t(groupKey && groupKey !== fresh ? "heading" : "newChat");
+  $("thread-title").textContent = title;
+  $("thread-title").title = title;
+  $("thread-meta").textContent = g ? t("rounds", { n: g.turns.length }) : "";
+  $("new-chat").disabled = busy;
   $("refresh").disabled = busy;
-  $("submit-goal").disabled = locked;
   $("pick-device").disabled = busy;
-  $("submit-reply").disabled = locked;
-  $("cancel").disabled = locked;
-  $("goal").readOnly = busy;
-  $("reply").readOnly = busy;
+  renderNav();
+  renderTurns();
+  renderProcess();
+  syncComposer();
+}
 
-  const focusedRow = document.activeElement?.dataset.taskId;
-  const focusedOption = $("options").contains(document.activeElement) ? document.activeElement.textContent : null;
-  const tasks = [...(overview?.tasks || [])];
-  const priority = task => tones[task.status] === "attention" ? 0 : 1;
-  tasks.sort((a, b) => priority(a) - priority(b));
-  $("count").textContent = tasks.length;
-  const list = $("tasks");
-  list.replaceChildren();
-  if (!tasks.length) {
-    list.append(element("p", t(online ? "emptyOnline" : "emptyOffline"), "empty"));
+const errorNames = {
+  session: "errSession",
+  device_selection: "errDeviceSelection",
+  device_pinned: "errDevicePinned",
+  adb: "errAdb",
+  adb_unavailable: "errAdbUnavailable",
+  device_offline: "errDeviceOffline",
+  stale_connection: "errStale",
+  connection: "errConnection",
+  desk_offline: "errDeskOffline",
+  outcome_unknown: "errOutcomeUnknown",
+  conflict: "errConflict"
+};
+function connectionState(phase, labelKey) {
+  const d = $("connection-details");
+  if (d.dataset.phase !== phase) {
+    if (phase !== "connected" && !d.open) {
+      d.open = true;
+      autoDisclosure = true;
+    } else if (phase === "connected" && autoDisclosure) {
+      d.open = false;
+      autoDisclosure = false;
+    }
+    d.dataset.phase = phase;
   }
-  for (const task of tasks) {
-    const row = element("button", "", "task");
-    row.type = "button";
-    row.dataset.taskId = task.task_id;
-    row.disabled = busy;
-    row.setAttribute("aria-current", String(task.task_id === selectedId));
-    const meta = element("span", "", "row-meta");
-    const mark = element("span", "", "badge");
-    badge(mark, task.status);
-    meta.append(mark);
-    if (task.started_at_ms) meta.append(element("small", new Date(task.started_at_ms).toLocaleString()));
-    row.append(meta, element("span", task.goal || task.task_id, "task-title"));
-    row.addEventListener("click", () => {
-      invalidateUpdate();
-      choose(task);
-      render();
-      scheduleUpdate();
-      list.querySelector('[aria-current="true"]').focus({preventScroll: true});
-    });
-    list.append(row);
-    if (focusedRow === task.task_id && !busy) row.focus({preventScroll: true});
-  }
+  $("connection-line").textContent = t(labelKey);
+}
 
-  const notes = $("task-notes");
-  notes.replaceChildren();
-  const task = selected;
-  $("detail-empty").hidden = !!task;
-  $("task-now").hidden = !task;
-  $("task-info").hidden = !task;
-  $("status").hidden = !task;
-  const action = task?.status === "waiting_for_answer" ? "answer" :
-    task?.status === "running" && overview?.capabilities.includes("task_steer") ? "steer" : null;
-  $("respond").hidden = !action;
-  $("cancel").hidden = !task || terminal.has(task.status);
-  const key = action ? JSON.stringify([task.task_id, action, action === "answer" ? task.question : null]) : "";
-  if (key !== replyKey) {
-    if (replyKey && $("reply").value) replyDrafts.set(replyKey, $("reply").value);
-    $("reply").value = replyDrafts.get(key) || "";
-    replyDrafts.delete(key);
-    replyKey = key;
-  }
-  if (!task) return;
+function updateDevice(next) {
+  $("pick").hidden = true;
+  $("device-label").textContent = t(next.transport === "adb" ? "adbPhone" : "networkPhone");
+  $("target").textContent = next.target || "—";
+  $("connection").textContent = t("connected") + (next.server_version ? " · " + next.server_version : "");
+  const d = next.device || {};
+  const state = t(
+    d.ready === true
+      ? "unlocked"
+      : d.device_locked || d.keyguard_showing
+        ? "locked"
+        : d.interactive === false
+          ? "screenOff"
+          : "unknown"
+  );
+  $("device").textContent = [
+    state,
+    d.helper_available == null ? "" : t(d.helper_available ? "helperOnline" : "helperOffline")
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  connectionState("connected", "online");
+  $("updated").textContent = t("updated", { time: clock(Date.now()) });
+}
 
-  badge($("status"), task.status);
-  $("task-now").dataset.status = task.status;
-  message("task-step", task.status === "running" && task.step != null ? t("stepN", {n: task.step}) : "");
-  $("task-message").textContent = taskMessage(task);
-  const handoff = [task.app, t("handoffGuide")].filter(Boolean).join(" · ");
-  message("task-guidance", task.status === "waiting_on_phone" ? handoff : "");
-  $("task-goal").textContent = task.goal || t("remoteTask");
-  $("task-id").textContent = task.task_id;
-
-  const fact = (title, value) => {
-    const group = element("div", "", "fact");
-    group.append(element("strong", title), element("p", value));
-    notes.append(group);
-  };
-  if (task.status === "paused" && task.progress && task.waiting_for && task.waiting_for !== task.progress) {
-    fact(t("waitingFor"), task.waiting_for);
+function showProblem(e) {
+  if (e.code === "outcome_unknown") writeWarning = t("errOutcomeUnknown");
+  const detail = errorNames[e.code] ? t(errorNames[e.code]) : e.message || t("errFallback");
+  // A phone rejecting an outdated action is still a connected phone.
+  if (e.http_status === 409 && e.code !== "device_selection" && e.code !== "device_pinned" && online) {
+    message("notice", detail);
+    return;
   }
-  if (task.status === "done") {
-    const verification = t(task.verified === true ? "verified" : task.verified === false ? "verifyFailed" : "verifyUnknown");
-    fact(t("verification"), [verification, task.verification_note, ...(task.unconfirmed || [])].filter(Boolean).join("\n"));
+  online = false;
+  retryDelay = [401, 403, 429].includes(e.http_status) ? 60000 : Math.min(30000, retryDelay * 2 || 2000);
+  const devices = e.code === "device_selection" ? e.devices || [] : [];
+  const picker = $("devices");
+  if (JSON.stringify(Array.from(picker.options, o => o.value)) !== JSON.stringify(devices)) {
+    const prev = picker.value;
+    picker.replaceChildren(...devices.map(serial => new Option(serial, serial)));
+    if (devices.includes(prev)) picker.value = prev;
   }
-  const steers = {received: t("steerReceived"), joined: t("steerJoined"), not_applied: t("steerNotApplied")};
-  if (task.steers?.length) fact(t("steers"), task.steers.map((s, i) => (i + 1) + ". " + (steers[s.state] || s.state)).join("\n"));
-  if (!action) return;
-  $("respond").dataset.action = action;
-  $("reply-label").textContent = t(action === "answer" ? "answerLabel" : "steerLabel");
-  $("submit-reply").textContent = t(action === "answer" ? "answerSend" : "steerSend");
-  $("reply").placeholder = t(action === "answer" ? "answerPlaceholder" : "steerPlaceholder");
-  $("reply").maxLength = action === "answer" ? 2000 : 4000;
-  $("options").replaceChildren();
-  for (const option of action === "answer" ? task.options || [] : []) {
-    const button = element("button", option);
-    button.type = "button";
-    button.disabled = busy;
-    button.addEventListener("click", () => { $("reply").value = option; $("reply").focus(); });
-    $("options").append(button);
-    if (focusedOption === option && !busy) button.focus({preventScroll: true});
-  }
+  $("pick").hidden = !devices.length;
+  $("connection").textContent = t(devices.length ? "choosing" : "offline");
+  $("device").textContent = "—";
+  connectionState(devices.length ? "choose" : "retry", devices.length ? "choosing" : "offline");
+  message(
+    "error",
+    [writeWarning !== detail && writeWarning, detail, overview && t("keptList")].filter(Boolean).join(" ")
+  );
 }
 
 async function call(action, fields = {}) {
-  const writing = !["overview", "select", "status", "watch"].includes(action);
+  const write = !["overview", "select", "watch", "status"].includes(action);
   let response, data;
   try {
     response = await fetch("/desk", {
-      method: "POST", headers: {"Content-Type": "application/json", "X-Mika-Desk": ticket || ""},
-      body: JSON.stringify({action, ...fields}),
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Mika-Desk": ticket || "" },
+      body: JSON.stringify({ action, ...fields })
     });
     if (response.headers.get("Content-Type")?.includes("application/json")) data = await response.json();
   } catch {
-    throw {code: writing ? "outcome_unknown" : "desk_offline"};
+    throw { code: write ? "outcome_unknown" : "desk_offline" };
   }
   if (data?.error) throw data.error;
   if (!response.ok || !data) {
-    if (response.status === 403) throw {code: "session"};
-    throw {code: writing && (response.ok || response.status >= 500) ? "outcome_unknown" : "desk_offline"};
+    if (response.status === 403) throw { code: "session" };
+    throw { code: write && (response.ok || response.status >= 500) ? "outcome_unknown" : "desk_offline" };
   }
   return data;
 }
 
-const errors = {
-  session: "errSession", device_selection: "errDeviceSelection", device_pinned: "errDevicePinned", adb: "errAdb",
-  adb_unavailable: "errAdbUnavailable", device_offline: "errDeviceOffline", stale_connection: "errStale",
-  connection: "errConnection", desk_offline: "errDeskOffline", outcome_unknown: "errOutcomeUnknown",
-};
-
-function connectionSummary(phase, text) {
-  const details = $("connection-details");
-  if (details.dataset.phase !== phase) {
-    if (phase !== "connected" && !details.open) {
-      details.open = true;
-      openedForConnectionProblem = true;
-    } else if (phase === "connected" && openedForConnectionProblem) {
-      details.open = false;
-      openedForConnectionProblem = false;
-    }
-    details.dataset.phase = phase;
-  }
-  $("connection-line").textContent = text;
-}
-
-async function refresh({device: deviceChoice, watchId, observedRevision} = {}) {
-  // A read may finish after a click, a write, or a tab change. Only the
-  // current view may apply it. Foreground operations are already serialized.
-  const stale = () => observedRevision !== undefined && observedRevision !== revision;
+async function refresh({ device, watchId, at = revision } = {}) {
   let next;
-  if (deviceChoice !== undefined) next = await call("select", {device: deviceChoice});
-  else if (watchId) next = await call("watch", {task_id: watchId});
+  if (device !== undefined) next = await call("select", { device });
+  else if (watchId) next = await call("watch", { task_id: watchId });
   else next = await call("overview");
-  if (stale()) return false;
-  let task;
-  if (selectedId) task = next.tasks.find(item => item.task_id === selectedId);
-  else task = next.tasks.find(item => tones[item.status] === "attention") || next.tasks[0];
-  if (selectedId && !task) {
-    try { task = await call("status", {task_id: selectedId}); }
-    catch (e) { if (e.http_status !== 404) throw e; }
-    if (stale()) return false;
-    if (!task) message("notice", t("taskGone"));
+  if (at !== revision) return false;
+  const keep = inspectId || anchorId;
+  if (keep && !byId(next.tasks, keep) && groupKey !== fresh) {
+    try {
+      const task = await call("status", { task_id: keep });
+      if (at !== revision) return false;
+      if (!groupKey || threadOf(task) === groupKey) next.tasks.push(task);
+    } catch (e) {
+      if (at !== revision) return false;
+      if (e.http_status !== 404) throw e;
+      if (keep === inspectId) inspectId = null;
+      if (keep === anchorId) {
+        anchorId = null;
+        sessionStorage.removeItem("selectedTask");
+      }
+      message("notice", t("taskGone"));
+    }
   }
-  const changed = !online || JSON.stringify(next) !== JSON.stringify(overview) ||
-    JSON.stringify(task || null) !== JSON.stringify(selected);
+  noteProgress(next.tasks);
+  groups = groupTasks(next.tasks);
+  if (!groupKey) {
+    const legacy = byId(next.tasks, anchorId),
+      chosen = legacy ? threadOf(legacy) : groups[0]?.key || fresh;
+    rememberGroup(chosen, legacy?.task_id || groups.find(g => g.key === chosen)?.turns.at(-1)?.task_id);
+  }
+  const current = currentTask();
+  if (current && anchorId !== current.task_id) rememberGroup(groupKey, current.task_id);
   overview = next;
-  choose(task);
   online = true;
   retryDelay = 0;
-  $("pick").hidden = true;
+  updateDevice(next);
   message("error", writeWarning);
-  $("target").textContent = (next.transport === "adb" ? "ADB · " : "") + next.target;
-  $("connection").textContent = t("connected") + (next.server_version ? " · " + next.server_version : "");
-  const device = next.device;
-  const state = t(device.ready === true ? "unlocked" : device.device_locked || device.keyguard_showing ? "locked" :
-    device.interactive === false ? "screenOff" : "screenUnknown");
-  const helper = device.helper_available == null ? "" : t(device.helper_available ? "helperOnline" : "helperOffline");
-  $("device").textContent = [state, helper].filter(Boolean).join(" · ");
-  const brief = device.keyguard_showing || device.device_locked || device.interactive === false ? state : helper;
-  connectionSummary("connected", [t("phoneConnected"), brief].filter(Boolean).join(" · "));
-  $("updated").textContent = t("autoUpdate") + " · " + new Date().toLocaleTimeString();
-  return changed;
+  return true;
 }
 
-function showProblem(e) {
-  online = false;
-  // Bad credentials share the phone's rate limit with other clients at this address.
-  retryDelay = [401, 403, 429].includes(e.http_status) ? 60000 : Math.min(30000, retryDelay * 2 || 2000);
-  const devices = e.code === "device_selection" ? e.devices || [] : [];
-  const picker = $("devices");
-  if (JSON.stringify(Array.from(picker.options, option => option.value)) !== JSON.stringify(devices)) {
-    const choice = picker.value;
-    picker.replaceChildren(...devices.map(serial => new Option(serial, serial)));
-    if (devices.includes(choice)) picker.value = choice;
-  }
-  $("pick").hidden = !devices.length;
-  const picking = devices.length > 0;
-  $("connection").textContent = t(picking ? "awaitingChoice" : "awaitingReconnect");
-  let summary = t("rereading");
-  if (picking) summary = t("pickPhone");
-  else if (e.code === "device_offline" || e.code === "device_selection") summary = t("waitPhone");
-  connectionSummary(picking ? "choose" : "retry", summary);
-  $("device").textContent = t("toReread");
-  const detail = errors[e.code] ? t(errors[e.code]) : e.message || t("errFallback");
-  if (e.code === "outcome_unknown") writeWarning = detail;
-  message("error", [writeWarning !== detail && writeWarning, detail, overview && t("keptList")].filter(Boolean).join(" "));
-}
-
-function activeTask() {
-  if (selected && !terminal.has(selected.status)) return selected;
-  return overview?.tasks.find(task => !terminal.has(task.status));
-}
-
-function invalidateUpdate() {
+function invalidate() {
   revision++;
   clearTimeout(updateTimer);
 }
 
-function scheduleUpdate(immediate = false) {
+function watchedTask() {
+  const sel = currentTask();
+  return sel && isActive(sel) ? sel : overview?.tasks.find(isActive);
+}
+
+function schedule(immediate = false) {
   clearTimeout(updateTimer);
   if (busy || observing || document.hidden) return;
-  const delay = retryDelay || (activeTask() ? 750 : 8000);
-  updateTimer = setTimeout(() => observe(immediate), immediate ? 0 : delay);
+  updateTimer = setTimeout(() => observe(immediate), immediate ? 0 : retryDelay || (watchedTask() ? 750 : 8000));
 }
 
 async function observe(immediate) {
   if (busy || observing || document.hidden) return;
   observing = true;
-  const observedRevision = revision;
-  const watchId = online && !immediate ? activeTask()?.task_id : undefined;
+  const at = revision;
   try {
-    if (await refresh({watchId, observedRevision})) render();
+    if (await refresh({ watchId: online && !immediate ? watchedTask()?.task_id : undefined, at })) render();
   } catch (e) {
-    if (observedRevision === revision) {
+    if (at === revision) {
       showProblem(e);
       render();
     }
   } finally {
     observing = false;
-    scheduleUpdate(observedRevision !== revision);
+    schedule(at !== revision);
   }
 }
 
-async function work(operation) {
+async function work(fn, write = false) {
   if (busy) return;
   busy = true;
-  invalidateUpdate();
-  writeWarning = "";
-  message("error", "");
-  message("notice", "");
+  invalidate();
+  if (write) {
+    writeWarning = "";
+    message("notice", "");
+    message("error", "");
+  }
   render();
+  let refreshConflict = false;
   try {
-    await operation();
+    await fn();
   } catch (e) {
     showProblem(e);
+    refreshConflict = e.http_status === 409 && online;
   } finally {
     busy = false;
     render();
-    scheduleUpdate();
+    schedule(refreshConflict);
   }
 }
 
-$("refresh").addEventListener("click", () => work(refresh));
-$("connection-details").querySelector("summary").addEventListener("click", () => {
-  // Keep the owner's explicit choice across automatic reads and reconnection.
-  openedForConnectionProblem = false;
-});
-$("pick").addEventListener("submit", event => {
-  event.preventDefault();
-  work(() => refresh({device: $("devices").value}));
-});
-$("goal").addEventListener("keydown", event => {
-  if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey ||
-      event.isComposing || event.keyCode === 229) return;
-  event.preventDefault();
-  if (!event.repeat && !$("submit-goal").disabled && $("goal").value.trim()) {
-    $("compose").requestSubmit($("submit-goal"));
+async function submit() {
+  const route = composeTarget(),
+    goal = $("goal"),
+    text = goal.value.trim(),
+    key = route.key;
+  if (!online || busy || !text || !key || route.kind === "wait") return;
+  await work(async () => {
+    if (route.kind === "run") {
+      const fields = { goal: text };
+      if (route.conversation) fields.conversation = route.conversation;
+      const task = await call("run", fields);
+      drafts.delete(key);
+      goal.value = "";
+      preferredTask = null;
+      inspectId = null;
+      const tasks = [task, ...(overview?.tasks || []).filter(old => old.task_id !== task.task_id)];
+      overview = { ...overview, tasks };
+      groups = groupTasks(tasks);
+      noteProgress(tasks);
+      rememberGroup(threadOf(task), task.task_id);
+      render();
+    } else {
+      const id = route.task.task_id,
+        receipt = await call(route.kind, { task_id: id, text });
+      if (!receipt.accepted) {
+        message("notice", t("notAccepted"));
+      } else {
+        drafts.delete(key);
+        goal.value = "";
+        const turns = exchanges.get(id) || [];
+        turns.push({ mode: route.kind, text, question: route.kind === "answer" ? route.task.question : null });
+        exchanges.set(id, turns);
+      }
+    }
+    await refresh();
+  }, true);
+}
+$("new-chat").addEventListener("click", () => {
+  if (!busy) {
+    chooseGroup(fresh);
+    $("goal").focus();
   }
 });
-$("compose").addEventListener("submit", event => {
-  event.preventDefault();
-  const goal = $("goal").value.trim();
-  if (!online || !goal) return;
-  work(async () => {
-    const task = await call("run", {goal});
-    choose(task);
-    $("goal").value = "";
-    message("notice", t("taskAccepted"));
-    await refresh();
-  });
+$("threads").addEventListener("click", ev => {
+  const b = ev.target.closest("button[data-group]");
+  if (b && !busy) chooseGroup(b.dataset.group);
 });
-$("respond").addEventListener("submit", event => {
-  event.preventDefault();
-  const action = $("respond").dataset.action, text = $("reply").value.trim();
-  if (!online || $("respond").hidden || !text) return;
-  work(async () => {
-    const receipt = await call(action, {task_id: selectedId, text});
-    if (receipt.accepted) $("reply").value = "";
-    message("notice", t(receipt.accepted ? (action === "answer" ? "answerAccepted" : "steerAccepted") : "notAccepted"));
-    await refresh();
-  });
+$("open-nav").addEventListener("click", () => setNav(true));
+$("close-nav").addEventListener("click", () => {
+  setNav(false);
+  $("open-nav").focus();
 });
-$("cancel").addEventListener("click", () => {
-  if (!online || !confirm(t("confirmCancel"))) return;
-  work(async () => {
-    const receipt = await call("cancel", {task_id: selectedId});
-    message("notice", t(receipt.accepted ? "cancelSent" : "cancelRejected"));
-    await refresh();
+$("connection-details")
+  .querySelector("summary")
+  .addEventListener("click", () => {
+    autoDisclosure = false;
   });
+$("language").addEventListener("change", () => {
+  const value = $("language").value;
+  if (value === "auto") localStorage.removeItem("mikaDeskLanguage");
+  else localStorage.setItem("mikaDeskLanguage", value);
+  applyLanguage();
+  navSignature = transcriptSignature = processSignature = optionsSignature = "";
+  if (online) updateDevice(overview);
+  else
+    connectionState($("connection-details").dataset.phase || "retry", $("pick").hidden ? "offline" : "choosing");
+  render();
 });
-
+$("refresh").addEventListener("click", () => work(() => refresh()));
+$("pick").addEventListener("submit", ev => {
+  ev.preventDefault();
+  work(() => refresh({ device: $("devices").value }));
+});
+$("toggle-process").addEventListener("click", () => {
+  const task = currentTask();
+  if (task) toggleProcess(inspectId || task.task_id, !!inspectId);
+});
+function closeInspector() {
+  if (!inspectId) return;
+  const old = inspectId;
+  toggleProcess(old, true);
+  const trigger = Array.from($("transcript").querySelectorAll('[data-action="process"]')).find(
+    b => b.dataset.task === old
+  );
+  (trigger || $("toggle-process")).focus({ preventScroll: true });
+}
+$("close-process").addEventListener("click", closeInspector);
+$("process-content").addEventListener("click", ev => {
+  const b = ev.target.closest("button[data-observation]");
+  if (!b) return;
+  selectedObservation = observed.get(inspectId)?.rows[Number(b.dataset.observation)] || null;
+  renderProcess();
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if ($("workspace").classList.contains("nav-open")) {
+    setNav(false);
+    $("open-nav").focus();
+  } else if ($("connection-details").open && $("connection-details").contains(document.activeElement)) {
+    $("connection-details").open = false;
+    $("connection-details").querySelector("summary").focus();
+  } else closeInspector();
+});
+$("transcript").addEventListener("click", async ev => {
+  const b = ev.target.closest("button[data-action]");
+  if (!b) return;
+  const task = byId(group()?.turns, b.dataset.task);
+  if (!task) return;
+  const id = task.task_id;
+  switch (b.dataset.action) {
+    case "process":
+      toggleProcess(id);
+      break;
+    case "goal":
+      if (expandedGoals.has(id)) expandedGoals.delete(id);
+      else expandedGoals.add(id);
+      renderTurns();
+      break;
+    case "copy":
+      try {
+        await navigator.clipboard.writeText(task.answer);
+        message("notice", t("copied"));
+      } catch {
+        message("notice", t("copyFailed"));
+      }
+      break;
+    case "target":
+      if (!busy) {
+        preferredTask = id;
+        invalidate();
+        render();
+        schedule();
+        $("goal").focus();
+      }
+      break;
+    case "cancel":
+      if (!online || busy || !isActive(task) || !confirm(t("confirmCancel"))) return;
+      await work(async () => {
+        const receipt = await call("cancel", { task_id: id });
+        message("notice", t(receipt.accepted ? "cancelSent" : "notAccepted"));
+        await refresh();
+      }, true);
+      break;
+  }
+});
+$("goal").addEventListener("input", () => {
+  if (composerKey) drafts.set(composerKey, $("goal").value);
+  syncComposer();
+});
+$("goal").addEventListener("keydown", ev => {
+  if (
+    ev.key !== "Enter" ||
+    ev.shiftKey ||
+    ev.altKey ||
+    ev.ctrlKey ||
+    ev.metaKey ||
+    ev.isComposing ||
+    ev.keyCode === 229
+  )
+    return;
+  ev.preventDefault();
+  if (!ev.repeat && !$("submit-goal").disabled) $("compose").requestSubmit($("submit-goal"));
+});
+$("compose").addEventListener("submit", ev => {
+  ev.preventDefault();
+  submit();
+});
 document.addEventListener("visibilitychange", () => {
-  invalidateUpdate();
-  scheduleUpdate(true);
+  invalidate();
+  schedule(true);
 });
 render();
-scheduleUpdate(true);
+schedule(true);

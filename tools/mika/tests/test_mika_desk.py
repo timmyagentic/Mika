@@ -107,6 +107,14 @@ class DeskTest(unittest.TestCase):
                 self.assertEqual("POST", method)
                 self.assertTrue(1 <= bound["timeout_s"] <= 5)
 
+    def test_new_and_continued_turns_send_distinct_phone_requests(self):
+        conversation = "mcp-3d18667b-238a-4985-9546-cc6ea6b94c2b"
+        with api() as phone, self.launch(phone) as url:
+            for fields in [{}, {"conversation": conversation}]:
+                self.assertEqual(200, request(url, {"action": "run", "goal": "next", **fields})[0])
+            self.assertEqual([{"goal": "next"}, {"goal": "next", "conversation": conversation}],
+                             [body for method, path, body in phone.calls if method == "POST" and path == "/api/v1/tasks"])
+
     def test_browser_session_origin_host_and_command_allowlist(self):
         with api() as phone, self.launch(phone) as url:
             command = {"action": "run", "goal": "no"}

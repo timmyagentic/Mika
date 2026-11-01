@@ -1,70 +1,162 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <title>Mika task desk</title>
-  <link rel="stylesheet" href="/desk.css">
-  <script defer src="/desk.js"></script>
-</head>
-<body>
-  <!-- English is the fallback; desk.js swaps every data-i18n text for the browser's language. -->
-  <header class="bar"><div class="wrap brand"><strong><img src="/mika-logo.png" width="36" height="36" alt="">Mika</strong><span data-i18n="workspace">Personal workspace</span></div></header>
-  <main class="wrap">
-    <div class="heading">
-      <div><h1 data-i18n="heading">Task desk</h1><p data-i18n="intro">Hand tasks to your phone, follow their progress and answer its questions.</p></div>
-      <div class="refresh"><small id="updated" data-i18n="autoUpdate">Updates automatically</small><button id="refresh" type="button" data-i18n="refreshNow">Update now</button></div>
-    </div>
-    <details id="connection-details" class="connection-card">
-      <summary><span id="connection-line" data-i18n="connectingPhone">Connecting to the phone</span><span class="disclosure-label" data-i18n="connectionDetails">Connection details</span></summary>
-      <form id="pick" class="picker" hidden>
-        <label for="devices" data-i18n="deviceForSession">Phone for this session</label><select id="devices"></select><button id="pick-device" data-i18n="chooseDevice">Choose phone</button>
-      </form>
-      <div class="device" data-i18n-label="deviceStatus" aria-label="Phone status">
-        <div><span class="caption" data-i18n="connectedPhone">Phone</span><b id="target" data-i18n="waitingToRead">Not read yet</b></div>
-        <div><span class="caption" data-i18n="taskService">Task service</span><b id="connection" data-i18n="connecting">Connecting</b></div>
-        <div><span class="caption" data-i18n="phoneState">Phone state</span><b id="device" data-i18n="unknown">Unknown</b></div>
-        <div><span class="caption" data-i18n="modelSetup">Model setup</span><b data-i18n="unverified">Not verified</b></div>
-      </div>
-    </details>
-    <p id="error" class="notice warn" role="alert" hidden></p>
-    <p id="notice" class="notice" role="status" hidden></p>
-    <form id="compose" class="panel composer">
-      <label for="goal" data-i18n="newTask">New task</label>
-      <div class="input-row"><textarea id="goal" rows="2" maxlength="4000" data-i18n-placeholder="goalPlaceholder" placeholder="Describe the task. Enter sends, Shift+Enter adds a line" required></textarea>
-        <button class="primary" id="submit-goal" disabled data-i18n="submitGoal">Send to phone</button></div>
-    </form>
-    <div class="columns">
-      <section class="panel inbox" aria-labelledby="inbox-title">
-        <div class="section-head"><h2 id="inbox-title" data-i18n="recentTasks">Recent tasks</h2><span id="count" class="count">0</span></div>
-        <p class="hint" data-i18n="recentHint">The latest 50 remote tasks; ones that need you come first.</p>
-        <div id="tasks"></div>
-      </section>
-      <section class="panel detail" aria-labelledby="detail-title">
-        <div class="section-head"><h2 id="detail-title" data-i18n="taskDetail">Task details</h2><span id="status" class="badge" hidden></span></div>
-        <div id="facts">
-          <p id="detail-empty" class="empty" data-i18n="detailEmpty">Pick a task to see the progress or result the phone reports.</p>
-          <div id="task-now" hidden>
-            <strong id="task-step" hidden></strong>
-            <p id="task-message"></p>
-            <p id="task-guidance" class="hint" hidden></p>
-          </div>
-          <form id="respond" hidden>
-            <label id="reply-label" for="reply"></label>
-            <div id="options"></div>
-            <textarea id="reply" rows="2" required></textarea>
-            <button class="primary" id="submit-reply"></button>
-          </form>
-          <div id="task-notes"></div>
-          <dl id="task-info" hidden>
-            <div><dt data-i18n="taskGoal">Goal</dt><dd id="task-goal"></dd></div>
-            <div><dt data-i18n="taskId">Task ID</dt><dd id="task-id"></dd></div>
-          </dl>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Mika task desk</title>
+    <link rel="icon" href="/mika-logo.png" />
+    <link rel="stylesheet" href="/desk.css" />
+    <script defer src="/desk.js"></script>
+  </head>
+  <body>
+    <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+      <symbol id="i-new" viewBox="0 0 24 24"><path d="M13 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16.5 3.5l4 4M10 14l1-4 7.5-7.5 3 3L14 13z"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 14a3 3 0 0 1-3 3H9l-5 4v-4a3 3 0 0 1-2-3V7a3 3 0 0 1 3-3h13a3 3 0 0 1 3 3z"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.3h3"/></symbol>
+      <symbol id="i-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+      <symbol id="i-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-process" viewBox="0 0 24 24"><path d="M6 4v14M6 8h5m-5 8h5M14 8h6m-6 8h6"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></symbol>
+      <symbol id="i-reply" viewBox="0 0 24 24"><path d="M5 5v7a3 3 0 0 0 3 3h11m-5-5 5 5-5 5"/></symbol>
+    </defs></svg>
+    <div class="workspace" id="workspace">
+      <aside id="sidebar" class="rail" data-i18n-label="conversations" aria-label="Conversations">
+        <div class="brand">
+          <img src="/mika-logo.png" alt="" width="25" height="25" />
+          <strong>Mika</strong>
+          <button
+            type="button"
+            id="close-nav"
+            class="icon-button nav-toggle"
+            data-i18n-label="closeNav"
+            aria-label="Close navigation"
+          >
+            <svg class="ico"><use href="#i-x" /></svg>
+          </button>
         </div>
-        <button class="stop" id="cancel" type="button" hidden data-i18n="cancelTask">Cancel task</button>
-      </section>
+        <button type="button" id="new-chat" class="new-chat">
+          <svg class="ico"><use href="#i-new" /></svg>
+          <span data-i18n="newChat">New chat</span>
+        </button>
+        <div class="rail-label">
+          <span data-i18n="recentChats">Recent conversations</span>
+          <span id="count"></span>
+        </div>
+        <nav id="threads" data-i18n-label="conversations" aria-label="Conversations"></nav>
+        <details id="connection-details" class="device-control">
+          <summary>
+            <svg class="ico"><use href="#i-phone" /></svg>
+            <span id="device-label" data-i18n="myPhone">My phone</span>
+            <span class="connection-state" id="connection-line" data-i18n="connecting">Connecting</span>
+          </summary>
+          <div class="device-pop">
+            <strong data-i18n="connectionDetails">Connection details</strong>
+            <dl>
+              <div>
+                <dt data-i18n="connectedPhone">Phone</dt>
+                <dd id="target">—</dd>
+              </div>
+              <div>
+                <dt data-i18n="taskService">Service</dt>
+                <dd id="connection">—</dd>
+              </div>
+              <div>
+                <dt data-i18n="phoneState">Phone state</dt>
+                <dd id="device">—</dd>
+              </div>
+            </dl>
+            <form id="pick" hidden>
+              <label for="devices" data-i18n="chooseDevice">Choose phone</label>
+              <select id="devices"></select>
+              <button id="pick-device" data-i18n="usePhone">Use phone</button>
+            </form>
+            <div class="language">
+              <label for="language" data-i18n="displayLanguage">Language</label>
+              <select id="language">
+                <option value="auto" data-i18n="browserLanguage">Browser default</option>
+                <option value="zh" lang="zh-CN">简体中文</option>
+                <option value="en" lang="en">English</option>
+              </select>
+            </div>
+            <div class="device-actions">
+              <span id="updated"></span>
+              <button id="refresh" type="button" data-i18n="refreshNow">Update now</button>
+            </div>
+          </div>
+        </details>
+      </aside>
+      <main id="main">
+        <header class="thread-head">
+          <button
+            id="open-nav"
+            type="button"
+            class="icon-button nav-toggle"
+            aria-controls="sidebar"
+            aria-expanded="false"
+            data-i18n-label="openNav"
+            aria-label="Open conversations"
+          >
+            <svg class="ico"><use href="#i-left" /></svg>
+          </button>
+          <h1 id="thread-title" data-i18n="heading">Task desk</h1>
+          <span id="thread-meta"></span>
+          <button
+            id="toggle-process"
+            class="process-toggle"
+            type="button"
+            aria-controls="process-panel"
+            aria-expanded="false"
+            hidden
+          >
+            <svg class="ico"><use href="#i-right" /></svg>
+            <span data-i18n="viewProcess">View process</span>
+          </button>
+        </header>
+        <div class="panes">
+          <section id="thread" class="thread" data-i18n-label="currentChat" aria-label="Current conversation">
+            <div class="notices">
+              <p id="error" role="alert" hidden></p>
+              <p id="notice" role="status" hidden></p>
+            </div>
+            <div id="scroll-thread"><div id="transcript"></div></div>
+            <div class="composer-wrap">
+              <div id="options"></div>
+              <form id="compose">
+                <label class="sr-only" id="compose-label" for="goal" data-i18n="message">Message to Mika</label>
+                <textarea id="goal" rows="2" maxlength="4000" required></textarea>
+                <div class="composer-foot">
+                  <div class="compose-context">
+                    <svg class="ico"><use href="#i-reply" /></svg>
+                    <span id="compose-mode"></span>
+                  </div>
+                  <button type="submit" id="submit-goal" disabled>
+                    <svg class="ico"><use href="#i-up" /></svg>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+          <aside id="process-panel" class="process-panel" hidden aria-labelledby="process-heading">
+            <div class="process-head">
+              <h2 id="process-heading" data-i18n="process">Execution process</h2>
+              <button
+                id="close-process"
+                class="icon-button"
+                type="button"
+                data-i18n-label="closeProcess"
+                aria-label="Close process"
+              >
+                <svg class="ico"><use href="#i-x" /></svg>
+              </button>
+            </div>
+            <div id="process-content"></div>
+          </aside>
+        </div>
+      </main>
     </div>
-  </main>
-</body>
+  </body>
 </html>
