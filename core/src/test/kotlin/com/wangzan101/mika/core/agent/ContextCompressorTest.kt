@@ -1,6 +1,11 @@
 package com.wangzan101.mika.core.agent
 
 import com.wangzan101.mika.core.model.Author
+import com.wangzan101.mika.core.assembly.toolDispatcher
+import com.wangzan101.mika.core.model.ChatModel
+import com.wangzan101.mika.core.testing.answerReply
+import com.wangzan101.mika.core.tool.FakeScreen
+import kotlinx.coroutines.test.runTest
 import com.wangzan101.mika.core.model.Message
 import com.wangzan101.mika.core.model.Part
 import com.wangzan101.mika.core.model.Role
@@ -26,6 +31,38 @@ class ContextCompressorTest {
     }
 
     private fun taps(n: Int) = (1..n).flatMap { round("phone_tap", """{"target":"按钮$it"}""") }
+
+    @Test fun modelOverrideReachesTheCallerAndMovesTheFirstCompaction() = runTest {
+        val history = head + (1..40).flatMap { round("phone_tap", result = """{"pad":"${"x".repeat(1_360)}"}""") }
+        assertTrue(uncalibrated(history) in 16_001..18_000)
+        suspend fun sent(trigger: Int?): List<Message> {
+            val transport = FakeModel(answerReply("ok"), contextTokens = 32_000)
+            val model = object : ChatModel by transport {
+                override val capabilities = transport.capabilities.copy(compactionTriggerTokens = trigger)
+            }
+            val caller = ModelCaller(model, toolDispatcher(FakeScreen()), null, SpeedFlags.OFF, RetryPolicy.NONE, {}, { 0 })
+            caller.reset("")
+            caller.ask(history, emptyList())
+            return transport.requests.single()
+        }
+        assertEquals(history, sent(null))
+        assertTrue(uncalibrated(sent(16_000)) < uncalibrated(history))
+    }
+
+    @Test fun overflowUsesTheTargetForTheSameModelOverride() {
+        // 32K 窗口，自动目标 12K；手填 16K 触发时目标为 10K。
+        val user = Message(Role.User, listOf(Part.Text("x".repeat(26_000))), Author.User)
+        val history = listOf(user) + (1..20).flatMap {
+            round("phone_tap", """{"target":"ok","note":"${"x".repeat(1_600)}"}""", "{}")
+        }
+        fun retrySize(trigger: Int?): Int {
+            val compressor = ContextCompressor(TOOLS, triggerOverride = trigger)
+            assertTrue(compressor.overflow(history, 32_000))
+            return uncalibrated(compressor.current(history, 32_000))
+        }
+        assertTrue(retrySize(null) in 10_001..12_000)
+        assertTrue(retrySize(16_000) <= 10_000)
+    }
     private fun summary(ms: List<Message>) = ms.firstNotNullOfOrNull { m ->
         m.plainText().takeIf { it.startsWith(ContextCompressor.HEADER) }
     }

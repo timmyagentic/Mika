@@ -10,7 +10,10 @@ package com.wangzan101.mika.core.agent
  * - [trigger]:当前请求超过它就压缩一次。不低于窗口的 [MIN_TRIGGER_SHARE],不高于 [usable]。
  * - [target]:一次压缩要把整份请求压到它以下([usable] 的 [AFTER_COMPACTION],且至少比触发点低一个 [margin])。
  */
-internal data class ContextLimits(val window: Int, val usable: Int, val trigger: Int, val margin: Int, val target: Int) {
+class ContextLimits private constructor(
+    val window: Int, val usable: Int, val trigger: Int, val margin: Int, val target: Int,
+    val minTrigger: Int,
+) {
     companion object {
         /** 给模型输出预留的 token 上限。 */
         const val MAX_OUTPUT_RESERVE = 20_000
@@ -31,7 +34,7 @@ internal data class ContextLimits(val window: Int, val usable: Int, val trigger:
             val floor = minOf((w * MIN_TRIGGER_SHARE).toInt(), usable)
             val trigger = (triggerOverride ?: (usable - margin)).coerceIn(floor, usable)
             val target = minOf((usable * AFTER_COMPACTION).toInt(), trigger - margin).coerceAtLeast(0)
-            return ContextLimits(w, usable, trigger, margin, target)
+            return ContextLimits(w, usable, trigger, margin, target, floor)
         }
     }
 }

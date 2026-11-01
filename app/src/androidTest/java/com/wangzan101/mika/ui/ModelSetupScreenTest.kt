@@ -14,11 +14,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wangzan101.mika.core.model.Capabilities
 import com.wangzan101.mika.core.model.ListedModel
 import com.wangzan101.mika.core.model.ModelRole
 import com.wangzan101.mika.settings.Provider
+import com.wangzan101.mika.settings.AesGcmKeyCipher
+import com.wangzan101.mika.settings.ModelContextSettings
+import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.ProviderConfig
 import com.wangzan101.mika.settings.ProviderPresets
 import com.wangzan101.mika.settings.RoleChoice
@@ -31,6 +35,7 @@ import androidx.compose.runtime.setValue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.rules.TemporaryFolder
 
 /** 欢迎页、配置模型一页(上手和设置共用)、选用途页、服务商详情、全部模型和「用作」面板(只用假数据,不联网)。 */
 @RunWith(AndroidJUnit4::class)
@@ -38,6 +43,7 @@ class ModelSetupScreenTest {
     @get:Rule(order = Int.MIN_VALUE) val chinese = ChineseUi()
 
     @get:Rule val compose = createComposeRule()
+    @get:Rule val tmp = TemporaryFolder()
     private val calls = mutableListOf<String>()
     private val caps = Capabilities(toolCalls = true, vision = false, contextTokens = 64_000, reasoning = false)
 
@@ -80,6 +86,7 @@ class ModelSetupScreenTest {
 
     @Test fun connectedProvidersAreListedAndNextEnables() {
         show(connected())
+        compose.onNodeWithTag("context-main").assertDoesNotExist()
         compose.onNodeWithText(ModelsCopy.PROVIDERS).assertIsDisplayed()
         compose.onNodeWithText("已连接 · 2 个模型 · 主模型、轻量模型在用").assertIsDisplayed()
         // 轻量卡「用主模型」下面也写着主模型名,所以只在主模型卡里找
@@ -103,6 +110,47 @@ class ModelSetupScreenTest {
         compose.onNodeWithText(ModelsCopy.SAME_AS_MAIN).assertIsDisplayed()
         compose.onNodeWithTag("role-light").performClick()
         assertEquals(listOf("role Light"), calls)
+    }
+
+    @Test fun contextFormValidatesPreviewsAndSavesTheModelUsedForNewTasks() {
+        val store = ProviderStore(tmp.root, AesGcmKeyCipher { error("Fixture has no API key") })
+        val provider = store.connect("Test", deepseek.kind, "https://example.test/v1", null, listOf(ListedModel("m")))
+        store.use(ModelRole.Main, provider.id, "m", caps.copy(contextTokens = 32_000))
+        compose.setContent { MikaTheme { ModelSetupScreen(store, onboarding = false, onBack = {}, onDone = {}) } }
+        val open = compose.onNodeWithTag("context-main")
+        val window = compose.onNodeWithTag("context-window")
+        val trigger = compose.onNodeWithTag("context-trigger")
+        val save = compose.onNodeWithTag("context-save")
+        val preview = compose.onNodeWithTag("context-effective")
+        compose.onNodeWithTag("context-light").assertDoesNotExist()
+        open.performScrollTo().performClick()
+        preview.assertTextContains("18000", substring = true)
+        for (invalid in listOf("0", "-1", "1e6", "2147483648")) {
+            window.performTextReplacement(invalid)
+            save.assertIsNotEnabled()
+        }
+        window.performTextReplacement("1000000")
+        preview.assertTextContains("967000", substring = true)
+        for (invalid in listOf("499999", "980001", "+600000")) {
+            trigger.performTextReplacement(invalid)
+            save.assertIsNotEnabled()
+        }
+        trigger.performTextReplacement("600000")
+        save.assertIsEnabled().performClick()
+        compose.runOnIdle {
+            assertEquals(1_000_000, store.modelFor(ModelRole.Main)!!.capabilities.contextTokens)
+            assertEquals(600_000, store.modelFor(ModelRole.Light)!!.capabilities.compactionTriggerTokens)
+        }
+        open.performScrollTo().performClick()
+        trigger.assertTextContains("600000")
+        compose.onNodeWithText("重置").performScrollTo().performClick()
+        preview.assertTextContains("18000", substring = true)
+        compose.onNodeWithText("取消").performClick()
+        assertEquals(ModelContextSettings(1_000_000, 600_000), store.provider(provider.id)!!.contextSettings["m"])
+        open.performScrollTo().performClick()
+        compose.onNodeWithText("重置").performScrollTo().performClick()
+        save.performClick()
+        compose.runOnIdle { assertEquals(null, store.provider(provider.id)!!.contextSettings["m"]) }
     }
 
     @Test fun visionPickerOffersSameAsMainAndOffAndListsEveryModel() {

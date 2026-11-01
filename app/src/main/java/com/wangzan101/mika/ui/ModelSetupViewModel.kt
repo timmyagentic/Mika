@@ -19,6 +19,7 @@ import com.wangzan101.mika.settings.ProviderPreset
 import com.wangzan101.mika.settings.ProviderPresets
 import com.wangzan101.mika.settings.ProbeResult
 import com.wangzan101.mika.settings.ProviderStore
+import com.wangzan101.mika.settings.ModelContextSettings
 import com.wangzan101.mika.settings.RoleChoice
 import com.wangzan101.mika.settings.RoleChoices
 import com.wangzan101.mika.settings.ChatGptSignIns
@@ -793,6 +794,12 @@ class ModelSetupViewModel(
     fun setReasoningEffort(role: ModelRole, effort: String?) {
         store.setReasoningEffort(role, effort)
         sync()
+    }
+
+    fun setModelContext(configId: String, settings: ModelContextSettings): Boolean {
+        val saved = store.setModelContext(configId, settings)
+        sync()
+        return saved
     }
 
     /** 把 [providerId] 下的 [model] 用作 [role](选择页和「用作」面板都走这里):没有配置的当场建一条。 */

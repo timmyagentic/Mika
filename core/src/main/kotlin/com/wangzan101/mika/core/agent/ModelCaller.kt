@@ -40,7 +40,8 @@ internal class ModelCaller(
     /** 每个模型一份压缩状态:各自的上下文、各自发出的那份历史,轻量模型那次压缩不连累主模型的请求前缀。 */
     private val compressors = java.util.IdentityHashMap<ChatModel, ContextCompressor>()
     private fun compressorFor(m: ChatModel) =
-        compressors.getOrPut(m) { ContextCompressor(tools.index, structured = flags.structuredCompaction, diffScreens = tools.inlineScreen) }
+        compressors.getOrPut(m) { ContextCompressor(tools.index, structured = flags.structuredCompaction,
+            diffScreens = tools.inlineScreen, triggerOverride = m.capabilities.compactionTriggerTokens) }
     private val compactions = java.util.IdentityHashMap<ChatModel, CompactionState>()
     /** 本任务里已为重试等过的时间(对着 [RetryPolicy.taskWaitBudgetMs])。 */
     private var taskRetryWaitMs = 0L

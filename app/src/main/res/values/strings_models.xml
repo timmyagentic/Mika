@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="model_context_title">Context and compaction</string>
+    <string name="model_context_note">Blank fields use automatic values. Settings apply on the next task to all roles using this provider and model.</string>
+    <string name="model_context_window">Context window (tokens)</string>
+    <string name="model_context_trigger">Compaction trigger (tokens)</string>
+    <string name="model_context_auto">Auto · %1$d</string>
+    <string name="model_context_integer">Enter a positive whole number.</string>
+    <string name="model_context_range">Allowed range (tokens) · %1$d–%2$d</string>
+    <string name="model_context_effective">Effective budget (tokens) · Window %1$d · Trigger %2$d</string>
+    <string name="model_context_save_failed">Could not save these settings. Reopen the model and try again.</string>
     <string name="models_lead">Pick which model does each job under “Roles”; models come from the providers connected below.</string>
     <string name="models_roles">Roles</string>
     <string name="models_providers">Providers</string>
