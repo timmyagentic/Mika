@@ -55,12 +55,13 @@ class OpenAiCompatModel(
     }
 
     override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-        val (status, retryAfter, text, parsed) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
+        val response = HttpSupport.execute(http, request(system, messages, tools, stream = false))
+        val (status, retryAfter, text) = response
         if (status !in 200..299) throw mapError(status, retryAfter, text)
         // 有的兼容端点不守 OpenAI 的默认值:没让流式也照样回 SSE(本地、局域网上的自建服务常见)。按流读完再拼,别把 `data:` 当成坏 JSON。
-        if (!looksLikeEvents(text)) return parse(text, parsed)
+        if (!looksLikeEvents(text)) return parse(text)
         val stream = OpenAiStream({}, ::parseUsage, ::thinking)
-        eventsOf(text).forEach { stream.accept(it, parsed) }
+        response.replay(eventsOf(text), stream::accept)
         return stream.finish()
     }
 
@@ -74,7 +75,7 @@ class OpenAiCompatModel(
             stream = OpenAiStream(onText, ::parseUsage, ::thinking)
             response = HttpSupport.stream(http, request(system, messages, tools, stream = true, includeUsage = false), stream::accept)
         }
-        val (status, retryAfter, text, parsed) = response
+        val (status, retryAfter, text) = response
         if (status !in 200..299) {
             // 不支持流式传输的兼容端点仍可按原接口完成任务。
             if (status == 400 && text.contains("stream", ignoreCase = true)) return complete(system, messages, tools).also {
@@ -82,7 +83,7 @@ class OpenAiCompatModel(
             }
             throw mapError(status, retryAfter, text)
         }
-        if (text.isNotEmpty()) return parse(text, parsed).also { reply ->
+        if (text.isNotEmpty()) return parse(text).also { reply ->
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
         }
         return stream.finish()
@@ -260,10 +261,9 @@ class OpenAiCompatModel(
         return out
     }
 
-    private fun parse(text: String, parsed: ParsedPacket? = null): ModelReply {
+    private fun parse(text: String): ModelReply {
         try {
             val root = json.parseToJsonElement(text).jsonObject
-            parsed?.invoke(root)
             val choice = root["choices"]?.jsonArray?.firstOrNull()?.jsonObject
                 ?: throw ModelError.BadResponse("缺少 choices")
             val msg = choice["message"]?.jsonObject ?: throw ModelError.BadResponse("缺少 message")
@@ -305,7 +305,19 @@ class OpenAiCompatModel(
         }
     }
 
-    private fun parseUsage(el: JsonElement?) = InferenceProtocol.Chat.usage(el)?.totals()
+    private fun parseUsage(el: JsonElement?): Usage? {
+        val u = el as? JsonObject ?: return null
+        fun int(o: JsonObject?, k: String) = (o?.get(k) as? JsonPrimitive)?.intOrNull
+        // 兼容接口有两种命中字段名;按字段是否存在取值
+        val hit = int(u, "prompt_cache_hit_tokens")
+        val miss = int(u, "prompt_cache_miss_tokens")
+        val inT = int(u, "prompt_tokens") ?: if (hit != null && miss != null) hit + miss else return null
+        val outT = int(u, "completion_tokens") ?: 0
+        val cached = maxOf(int(u["prompt_tokens_details"] as? JsonObject, "cached_tokens") ?: 0, hit ?: 0).coerceAtMost(inT)
+        // completion_tokens 含思考;有的服务商在 completion_tokens_details.reasoning_tokens 里单独报
+        val reasoning = (int(u["completion_tokens_details"] as? JsonObject, "reasoning_tokens") ?: 0).coerceIn(0, outT)
+        return Usage(inT, outT, cached, reasoning)
+    }
 }
 
 /** Chat Completions 的 delta 可以把同一个工具的名称与参数拆成多帧。 */
@@ -327,11 +339,10 @@ private class OpenAiStream(
     private var done = false
     private var chunks = 0
 
-    fun accept(data: String, parsed: ParsedPacket? = null) {
+    fun accept(data: String) {
         if (data == "[DONE]") { done = true; return }
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
-        parsed?.invoke(root)
         if (root["error"] != null) throw ModelError.BadResponse(root["error"].toString().take(200))
         chunks++
         usageOf(root["usage"])?.let { usage = it }

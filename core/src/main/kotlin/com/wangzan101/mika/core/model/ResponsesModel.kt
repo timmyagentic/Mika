@@ -13,9 +13,9 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
  * 请求时带的 Bearer 令牌。[fresh] 为真表示上一个被拒了(HTTP 401),要先换一个新的;换不到抛 [ModelError]。
@@ -75,13 +75,12 @@ class ResponsesModel(
         while (true) {
             val stream = ResponsesStream(onText, ::errorOf)
             val bearer = token.get(fresh)
-            val payload = body(system, messages, tools, includeReasoning)
-            val req = request(bearer, payload)
-            val (status, retryAfter, text, parsed) = HttpSupport.stream(http, req, stream::accept)
+            val (status, retryAfter, text) = HttpSupport.stream(http, request(bearer, system, messages, tools, includeReasoning), stream::accept)
             if (status in 200..299) {
-                return if (text.isNotEmpty()) stream.fromBody(text, parsed).also { r ->
-                    r.parts.filterIsInstance<Part.Text>().joinToString("").takeIf(String::isNotEmpty)?.let(onText)
-                } else stream.finish()
+                if (text.isNotEmpty()) return stream.fromBody(text).also { reply ->
+                    reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
+                }
+                return stream.finish()
             }
             val err = errorBody(text)
             when {
@@ -105,12 +104,14 @@ class ResponsesModel(
             if (includeReasoning) putJsonArray("include") { add(ENCRYPTED_REASONING) }
         }
 
-    private suspend fun request(bearer: String?, payload: JsonObject): Request =
+    private suspend fun request(bearer: String?, system: String, messages: List<Message>, tools: List<ToolSpec>, includeReasoning: Boolean): Request =
         Request.Builder().url(endpoint)
             .withHeaders(headers)
             .apply { if (!bearer.isNullOrEmpty()) header("Authorization", "Bearer $bearer") }
             .header("Accept", "text/event-stream")
-            .postInference(InferenceProtocol.Responses, payload, if (chatGptPlan || endpoint.toHttpUrlOrNull()?.host == "api.openai.com") "openai" else "openai_compatible")
+            .postInference(InferenceProtocol.Responses, body(system, messages, tools, includeReasoning)) {
+                if (chatGptPlan || endpoint.toHttpUrlOrNull()?.host == "api.openai.com") "openai" else "openai_compatible"
+            }
             .build()
 
     private fun toolJson(t: ToolSpec): JsonObject = buildJsonObject {
@@ -215,7 +216,6 @@ class ResponsesModel(
     }
 }
 
-
 private fun JsonObject.str(k: String): String? = (this[k] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
 
 /**
@@ -232,11 +232,10 @@ private class ResponsesStream(
     private var final: JsonObject? = null
     private var incomplete = false
 
-    fun accept(data: String, parsed: ParsedPacket? = null) {
+    fun accept(data: String) {
         if (data == "[DONE]") return
         val root = try { json.parseToJsonElement(data) as? JsonObject } catch (e: Exception) { null }
             ?: throw ModelError.BadResponse("流式响应不是合法 JSON")
-        parsed?.invoke(root)
         when (root.str("type")) {
             "response.output_text.delta" -> root.str("delta")?.takeIf { it.isNotEmpty() }?.let {
                 visible.append(it)
@@ -260,10 +259,9 @@ private class ResponsesStream(
     }
 
     /** 服务端没按流式回、直接给了整个 response 对象。 */
-    fun fromBody(text: String, parsed: ParsedPacket?): ModelReply {
+    fun fromBody(text: String): ModelReply {
         val root = try { json.parseToJsonElement(text) as? JsonObject } catch (e: Exception) { null }
             ?: throw ModelError.BadResponse("返回内容不是合法 JSON")
-        parsed?.invoke(root)
         (root["error"] as? JsonObject)?.let { throw failure(it) }
         final = root
         incomplete = root.str("status") == "incomplete"
@@ -321,5 +319,13 @@ private class ResponsesStream(
         return ModelReply(parts, stop, usageOf(response["usage"]))
     }
 
-    private fun usageOf(el: JsonElement?) = InferenceProtocol.Responses.usage(el)?.totals()
+    private fun usageOf(el: JsonElement?): Usage? {
+        val u = el as? JsonObject ?: return null
+        fun int(o: JsonObject?, k: String) = (o?.get(k) as? JsonPrimitive)?.intOrNull
+        val input = int(u, "input_tokens") ?: return null
+        val cached = int(u["input_tokens_details"] as? JsonObject, "cached_tokens") ?: 0
+        val output = int(u, "output_tokens") ?: 0
+        val reasoning = (int(u["output_tokens_details"] as? JsonObject, "reasoning_tokens") ?: 0).coerceIn(0, output)
+        return Usage(input, output, cached.coerceAtMost(input), reasoning)
+    }
 }

@@ -47,18 +47,18 @@ class GeminiModel(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-        val (status, retryAfter, text, parsed) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
+        val (status, retryAfter, text) = HttpSupport.execute(http, request(system, messages, tools, stream = false))
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        return parse(text, parsed)
+        return parse(text)
     }
 
     override suspend fun completeStreaming(
         system: String, messages: List<Message>, tools: List<ToolSpec>, onText: (String) -> Unit,
     ): ModelReply {
         val stream = GeminiStream(onText, ::parse, ::parseUsage)
-        val (status, retryAfter, text, parsed) = HttpSupport.stream(http, request(system, messages, tools, stream = true), stream::accept)
+        val (status, retryAfter, text) = HttpSupport.stream(http, request(system, messages, tools, stream = true), stream::accept)
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        if (text.isNotEmpty()) return parse(text, parsed).also { reply ->
+        if (text.isNotEmpty()) return parse(text).also { reply ->
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
         }
         return stream.finish()
@@ -189,10 +189,9 @@ class GeminiModel(
             else -> null
         }
 
-    private fun parse(text: String, parsed: ParsedPacket? = null): ModelReply {
+    private fun parse(text: String): ModelReply {
         try {
             val root = json.parseToJsonElement(text).jsonObject
-            parsed?.invoke(root)
             val blockReason = ((root["promptFeedback"] as? JsonObject)?.get("blockReason") as? JsonPrimitive)?.contentOrNull
             if (blockReason != null) throw ModelError.ContentRefused()
             val cand = root["candidates"]?.jsonArray?.firstOrNull()?.jsonObject
@@ -233,7 +232,14 @@ class GeminiModel(
         }
     }
 
-    private fun parseUsage(el: JsonElement?) = InferenceProtocol.Gemini.usage(el)?.totals()
+    private fun parseUsage(el: JsonElement?): Usage? {
+        val u = el as? JsonObject ?: return null
+        fun n(k: String) = (u[k] as? JsonPrimitive)?.intOrNull
+        val inT = n("promptTokenCount") ?: return null
+        // promptTokenCount 已含缓存命中部分,与统一口径一致
+        val thoughts = n("thoughtsTokenCount") ?: 0
+        return Usage(inT, (n("candidatesTokenCount") ?: 0) + thoughts, n("cachedContentTokenCount") ?: 0, thoughts)
+    }
 }
 
 private class GeminiStream(
@@ -248,10 +254,9 @@ private class GeminiStream(
     private var usage: Usage? = null
     private var finishReason: String? = null
 
-    fun accept(data: String, parsed: ParsedPacket? = null) {
+    fun accept(data: String) {
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
-        parsed?.invoke(root)
         usageOf(root["usageMetadata"])?.let { usage = it }
         val candidate = (root["candidates"] as? JsonArray)?.firstOrNull() as? JsonObject ?: return
         (candidate["finishReason"] as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotEmpty)?.let { finishReason = it }

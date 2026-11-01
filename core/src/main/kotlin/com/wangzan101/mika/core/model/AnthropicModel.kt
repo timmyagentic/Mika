@@ -67,11 +67,11 @@ class AnthropicModel(
     private val staleThinking: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-        val (status, retryAfter, text, parsed) = dropStaleThinking(messages) {
+        val (status, retryAfter, text) = dropStaleThinking(messages) {
             HttpSupport.execute(http, request(system, messages, tools, stream = false))
         }
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        return parse(text, parsed)
+        return parse(text)
     }
 
     override suspend fun completeStreaming(
@@ -79,11 +79,11 @@ class AnthropicModel(
     ): ModelReply {
         val stream = AnthropicStream(endpoint, onText, ::parseUsage)
         // 被拒的那次没有事件(不是 2xx 时 HttpSupport.stream 不调 accept),重发接着用这个 stream
-        val (status, retryAfter, text, parsed) = dropStaleThinking(messages) {
+        val (status, retryAfter, text) = dropStaleThinking(messages) {
             HttpSupport.stream(http, request(system, messages, tools, stream = true), stream::accept)
         }
         if (status !in 200..299) throw mapError(status, retryAfter, text)
-        if (text.isNotEmpty()) return parse(text, parsed).also { reply ->
+        if (text.isNotEmpty()) return parse(text).also { reply ->
             reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }.takeIf(String::isNotEmpty)?.let(onText)
         }
         return stream.finish()
@@ -226,10 +226,9 @@ class AnthropicModel(
         }
     }
 
-    private fun parse(text: String, parsed: ParsedPacket? = null): ModelReply {
+    private fun parse(text: String): ModelReply {
         try {
             val root = json.parseToJsonElement(text).jsonObject
-            parsed?.invoke(root)
             val content = root["content"]?.jsonArray ?: throw ModelError.BadResponse("缺少 content")
             val parts = mutableListOf<Part>()
             content.forEach { el ->
@@ -264,7 +263,14 @@ class AnthropicModel(
         }
     }
 
-    private fun parseUsage(el: JsonElement?) = InferenceProtocol.Anthropic.usage(el)?.totals()
+    private fun parseUsage(el: JsonElement?): Usage? {
+        val u = el as? JsonObject ?: return null
+        fun n(k: String) = (u[k] as? JsonPrimitive)?.intOrNull
+        val inT = n("input_tokens") ?: return null
+        val cached = n("cache_read_input_tokens") ?: 0
+        // Anthropic 的 input_tokens 不含缓存部分;统一成总输入口径。output_tokens 含思考但不单独报,reasoningTokens 记 0
+        return Usage(inT + cached + (n("cache_creation_input_tokens") ?: 0), n("output_tokens") ?: 0, cached)
+    }
 }
 
 private class AnthropicStream(
@@ -285,10 +291,9 @@ private class AnthropicStream(
     private var reason: String? = null
     private var stopped = false
 
-    fun accept(data: String, parsed: ParsedPacket? = null) {
+    fun accept(data: String) {
         val root = try { json.parseToJsonElement(data).jsonObject }
         catch (e: Exception) { throw ModelError.BadResponse("流式响应不是合法 JSON", e) }
-        parsed?.invoke(root)
         when ((root["type"] as? JsonPrimitive)?.contentOrNull) {
             "message_start" -> usage = usageOf((root["message"] as? JsonObject)?.get("usage"))
             "content_block_start" -> {

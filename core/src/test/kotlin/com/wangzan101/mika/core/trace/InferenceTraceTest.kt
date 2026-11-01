@@ -40,8 +40,14 @@ class InferenceTraceTest {
                     """{"content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn","usage":{"input_tokens":78,"cache_read_input_tokens":20,"cache_creation_input_tokens":2,"output_tokens":3}}""",
                 GeminiModel(url,key,"gemini",caps,http) to
                     """{"candidates":[{"content":{"parts":[{"text":"ok"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":100,"candidatesTokenCount":3,"cachedContentTokenCount":0}}""",
+                OpenAiCompatModel(url,key,"buffered-chat",caps,http) to
+                    """data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}
+
+data: {"choices":[],"us\u0061ge":{"prompt_tokens":100,"completion_tokens":3,"prompt_cache_hit_tokens":12}}
+
+""",
             )
-            val expectedCache = listOf(null, 0L, 20L, 0L)
+            val expectedCache = listOf(null, 0L, 20L, 0L, 12L)
             for ((i, pair) in cases.withIndex()) {
                 val (model, json) = pair
                 val runDir = temp.newFolder()

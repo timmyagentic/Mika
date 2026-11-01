@@ -83,8 +83,12 @@ internal class TraceCall(
         @Volatile var usage: ReportedTokens? = null
             private set
 
-        fun packet(packet: JsonObject) {
-            val next = protocol.usageIn(packet) ?: return
+        fun packet(data: String) {
+            // Most SSE events are text deltas. Escaped keys still need JSON decoding.
+            if (data.firstOrNull { !it.isWhitespace() } != '{') return
+            if ("usage" !in data && "\\u" !in data) return
+            val packet = try { Json.parseToJsonElement(data) as? JsonObject } catch (_: IllegalArgumentException) { null }
+            val next = packet?.let(protocol::usageIn) ?: return
             val prev = usage
             usage = ReportedTokens(next.input ?: prev?.input, next.output ?: prev?.output, next.cached ?: prev?.cached)
         }
