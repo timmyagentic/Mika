@@ -303,7 +303,12 @@
 
 每次运行写一份记录(`app/record/RunStore.kt`):`files/runs/<时间>-<编号>/` 下的 `run.json`、`events.jsonl` 与画面截图,保留最近 30 次。事件类型见 `core/record/RunEvent.kt`(模型回复与用量、工具结果、观察、活动、确认、接管、来源、压缩、结局判定等);写入前由 `Redactor` 遮掉密码框输入和像密钥的字符串。界面上「查看过程」打开时间线(`app/ui/RunTimelineScreen.kt`):顶部是目标、标准、结局、用时,模型调用次数等细节收在「更多详情」里,下面用竖线步骤(`components/StepLine.kt`)逐步列出,点有画面的步骤看当时的画面。
 
-调试版和性能测试版可在「设置 → 开发者选项」按需开启[详细 Trace](harness-trace-proposal.md)。主循环按运行、步骤和实际请求记录 OTel span，四种接口的脱敏请求正文单独存入应用私有目录。在「查看过程」可对照用量和首处差异，手动保存标准 OTLP Protobuf 文件，在导出里查看 partial 原因和被截断的块。开发者选项里的总容量默认 100 MiB，空间不足时先清理最旧的已结束归档。
+**详细 Trace** 默认关闭。调试版和性能测试版可在「设置 → 开发者选项 → 运行记录」开启，从下一次任务起采集，关闭即停录。四种模型接口的每次主循环请求（含重发）和顶层工具调用各记一个 span。在「查看过程 → 详细 Trace」可对照同一模型相邻请求中首个变化的块，缓存用量未上报与命中为零分开显示。
+
+- 「保存本次 Trace」默认导出只含诊断元数据的 OTLP Protobuf 文件（`.pb`）。勾选「附带脱敏正文」才保存 ZIP，内含同一份 `trace.pb` 和按 span ID 命名的脱敏正文。
+- 遇到「部分记录」，先看根 span 的 `mika.trace.partial_reasons`。要定位截断的块，查看模型 span 上 `mika.trace.truncated` 事件的 `mika.block.path` 和 `mika.truncation.reason`。单次运行的正文预算为 8 MiB，最多记录 1,024 个子 span。
+
+应用私有归档的总容量默认 100 MiB，可在开发者选项中调整。空间不足时先清理最旧的已结束归档，正在录制或导出的归档会保留。
 
 **每件事一份小结**(`core/record/RunMetrics.kt`):`RunMetrics.of(events)` 是纯函数,只看运行记录里的事件;时间都从开始事件算起(之前载入知识、连手机的准备不计)。
 - 总时长到结局事件(没结束的到最后一个事件,结局记 unfinished);结局另带失败类别(结局事件的 `kind`,即 `FailKind` 的小写名)和交出回答后判的结局。办成 = 报了成功(含没能核实的),且没被判成只办了一部分或办不到。
