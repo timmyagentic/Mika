@@ -17,7 +17,8 @@ from mika_cli import Adb, CliError, connection, execute, recent_tasks, redact
 
 ASSETS = {"/": ("index.html", "text/html"), "/desk.css": ("desk.css", "text/css"),
           "/desk.js": ("desk.js", "text/javascript")}
-FIELDS = {"overview": set(), "select": {"device"}, "run": {"goal"}, "status": {"task_id"}, "cancel": {"task_id"},
+WATCH_SECONDS = 4
+FIELDS = {"overview": set(), "watch": {"task_id"}, "select": {"device"}, "run": {"goal"}, "status": {"task_id"}, "cancel": {"task_id"},
           "answer": {"task_id", "text"}, "steer": {"task_id", "text"}}
 
 
@@ -74,9 +75,19 @@ class Desk(ThreadingHTTPServer):
 
     def dispatch(self, action, data, sensitive):
         self.pin_target(data.get("device"))
-        if action in {"overview", "select"}:
+        if action in {"overview", "select", "watch"}:
             with connection(self.args, sensitive) as (client, transport):
                 info = client.discover()
+                if action == "watch":
+                    # A state change wakes the view early. At the deadline the same
+                    # overview also picks up progress text and other remote tasks.
+                    try:
+                        client.request("POST", f"/tasks/{data['task_id']}/wait", {"timeout_s": WATCH_SECONDS},
+                                       timeout=max(client.timeout, WATCH_SECONDS + 5))
+                    except CliError as exc:
+                        if exc.details.get("http_status") != 404:
+                            raise
+                        # The phone may have restarted and lost this task ID.
                 tasks = recent_tasks(client, 50)["tasks"]
                 device = {}
                 if "device_state" in info["capabilities"]:

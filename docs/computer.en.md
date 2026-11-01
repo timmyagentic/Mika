@@ -39,7 +39,7 @@ Each connection has its own switch and token, and both can be on at once. The co
 
 ## Task desk for the phone owner
 
-After connecting the phone, run `mika ui` to open the local task desk (currently in Simplified Chinese). Submit a task, refresh its progress, answer a question or read the result. Steps that require your intervention on the phone are marked in the desk. The list shows recent computer-initiated tasks. Old task IDs can expire when the Mika process restarts.
+After connecting the phone, run `mika ui` to open the local task desk (currently in Simplified Chinese). Submit a task and leave the desk open to follow its progress, answer questions and see the result. The visible page also picks up recent tasks from other clients. Updates pause in a hidden tab and resume when you return. Steps that require your intervention on the phone are marked in the desk. The list shows recent computer-initiated tasks. Old task IDs can expire when the Mika process restarts.
 
 For multiple ADB devices, choose the phone in the desk or pass `mika ui --device SERIAL` when starting it. A private network connection uses the usual `--url` and `--token-file`. With only the Skill installed, run `python3 <skill-directory>/scripts/mika_cli.py ui`. To open the browser yourself, pass `--no-open` and use the private link printed in the terminal on this computer. Keep the link private because it grants control of the desk. Ctrl+C closes the desk and leaves submitted tasks on the phone.
 

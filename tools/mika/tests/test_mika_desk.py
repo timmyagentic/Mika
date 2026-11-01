@@ -88,6 +88,24 @@ class DeskTest(unittest.TestCase):
             self.assertEqual(["/api/v1/tasks", "/api/v1/tasks/t1/answer", "/api/v1/tasks/t1/steer",
                               "/api/v1/tasks/t1/cancel"], [path for method, path, _ in phone.calls if method == "POST"])
 
+    def test_watch_returns_recent_tasks_after_a_bounded_read_even_if_the_watched_id_expired(self):
+        for wait_status in (200, 404):
+            def respond(method, path, body):
+                if path.endswith("/wait"):
+                    return wait_status, {**SNAPSHOT, "changed": False}, {}
+                if path.endswith("/tasks?limit=50"):
+                    return 200, {"tasks": [] if wait_status == 404 else [SNAPSHOT]}, {}
+
+            with self.subTest(wait_status=wait_status), api(respond) as phone, self.launch(phone) as url:
+                code, view = request(url, {"action": "watch", "task_id": "t1"})
+                self.assertEqual(200, code)
+                self.assertEqual([] if wait_status == 404 else [SNAPSHOT], view["tasks"])
+                self.assertEqual(["/api/v1", "/api/v1/tasks/t1/wait", "/api/v1/tasks?limit=50"],
+                                 [path for _, path, _ in phone.calls])
+                method, _, bound = phone.calls[1]
+                self.assertEqual("POST", method)
+                self.assertTrue(1 <= bound["timeout_s"] <= 5)
+
     def test_browser_session_origin_host_and_command_allowlist(self):
         with api() as phone, self.launch(phone) as url:
             command = {"action": "run", "goal": "no"}
