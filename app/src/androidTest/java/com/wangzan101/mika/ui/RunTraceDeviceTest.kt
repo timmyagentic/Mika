@@ -6,6 +6,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wangzan101.mika.ChineseUi
 import com.wangzan101.mika.MikaApp
+import com.wangzan101.mika.core.model.ChatModel
+import com.wangzan101.mika.core.model.Message
+import com.wangzan101.mika.core.model.ToolSpec
 import com.wangzan101.mika.core.model.BearerToken
 import com.wangzan101.mika.core.model.Capabilities
 import com.wangzan101.mika.core.model.ResponsesModel
@@ -35,6 +38,7 @@ class RunTraceDeviceTest {
     @Test fun recordsAndViewsARequestFromTheSettingsSwitch() {
         val app = compose.activity.application as MikaApp
         val previous = app.detailedTraces.enabled
+        val previousLimit = app.detailedTraces.limitMiB
         val received = LinkedBlockingQueue<ByteArray>()
         MockWebServer().use { server ->
             server.dispatcher = object : Dispatcher() {
@@ -52,7 +56,12 @@ class RunTraceDeviceTest {
                 Capabilities(true, false, 128_000, false), OkHttpClient())
             try {
                 app.detailedTraces.setEnabled(false)
-                testTasks.modelFactory = { _, _ -> model }
+                // One local request exercises clipping without a long task or a large chat reply.
+                val fixture = object : ChatModel by model {
+                    override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>) =
+                        model.complete(system + " fixture".repeat(5_000), messages, tools)
+                }
+                testTasks.modelFactory = { _, _ -> fixture }
                 testTasks.lightModelFactory = { _, _ -> null }
                 testTasks.visionModelFactory = { _, _ -> null }
                 // A fresh install starts on the optional setup page above the chat.
@@ -64,6 +73,13 @@ class RunTraceDeviceTest {
                 compose.onNodeWithText("设置").performClick()
                 compose.onNodeWithText("记录详细 Trace").assertDoesNotExist()
                 compose.onNodeWithText("开发者选项").performScrollTo().performClick()
+                compose.onNodeWithText("Trace 存储上限").performScrollTo().performClick()
+                compose.onNode(hasSetTextAction()).performTextReplacement("0")
+                compose.onNode(hasText("保存") and hasClickAction() and hasAnyAncestor(isDialog())).assertIsNotEnabled()
+                compose.onNode(hasSetTextAction()).performTextReplacement("37")
+                compose.clickInDialog("保存")
+                compose.awaitOne("37 MiB").assertExists()
+                assertTrue(com.wangzan101.mika.record.DetailedTraces(app).limitMiB == 37)
                 compose.onNodeWithText("记录详细 Trace").performScrollTo().performClick()
                 assertTrue(app.detailedTraces.enabled)
                 compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
@@ -77,6 +93,7 @@ class RunTraceDeviceTest {
                 compose.onNodeWithText("查看过程").performSemanticsAction(SemanticsActions.OnClick)
                 compose.waitUntil(15_000) { compose.onAllNodesWithText("运行过程").fetchSemanticsNodes().isNotEmpty() }
                 compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("详细 Trace"))
+                compose.onNodeWithText("部分记录").assertExists()
                 compose.onNodeWithText("详细 Trace").performScrollTo().performClick()
                 compose.onNodeWithText("输入 1200 · 缓存读取 512 · 未命中 688", substring = true).performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
                 compose.onNodeWithText("保存本次 Trace").assertExists()
@@ -90,6 +107,7 @@ class RunTraceDeviceTest {
                 compose.waitUntil(10_000) { compose.onAllNodesWithText("接收端已接受").fetchSemanticsNodes().isNotEmpty() }
             } finally {
                 app.detailedTraces.setEnabled(previous)
+                app.detailedTraces.setLimitMiB(previousLimit)
                 testTasks.modelFactory = TaskEnvironment.defaultModelFactory
                 testTasks.lightModelFactory = TaskEnvironment.defaultLightModelFactory
                 testTasks.visionModelFactory = TaskEnvironment.defaultVisionModelFactory

@@ -8,7 +8,8 @@ import com.wangzan101.mika.core.tool.Verb
 import kotlinx.serialization.json.*
 import okio.ByteString.Companion.encodeUtf8
 
-internal data class RequestBlock(val path: String, val digest: String, val text: String, val truncated: Boolean)
+internal data class RequestBlock(val path: String, val digest: String, val text: String, val truncation: String?)
+internal data class CapturedReply(val text: String, val truncation: String?)
 
 internal object TracePayload {
     const val MAX_BLOCK = 32_768
@@ -39,9 +40,9 @@ internal object TracePayload {
         return buildList {
             fun block(path: String, value: JsonElement) {
                 val digest = value.toString().encodeUtf8().sha256().hex()
-                view.truncated = false
+                view.truncation = null
                 val cleaned = view.clean(value).toString()
-                add(RequestBlock(path, digest, cleaned.take(MAX_BLOCK), view.truncated || cleaned.length > MAX_BLOCK))
+                add(RequestBlock(path, digest, cleaned.take(MAX_BLOCK), view.reasonFor(cleaned)))
             }
             for ((k, v) in body) if (k != "instructions" && k != "tools" && k != "input") block(k, v)
             body["instructions"]?.let { block("instructions", it) }
@@ -50,7 +51,7 @@ internal object TracePayload {
         }
     }
 
-    fun reply(reply: ModelReply, verb: (String?) -> Verb?): String {
+    fun reply(reply: ModelReply, verb: (String?) -> Verb?): CapturedReply {
         val view = View(emptyList<Part.Image>().iterator(), verb)
         val visible = buildString {
             for (part in reply.parts) {
@@ -64,20 +65,23 @@ internal object TracePayload {
                 if (length > MAX_BLOCK) break
             }
         }
-        return if (visible.length > MAX_BLOCK || view.truncated) visible.take(MAX_BLOCK) + "\n[truncated]" else visible
+        val reason = view.reasonFor(visible)
+        return CapturedReply(if (reason != null) visible.take(MAX_BLOCK) + "\n[truncated]" else visible, reason)
     }
 
     private class View(private val images: Iterator<Part.Image>, private val verb: (String?) -> Verb?) {
         private val calls = mutableMapOf<String, Verb?>()
-        var truncated = false
+        var truncation: String? = null
+
+        fun reasonFor(text: String) = truncation ?: "block_size_limit".takeIf { text.length > MAX_BLOCK }
 
         fun clean(v: JsonElement, depth: Int = 0): JsonElement {
             if (depth > 32) {
-                truncated = true
+                truncation = "nesting_limit"
                 return JsonPrimitive("[truncated]")
             }
             if (v is JsonPrimitive && v.isString && v.content.length > MAX_BLOCK) {
-                truncated = true
+                truncation = "block_size_limit"
                 // Cut at a boundary so a partial credential cannot evade the redactor.
                 val prefix = v.content.take(MAX_BLOCK)
                 val boundary = prefix.lastIndexOfAny(charArrayOf(' ', '\n', '\r', '\t'))

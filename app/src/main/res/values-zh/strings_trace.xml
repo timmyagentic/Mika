@@ -1,6 +1,9 @@
 <resources>
     <string name="trace_switch">记录详细 Trace</string>
     <string name="trace_switch_detail">从下一次运行起记录，请求正文可能含隐私。关闭即停录。</string>
+    <string name="trace_storage_limit">Trace 存储上限</string>
+    <string name="trace_storage_hint">空间不足时自动清理最早结束的记录。</string>
+    <string name="trace_storage_value">%1$d MiB</string>
     <string name="trace_title">详细 Trace</string>
     <string name="trace_partial">部分记录</string>
     <string name="trace_recorded">已记录在本机</string>

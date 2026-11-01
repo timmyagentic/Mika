@@ -1,6 +1,9 @@
 <resources>
     <string name="trace_switch">Record detailed trace</string>
     <string name="trace_switch_detail">For new runs. Request text may contain private information. Turning this off stops capture immediately.</string>
+    <string name="trace_storage_limit">Trace storage limit</string>
+    <string name="trace_storage_hint">Older finished traces are removed when space is needed.</string>
+    <string name="trace_storage_value">%1$d MiB</string>
     <string name="trace_title">Detailed trace</string>
     <string name="trace_partial">Partial record</string>
     <string name="trace_recorded">Recorded on this device</string>

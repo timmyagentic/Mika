@@ -102,6 +102,7 @@ fun SettingsScreen(
     val flags = remember { FeatureFlags.get(context) }
     val traces = (context.applicationContext as com.wangzan101.mika.MikaApp).detailedTraces
     var traceEnabled by remember { mutableStateOf(traces.enabled) }
+    var traceLimitMiB by remember { mutableIntStateOf(traces.limitMiB) }
     var parallelMax by remember { mutableIntStateOf(flags.parallelMax()) }
     var keepScreenOn by remember { mutableStateOf(flags.keepScreenOn()) }
     var muteTarget by remember { mutableStateOf(flags.muteTarget()) }
@@ -203,6 +204,12 @@ fun SettingsScreen(
             onGrounding = { verified -> scope.launch { withContext(Dispatchers.IO) { store.setVisionGroundingVerified(verified) } } },
             onOpenRunStats = { page = SettingsPage.RunStats },
             traceEnabled = traceEnabled, onTrace = { traces.setEnabled(it); traceEnabled = traces.enabled },
+            traceLimitMiB = traceLimitMiB, onTraceLimit = { limit ->
+                scope.launch {
+                    withContext(Dispatchers.IO) { traces.setLimitMiB(limit) }
+                    traceLimitMiB = traces.limitMiB
+                }
+            },
         )
         SettingsPage.RunStats -> RunStatsScreen(remember { RunStore(context).metrics }, onBack = back)
     }

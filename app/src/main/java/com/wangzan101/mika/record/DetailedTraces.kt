@@ -8,7 +8,15 @@ import java.io.File
 /** One switch for all runs; a ticket taken before setup cannot be reused after stop/re-enable. */
 class DetailedTraces(context: Context) {
     private val prefs = context.getSharedPreferences("trace_settings", Context.MODE_PRIVATE)
-    val store = TraceStore(File(context.noBackupFilesDir, "harness-traces"))
+    val limitMiB: Int get() = prefs.getInt("limit_mib", TraceStore.DEFAULT_LIMIT_MIB)
+    val store = TraceStore(File(context.noBackupFilesDir, "harness-traces"), storageLimitBytes = limitMiB * TraceStore.MIB)
+
+    @Synchronized fun setLimitMiB(limit: Int) {
+        require(limit > 0)
+        store.setStorageLimit(limit * TraceStore.MIB)
+        prefs.edit().putInt("limit_mib", limit).apply()
+    }
+
     private var generation = 0L
     val enabled: Boolean get() = prefs.getBoolean("enabled", false)
 

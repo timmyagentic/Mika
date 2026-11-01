@@ -9,7 +9,9 @@
 1. **开启与停止。** 在「设置 → 开发者选项」增加默认关闭的「记录详细 Trace」，从下一次运行生效。关掉即停录，已经写入的记录可读，中断或达到容量上限的运行标为「部分记录」。
 2. **调用与用量。** 每个运行用一条 OTel trace，根 span 下记录主循环中实际发送的模型请求和顶层工具调用。步号作为属性，同一步的重试分别成 span。保留时间、模型、工具名、工具调用 ID、结果状态和服务商返回的用量。输入、输出、缓存读取沿用 `gen_ai.usage.input_tokens`、`gen_ai.usage.output_tokens` 和 `gen_ai.usage.cache_read.input_tokens`。每次用量只计在上报它的请求上，总输入已含缓存读取，显式零与「未上报」分开显示。[GenAI 推理约定](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/client-inference.md)
 3. **这一步实际发了什么。** Responses 主循环（含 ChatGPT 登录）记录实际发送的请求。在适配器完成序列化后留下经脱敏的指令、有序工具定义、消息与工具回填文本，图片记录尺寸及内容指纹。用 span ID 对上这次回复和用量。给同模型、同配置的相邻请求记录首个变化块的位置，并关联确实发生的工具展开或历史裁剪。原文采集尚未覆盖的适配器标为「未采集」。[实际请求的组装位置](../../core/src/main/kotlin/com/wangzan101/mika/core/model/ResponsesModel.kt) · [上下文处理与重试](../../core/src/main/kotlin/com/wangzan101/mika/core/agent/ModelCaller.kt)
-4. **在手机上排查。** 沿用「查看过程」的步骤列表，展开一次尝试即可看到用量、首处变化和对应文本。按整次运行保存，默认的 .pb 文件只含脱敏 spans。勾选「附带脱敏正文」再保存，会得到包含同一份 Protobuf 和每次请求、可见回复文本的 ZIP。文本以 span ID 命名。鉴权头、Cookie、可识别的凭证与密码字段在写盘前排除。记录保存在应用私有目录，最多保留 12 次运行。每次运行正文预算 8 MiB，最多 1,024 个子 span。重复块在手机上只写一次，超出上限的位置标为截断。
+4. **在手机上排查。** 沿用「查看过程」的步骤列表，展开一次尝试即可看到用量、首处变化和对应文本。按整次运行保存，默认的 .pb 文件只含脱敏 spans。勾选「附带脱敏正文」再保存，会得到包含同一份 Protobuf 和每次请求、可见回复文本的 ZIP。文本以 span ID 命名。鉴权头、Cookie、可识别的凭证与密码字段在写盘前排除。在「开发者选项 → 运行记录」可设置全部私有 Trace 文件的总容量，默认 100 MiB。按文件字节数统计 spans、清单、去重正文与回复，写入需要空间时按归档目录修改时间清理最旧的已结束运行。调低上限会立即清理。录制或导出中的归档受保护，释放后再处理超出的部分。保存到「下载」的副本由用户管理。每次运行正文预算 8 MiB，最多 1,024 个子 span。
+
+**从导出定位缺失。** 根 span 的 `mika.trace.partial_reasons` 汇总部分记录的原因。模型 span 上的 `mika.trace.truncated` 事件给出 `mika.block.path`（如 `input[4]` 或 `response`）和 `mika.truncation.reason`，步号与尝试次数沿用该 span 的属性。单块过长、嵌套过深、单次正文预算用完可分别识别。整库空间用完或达到 span 上限时，根 span 还会留下停止的步号和已知位置。升级后重新导出旧归档时，按原清单恢复已知位置。旧记录无法细分的单块限制标为 `block_limit`，无法还原的原因标为 `unknown`。
 
 ## 通用 OTLP/HTTP 的边界
 

@@ -19,45 +19,58 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 import okio.ByteString.Companion.toByteString
 import java.io.File
+import java.io.IOException
+import io.opentelemetry.api.common.AttributeKey
 import java.util.IdentityHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
 /** Kept outside ordinary run directories, which may be mirrored for evaluation. */
-class TraceStore(private val directory: File, private val byteLimit: Int = 8 * 1024 * 1024) {
+class TraceStore(private val directory: File, private val byteLimit: Int = 8 * 1024 * 1024,
+    storageLimitBytes: Long = DEFAULT_LIMIT_MIB * MIB,
+) {
     private val active = mutableMapOf<String, RunTrace>()
+    private val disk = TraceDisk(directory, storageLimitBytes)
+
+    fun setStorageLimit(bytes: Long) = disk.setLimit(bytes)
 
     @Synchronized fun start(id: String): RunTrace? {
-        if (!valid(id) || id in active) return null
+        if (!TraceDisk.RUN_ID.matches(id) || id in active) return null
+        val dir = File(directory, id)
         return runCatching {
-            directory.mkdirs()
-            val entries = directory.listFiles().orEmpty().filter { it.isDirectory && valid(it.name) }
-            val removable = entries.filter { it.name !in active }.sortedBy { it.lastModified() }
-            val excess = (entries.size - 11).coerceAtLeast(0)
-            if (excess > removable.size) return null
-            for (old in removable.take(excess)) if (!old.deleteRecursively()) return null
-            val files = TraceArchive(File(directory, id))
-            files.initialize()
-            RunTrace(files, byteLimit).also { active[id] = it }
+            if (!disk.open(dir)) return null
+            try {
+                val files = TraceArchive(dir, disk)
+                files.initialize()
+                RunTrace(files, byteLimit).also { active[id] = it }
+            } catch (e: Exception) {
+                disk.close(dir)
+                throw e
+            }
         }.getOrNull()
     }
 
     @Synchronized fun finish(trace: RunTrace?) {
-        if (trace != null && active.remove(trace.archive.runId, trace)) trace.finish()
+        if (trace != null && active.remove(trace.archive.runId, trace)) {
+            try { trace.finish() } finally { disk.close(trace.archive.dir) }
+        }
     }
 
     @Synchronized fun stopAll() {
-        active.values.forEach { it.finish(stopped = true) }
+        for (trace in active.values) {
+            try { trace.finish("recording_disabled") } finally { disk.close(trace.archive.dir) }
+        }
         active.clear()
     }
 
-    fun archive(id: String): TraceArchive? = if (valid(id))
-        TraceArchive(File(directory, id)).takeIf { it.root.isFile } else null
+    fun archive(id: String): TraceArchive? = if (TraceDisk.RUN_ID.matches(id))
+        TraceArchive(File(directory, id), disk).takeIf { it.root.isFile } else null
 
-    private fun valid(id: String) = RUN_ID.matches(id)
-
-    private companion object { val RUN_ID = Regex("[a-zA-Z0-9_-]{1,80}") }
+    companion object {
+        const val DEFAULT_LIMIT_MIB = 100
+        const val MIB = 1024L * 1024
+    }
 }
 
 /** Exists only in the main loop model invocation, including the adapter's own retry loop. */
@@ -79,19 +92,27 @@ internal class TraceCall(
 }
 
 class RunTrace internal constructor(internal val archive: TraceArchive, private val byteLimit: Int) : RunSink {
-    @Volatile private var writeFailed = false
+    private var writeFailure: Exception? = null
+    private var failedWriteStep: Long? = null
     // A private SDK processor writes this run's ended spans locally. No global provider or automatic exporter.
     private val provider = SdkTracerProvider.builder().addSpanProcessor(object : SpanProcessor {
         override fun isStartRequired() = false
         override fun onStart(parent: Context, span: ReadWriteSpan) = Unit
         override fun isEndRequired() = true
         override fun onEnd(span: ReadableSpan) {
-            try { archive.store(span.toSpanData()) } catch (_: Exception) { writeFailed = true }
+            val data = span.toSpanData()
+            try { archive.store(data) } catch (e: Exception) {
+                if (writeFailure == null) {
+                    writeFailure = e
+                    failedWriteStep = data.attributes.get(STEP)
+                }
+            }
         }
     }).build()
     private val tracer = provider.get("mika.harness")
     private val root = tracer.spanBuilder("invoke_agent Mika").setNoParent().startSpan()
         .setAttribute("gen_ai.operation.name", "invoke_agent").setAttribute("mika.status", "partial")
+        .setAttribute("mika.trace.format_version", 2L)
     private val parent = Context.root().with(root)
     private val pending = mutableSetOf<Span>()
     private val toolSpans = mutableMapOf<Pair<Int, String>, Span>()
@@ -136,12 +157,12 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
         if (!recording) return null
         // Do not hold the stop lock while fingerprinting last turn's images or redacting a long prompt.
         val blocks = try { body?.let { TracePayload.blocks(it, messages, call.verb) } }
-            catch (_: Exception) { finish(stopped = true); return null }
-            catch (_: StackOverflowError) { finish(stopped = true); return null }
+            catch (_: Exception) { finish("capture_error", call.step.toLong(), "request"); return null }
+            catch (_: StackOverflowError) { finish("capture_error", call.step.toLong(), "request"); return null }
         return beginPrepared(call, blocks, start, provider)
     }
 
-    @Synchronized private fun beginPrepared(call: TraceCall, blocks: List<RequestBlock>?, start: Long, provider: String?): Span? = record {
+    @Synchronized private fun beginPrepared(call: TraceCall, blocks: List<RequestBlock>?, start: Long, provider: String?): Span? = record(call.step.toLong()) {
         val span = child("chat " + TracePayload.label(call.model.name), call.step, SpanKind.CLIENT, start)
         val index = (attempts[call.step] ?: 0) + 1
         attempts[call.step] = index
@@ -173,15 +194,15 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
                 val extra = if (archive.hasBlock(key)) 0 else content.size
                 if (bytes + extra + (parts.size + 1) * 192 > byteLimit) {
                     span.setAttribute("mika.status", "truncated")
-                    parts.add(BodyPart(b.path, null, true))
+                    parts.add(BodyPart(b.path, null, true, "run_body_limit"))
                     bytes += archive.writeBody(span.spanContext.spanId, parts)
                     checkpoint(span)
-                    finish(stopped = true)
+                    finish("run_body_limit", call.step.toLong(), b.path)
                     return@record null
                 }
-                if (b.truncated) truncated = true
-                bytes += archive.putBlock(key, content)
-                parts.add(BodyPart(b.path, key, b.truncated))
+                if (b.truncation != null) truncated = true
+                bytes += archive.putBlock(key, content, b.path)
+                parts.add(BodyPart(b.path, key, b.truncation != null, b.truncation))
             }
             bytes += archive.writeBody(span.spanContext.spanId, parts)
         }
@@ -190,22 +211,25 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
     }
 
     @Synchronized internal fun end(span: Span?, status: String, input: Int?, cached: Int?, output: Int?,
-        replyText: (() -> String)? = null,
+        replyText: (() -> CapturedReply)? = null,
     ) {
         if (span == null || !recording || span !in pending) return
-        record {
+        record((span as ReadableSpan).getAttribute(STEP)) {
             input?.let { span.setAttribute("gen_ai.usage.input_tokens", it.toLong()) }
             cached?.let { span.setAttribute("gen_ai.usage.cache_read.input_tokens", it.toLong()) }
             output?.let { span.setAttribute("gen_ai.usage.output_tokens", it.toLong()) }
             if (replyText != null) {
-                val data = replyText().toByteArray()
-                if (bytes + data.size <= byteLimit) {
-                    archive.writeReply(span.spanContext.spanId, data)
-                    bytes += data.size
-                } else {
+                val reply = replyText()
+                val data = reply.text.toByteArray()
+                val fits = bytes + data.size <= byteLimit
+                val reason = if (fits) reply.truncation else "run_body_limit"
+                if (reason != null) {
                     truncated = true
-                    archive.writeReply(span.spanContext.spanId, "[truncated]".toByteArray())
+                    span.setAttribute("mika.trace.reply_truncation", reason)
                 }
+                val saved = if (fits) data else "[truncated]".toByteArray()
+                archive.writeReply(span.spanContext.spanId, saved)
+                bytes += saved.size
             }
             span.setAttribute("mika.status", status)
             if (status == "error") span.setStatus(StatusCode.ERROR)
@@ -215,7 +239,7 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
     }
 
     @Synchronized internal fun toolStarted(step: Int, name: String, callId: String, start: Long) {
-        record {
+        record(step.toLong()) {
             val span = tool(step, name, callId, start)
             toolSpans[step to callId] = span
             checkpoint(span)
@@ -232,7 +256,7 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
     }
 
     @Synchronized override fun event(e: RunEvent) {
-        record {
+        record((e as? RunEvent.ToolResult)?.step?.toLong()) {
             when (e) {
                 is RunEvent.ToolResult -> if (e.source == "model") {
                     val span = e.callId?.let { toolSpans.remove(e.step to it) }
@@ -253,7 +277,7 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
     }
 
     private fun child(name: String, step: Int, kind: SpanKind, start: Long): Span {
-        check(count < 1024)
+        if (count >= 1024) throw SpanLimitReached()
         count++
         return tracer.spanBuilder(name).setParent(parent).setSpanKind(kind).setStartTimestamp(start, TimeUnit.MILLISECONDS)
             .startSpan().setAttribute("mika.step.index", step.toLong()).setAttribute("mika.sequence", count.toLong())
@@ -262,15 +286,26 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
     }
 
     /** Cancellation, quota exhaustion and storage failure seal the trace. Late model callbacks cannot reopen it. */
-    @Synchronized internal fun finish(stopped: Boolean = false) {
+    @Synchronized internal fun finish(reason: String? = null, step: Long? = null, block: String? = null) {
         if (!recording) return
         recording = false
-        val interrupted = pending.isNotEmpty() || outcome == "cancelled"
+        val interrupted = pending.isNotEmpty()
         pending.forEach { it.end() }
         pending.clear()
         toolSpans.clear()
         previous.clear()
-        val state = if (stopped || interrupted || truncated || writeFailed || outcome == null) "partial" else outcome!!
+        val failure = writeFailure
+        val stop = reason ?: when {
+            failure != null -> failureReason(failure)
+            outcome == "cancelled" -> "run_cancelled"
+            interrupted -> "unfinished_spans"
+            outcome == null -> "missing_run_outcome"
+            else -> null
+        }
+        val state = if (stop != null || truncated) "partial" else outcome!!
+        stop?.let { root.setAttribute("mika.trace.stop_reason", it) }
+        (step ?: failedWriteStep)?.let { root.setAttribute("mika.trace.stopped_step", it) }
+        (block ?: (failure as? TraceDiskFull)?.block)?.let { root.setAttribute("mika.trace.stopped_block", it) }
         outcome?.let { root.setAttribute("mika.run.outcome", it) }
         root.setAttribute("mika.status", state)
         if (state == "failed" || state == "error") root.setStatus(StatusCode.ERROR)
@@ -278,12 +313,21 @@ class RunTrace internal constructor(internal val archive: TraceArchive, private 
         provider.shutdown()
     }
 
-    private inline fun <T> record(block: () -> T): T? {
-        if (!recording) return null
-        if (writeFailed) { finish(stopped = true); return null }
-        return try { block() }
-        catch (_: Exception) { finish(stopped = true); null }
-        catch (_: StackOverflowError) { finish(stopped = true); null }
+    private class SpanLimitReached : Exception()
+    private fun failureReason(e: Exception): String = when (e) {
+        is SpanLimitReached -> "span_limit"
+        is TraceDiskFull -> "storage_limit"
+        is IOException -> "write_error"
+        else -> "capture_error"
     }
 
+    private inline fun <T> record(step: Long?, block: () -> T): T? {
+        if (!recording) return null
+        if (writeFailure != null) { finish(); return null }
+        return try { block() }
+        catch (e: Exception) { finish(failureReason(e), step, (e as? TraceDiskFull)?.block); null }
+        catch (_: StackOverflowError) { finish("capture_error", step); null }
+    }
+
+    private companion object { val STEP = AttributeKey.longKey("mika.step.index") }
 }

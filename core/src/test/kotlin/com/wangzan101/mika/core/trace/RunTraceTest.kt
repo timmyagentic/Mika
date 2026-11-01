@@ -9,6 +9,7 @@ import com.wangzan101.mika.core.record.RunSink
 import com.wangzan101.mika.core.tool.FakeScreen
 import com.wangzan101.mika.core.tool.Verb
 import com.wangzan101.mika.core.uistate.ScreenPort
+import io.opentelemetry.proto.trace.v1.Span
 import io.opentelemetry.proto.collector.trace.v1.ExportTracePartialSuccess
 import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest
 import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse
@@ -23,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
 
@@ -166,11 +168,110 @@ class RunTraceTest {
         assertEquals("partial", limited.first().status)
         assertEquals("truncated", limited.last().status)
         assertTrue(store.archive("limited")!!.bodyPage(limited.last().id)!!.text.contains("instructions\n\n[truncated]"))
+        val limitedSpans = store.archive("limited")!!.exported()
+        assertEquals("run_body_limit", limitedSpans.last().cuts()["instructions"])
         val other = store.start("stopped")!!
         store.stopAll()
         assertNull(TraceCall(other, 1, model, { null }, null).begin(JsonObject(emptyMap()), emptyList()))
         assertEquals("partial", store.archive("stopped")!!.rows().single().status)
+        assertEquals("recording_disabled", store.archive("stopped")!!.exported().single().attr("mika.trace.stop_reason").stringValue)
         assertNull(store.archive("../limited"))
         assertNull(store.archive("older-run"))
     }
+    private fun TraceArchive.exported(): List<Span> {
+        val bytes = ByteArrayOutputStream().also { save(it, false) }
+        return ExportTraceServiceRequest.parseFrom(bytes.toByteArray()).getResourceSpans(0).getScopeSpans(0).spansList
+    }
+
+    private fun Span.attr(name: String) = attributesList.single { it.key == name }.value
+
+    private fun Span.cuts() = eventsList.filter { it.name == "mika.trace.truncated" }.associate { event ->
+        val attrs = event.attributesList.associate { it.key to it.value.stringValue }
+        attrs.getValue("mika.block.path") to attrs.getValue("mika.truncation.reason")
+    }
+
+    @Test fun protobufLocatesEachRequestAndReplyCutAndCanReexportALegacyManifest() {
+        val dir = temp.newFolder()
+        val store = TraceStore(dir)
+        val trace = store.start("case")!!
+        val model = ResponsesModel("http://localhost", BearerToken.fixed(null), "m", Capabilities(true,false,1000,false), OkHttpClient())
+        val longText = "private-body ".repeat(3_000)
+        var deep: JsonElement = JsonPrimitive("leaf")
+        repeat(40) { deep = JsonArray(listOf(deep)) }
+        val body = buildJsonObject { put("input", buildJsonArray {
+            add("short"); add(longText); add(deep)
+        }) }
+        val attempt = TraceCall(trace, 7, model, { null }, null).begin(body, emptyList())!!
+        val response = ModelReply(listOf(Part.Text(longText)), StopReason.EndTurn, null)
+        trace.end(attempt, "ok", 50, 0, 1) { TracePayload.reply(response) { null } }
+        trace.event(RunEvent.TaskEnded(System.currentTimeMillis(), "succeeded", ""))
+        store.finish(trace)
+        val archive = store.archive("case")!!
+        val (root, child) = archive.exported()
+        assertEquals("partial", root.attr("mika.status").stringValue)
+        assertEquals("succeeded", root.attr("mika.run.outcome").stringValue)
+        assertEquals(setOf("block_size_limit", "nesting_limit"), root.attr("mika.trace.partial_reasons").arrayValue.valuesList.map { it.stringValue }.toSet())
+        assertEquals(7L, child.attr("mika.step.index").intValue)
+        assertEquals(1L, child.attr("mika.attempt").intValue)
+        assertEquals(mapOf("input[1]" to "block_size_limit", "input[2]" to "nesting_limit", "response" to "block_size_limit"), child.cuts())
+        assertFalse(child.toString().contains("private-body"))
+
+        // Old archives have booleans in the manifest, a reserved reply suffix and no format attribute.
+        fun strip(file: File, key: String) {
+            val b = Span.parseFrom(file.readBytes()).toBuilder()
+            b.removeAttributes(b.attributesList.indexOfFirst { it.key == key })
+            file.writeBytes(b.build().toByteArray())
+        }
+        strip(File(dir, "case/root.pb"), "mika.trace.format_version")
+        val id = attempt.spanContext.spanId
+        strip(File(dir, "case/spans/$id.pb"), "mika.trace.reply_truncation")
+        val manifest = File(dir, "case/requests/$id.json")
+        manifest.writeText(JsonArray(Json.parseToJsonElement(manifest.readText()).jsonArray.map {
+            JsonObject(it.jsonObject - "reason")
+        }).toString())
+        val (_, legacy) = TraceStore(dir).archive("case")!!.exported()
+        assertEquals(setOf("input[1]", "input[2]", "response"), legacy.cuts().keys)
+        assertEquals(setOf("block_limit"), legacy.cuts().values.toSet())
+    }
+
+    @Test fun rotatesByFileBytesAcrossRestartAndProtectsAnActiveRun() {
+        val dir = temp.newFolder()
+        val store = TraceStore(dir)
+        for (i in 1..15) {
+            store.finish(store.start("run$i")!!)
+            File(dir, "run$i").setLastModified(1_700_000_000_000L + i)
+        }
+        assertEquals(15, dir.listFiles()!!.size)
+        val saved = temp.newFile()
+        saved.outputStream().use { store.archive("run1")!!.save(it, false) }
+        File(dir, "run1/blocks/old").writeBytes(ByteArray(8_192))
+        val before = dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+        val reopened = TraceStore(dir)
+        reopened.setStorageLimit(before - 1)
+        assertNull(reopened.archive("run1"))
+        assertEquals(14, dir.listFiles()!!.size)
+        assertTrue(saved.length() > 0)
+        val live = reopened.start("live")!!
+        reopened.setStorageLimit(1_100)
+        assertNotNull(reopened.archive("live"))
+        assertNull(reopened.start("extra"))
+        reopened.finish(live)
+        assertTrue(dir.walkTopDown().filter { it.isFile }.sumOf { it.length() } <= 1_100)
+    }
+
+    @Test fun fullStoreSealsTheActiveRootWithTheExactStepAndBlock() {
+        val dir = temp.newFolder()
+        val store = TraceStore(dir, storageLimitBytes = 2_000)
+        val trace = store.start("full")!!
+        val model = ResponsesModel("http://localhost", BearerToken.fixed(null), "m", Capabilities(true,false,1000,false), OkHttpClient())
+        val body = buildJsonObject { put("input", buildJsonArray { add("a".repeat(3_000)) }) }
+        assertNull(TraceCall(trace, 4, model, { null }, null).begin(body, emptyList()))
+        store.finish(trace)
+        val root = store.archive("full")!!.exported().first()
+        assertEquals(listOf("storage_limit"), root.attr("mika.trace.partial_reasons").arrayValue.valuesList.map { it.stringValue })
+        assertEquals(4L, root.attr("mika.trace.stopped_step").intValue)
+        assertEquals("input[0]", root.attr("mika.trace.stopped_block").stringValue)
+        assertTrue(dir.walkTopDown().filter { it.isFile }.sumOf { it.length() } <= 2_000)
+    }
+
 }

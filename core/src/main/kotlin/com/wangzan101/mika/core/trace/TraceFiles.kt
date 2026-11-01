@@ -3,6 +3,7 @@ package com.wangzan101.mika.core.trace
 import com.google.protobuf.ByteString
 import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest
 import io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceResponse
+import io.opentelemetry.proto.common.v1.ArrayValue
 import io.opentelemetry.proto.common.v1.AnyValue
 import io.opentelemetry.proto.common.v1.InstrumentationScope
 import io.opentelemetry.proto.common.v1.KeyValue
@@ -15,6 +16,7 @@ import io.opentelemetry.sdk.trace.data.SpanData
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
+import java.io.RandomAccessFile
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -26,6 +28,7 @@ import kotlin.coroutines.resumeWithException
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -46,9 +49,9 @@ data class TraceRow(
 }
 
 @Serializable
-internal data class BodyPart(val path: String, val blob: String?, val truncated: Boolean)
+internal data class BodyPart(val path: String, val blob: String?, val truncated: Boolean, val reason: String? = null)
 
-class TraceArchive internal constructor(private val dir: File) {
+class TraceArchive internal constructor(internal val dir: File, private val disk: TraceDisk) {
     val runId: String get() = dir.name
     internal val root = File(dir, "root.pb")
     private val spanDir = File(dir, "spans")
@@ -56,7 +59,7 @@ class TraceArchive internal constructor(private val dir: File) {
     private val blobs = File(dir, "blocks")
 
     internal fun initialize() {
-        if (!dir.mkdir() || !spanDir.mkdir() || !bodyDir.mkdir() || !blobs.mkdir()) throw IOException("trace directory")
+        if (!spanDir.mkdir() || !bodyDir.mkdir() || !blobs.mkdir()) throw IOException("trace directory")
     }
 
     internal fun store(data: SpanData) {
@@ -68,7 +71,7 @@ class TraceArchive internal constructor(private val dir: File) {
             .setEndTimeUnixNano(if (data.hasEnded()) data.endEpochNanos else data.startEpochNanos)
             .setStatus(Status.newBuilder().setCode(Status.StatusCode.valueOf("STATUS_CODE_" + data.status.statusCode.name)))
         if (data.parentSpanContext.isValid) message.parentSpanId = bytes(data.parentSpanContext.spanId)
-        // Only attributes explicitly attached by RunTrace enter an exported span.
+        // Store recorder attributes here. Export adds block locations from the capture manifest.
         data.attributes.forEach { key, value ->
             val any = AnyValue.newBuilder()
             when (value) {
@@ -79,21 +82,21 @@ class TraceArchive internal constructor(private val dir: File) {
             }
             message.addAttributes(KeyValue.newBuilder().setKey(key.key).setValue(any))
         }
-        atomic(if (!data.parentSpanContext.isValid) root else File(spanDir, data.spanId + ".pb"), message.build().toByteArray())
+        disk.write(dir, if (!data.parentSpanContext.isValid) root else File(spanDir, data.spanId + ".pb"), message.build().toByteArray(), "span")
     }
 
     internal fun hasBlock(key: String) = File(blobs, key).isFile
 
-    internal fun putBlock(key: String, bytes: ByteArray): Int {
+    internal fun putBlock(key: String, bytes: ByteArray, path: String): Int {
         val dest = File(blobs, key)
         if (dest.exists()) return 0
-        atomic(dest, bytes)
+        disk.write(dir, dest, bytes, path)
         return bytes.size
     }
 
     internal fun writeBody(id: String, parts: List<BodyPart>): Int {
         val content = Json.encodeToString(parts).toByteArray()
-        atomic(File(bodyDir, id + ".json"), content)
+        disk.write(dir, File(bodyDir, id + ".json"), content, "request_manifest")
         return content.size
     }
 
@@ -119,7 +122,7 @@ class TraceArchive internal constructor(private val dir: File) {
         }
     }
 
-    internal fun writeReply(id: String, data: ByteArray) = atomic(File(bodyDir, id + ".reply"), data)
+    internal fun writeReply(id: String, data: ByteArray) = disk.write(dir, File(bodyDir, id + ".reply"), data, "response")
 
     data class Page(val text: String, val hasMore: Boolean)
 
@@ -155,7 +158,80 @@ class TraceArchive internal constructor(private val dir: File) {
             a["mika.request.captured"]?.boolValue == true, a["gen_ai.tool.call.id"]?.stringValue)
     }
 
-    private fun payload(spans: List<Span> = spans()): ByteArray {
+    /** Location and reason come from manifests even for runs recorded before diagnostics were exported. */
+    private fun exportSpans(): List<Span> {
+        val recorded = spans()
+        val root = recorded.first()
+        val legacy = root.attributesList.none { it.key == "mika.trace.format_version" }
+        if (!legacy && root.attribute("mika.status") != "partial") return recorded
+        val reasons = linkedSetOf<String>()
+        root.attribute("mika.trace.stop_reason")?.let(reasons::add)
+        val children = recorded.drop(1).map { span ->
+            if (span.attributesList.none { it.key == "mika.attempt" }) return@map span
+            val builder = span.toBuilder()
+            fun truncated(path: String, reason: String, time: Long) {
+                reasons += reason
+                builder.addEvents(Span.Event.newBuilder().setName("mika.trace.truncated").setTimeUnixNano(time)
+                    .addAttributes(textAttribute("mika.block.path", path))
+                    .addAttributes(textAttribute("mika.truncation.reason", reason)))
+            }
+            val manifest = File(bodyDir, span.id() + ".json")
+            if (manifest.isFile) {
+                val parts = try {
+                    Json.decodeFromString<List<BodyPart>>(manifest.readText())
+                } catch (_: SerializationException) {
+                    truncated("request_manifest", "manifest_unreadable", span.startTimeUnixNano)
+                    emptyList()
+                } catch (_: IOException) {
+                    truncated("request_manifest", "manifest_unreadable", span.startTimeUnixNano)
+                    emptyList()
+                }
+                for (part in parts) {
+                    if (part.truncated) {
+                        val reason = part.reason ?: if (part.blob == null) "run_body_limit" else "block_limit"
+                        truncated(part.path, reason, span.startTimeUnixNano)
+                    }
+                }
+            }
+            val reply = span.attribute("mika.trace.reply_truncation")
+                ?: if (legacy) legacyReplyTruncation(span.id()) else null
+            reply?.let { truncated("response", it, span.endTimeUnixNano) }
+            builder.build()
+        }
+        if (root.attribute("mika.status") == "partial") {
+            if (root.startTimeUnixNano == root.endTimeUnixNano) reasons += "not_finalized"
+            if (legacy && root.attribute("mika.run.outcome") == "cancelled") reasons += "run_cancelled"
+            if (reasons.isEmpty()) reasons += "unknown"
+        }
+        if (reasons.isEmpty()) return recorded
+        val summary = ArrayValue.newBuilder().addAllValues(reasons.map { AnyValue.newBuilder().setStringValue(it).build() })
+        val updated = root.toBuilder().addAttributes(KeyValue.newBuilder().setKey("mika.trace.partial_reasons")
+            .setValue(AnyValue.newBuilder().setArrayValue(summary)))
+        // Older writers did not mark the root when only a reply was clipped.
+        if (root.attribute("mika.status") != "partial") {
+            updated.setAttributes(root.attributesList.indexOfFirst { it.key == "mika.status" }, textAttribute("mika.status", "partial"))
+        }
+        return listOf(updated.build()) + children
+    }
+
+    private fun legacyReplyTruncation(id: String): String? {
+        val file = File(bodyDir, "$id.reply")
+        if (!file.isFile) return null
+        // The old writer put this marker outside the JSON-encoded visible reply.
+        val suffix = "\n[truncated]".toByteArray()
+        return RandomAccessFile(file, "r").use { input ->
+            val n = minOf(input.length(), suffix.size.toLong()).toInt()
+            input.seek(input.length() - n)
+            val tail = ByteArray(n).also(input::readFully)
+            when {
+                tail.contentEquals(suffix) -> "block_limit"
+                input.length() == n.toLong() && tail.decodeToString() == "[truncated]" -> "run_body_limit"
+                else -> null
+            }
+        }
+    }
+
+    private fun payload(spans: List<Span>): ByteArray {
         val scope = ScopeSpans.newBuilder().setScope(InstrumentationScope.newBuilder().setName("mika.harness")).addAllSpans(spans)
         val resource = Resource.newBuilder().addAttributes(KeyValue.newBuilder().setKey("service.name")
             .setValue(AnyValue.newBuilder().setStringValue("Mika")))
@@ -164,12 +240,12 @@ class TraceArchive internal constructor(private val dir: File) {
     }
 
     /** Plain export and manual POST share the identical OTLP message. Only a local ZIP can include text. */
-    fun save(output: OutputStream, includeBody: Boolean) {
-        val recorded = spans()
+    fun save(output: OutputStream, includeBody: Boolean): Unit = disk.read(dir) {
+        val recorded = exportSpans()
         val data = payload(recorded)
         if (!includeBody) {
             output.write(data)
-            return
+            return@read
         }
         ZipOutputStream(output).use { zip ->
             zip.putNextEntry(ZipEntry("trace.pb"))
@@ -189,7 +265,8 @@ class TraceArchive internal constructor(private val dir: File) {
     suspend fun send(endpoint: String): Boolean = withContext(Dispatchers.IO) {
         val url = endpoint.trim().toHttpUrlOrNull() ?: throw IOException("Invalid endpoint")
         require(url.username.isEmpty() && url.password.isEmpty() && url.fragment == null)
-        val request = Request.Builder().url(url).post(payload().toRequestBody(PROTOBUF)).build()
+        val data = disk.read(dir) { payload(exportSpans()) }
+        val request = Request.Builder().url(url).post(data.toRequestBody(PROTOBUF)).build()
         suspendCancellableCoroutine { cont ->
             val call = sender.newCall(request)
             cont.invokeOnCancellation { call.cancel() }
@@ -227,15 +304,9 @@ class TraceArchive internal constructor(private val dir: File) {
         private val sender by lazy { OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
             .retryOnConnectionFailure(false).callTimeout(15, TimeUnit.SECONDS).build() }
         private fun bytes(hex: String) = ByteString.copyFrom(hex.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
+        private fun textAttribute(key: String, value: String) = KeyValue.newBuilder().setKey(key)
+            .setValue(AnyValue.newBuilder().setStringValue(value)).build()
+        private fun Span.attribute(key: String) = attributesList.firstOrNull { it.key == key }?.value?.stringValue
         private fun Span.id() = spanId.toByteArray().toByteString().hex()
-        private fun atomic(dest: File, data: ByteArray) {
-            val tmp = File(dest.parentFile, dest.name + ".tmp")
-            try {
-                tmp.writeBytes(data)
-                if (!tmp.renameTo(dest)) throw IOException("trace write failed")
-            } finally {
-                tmp.delete()
-            }
-        }
     }
 }
