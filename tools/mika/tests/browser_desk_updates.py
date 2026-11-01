@@ -82,6 +82,50 @@ class DeskUpdatesTest(unittest.TestCase):
             writes = [path for method, path, _ in phone.calls if method == "POST" and not path.endswith("/wait")]
             self.assertEqual([], writes)
 
+    def test_connection_disclosure_and_task_reading_order(self):
+        available = True
+        task = {**SNAPSHOT, "status": "waiting_for_answer", "question": "Which note?", "options": ["Monday"]}
+
+        def respond(method, path, body):
+            if not available:
+                return 503, {"error": {"code": "connection", "message": "disconnected"}}, {}
+            if path == "/api/v1":
+                return 200, DISCOVERY, {}
+            if path.startswith("/api/v1/tasks?"):
+                return 200, {"tasks": [task]}, {}
+            if path.endswith("/wait"):
+                return 200, {**task, "changed": False}, {}
+            return 404, {}, {}
+
+        with browser_desk(respond) as (page, _):
+            expect(page.locator("#facts")).to_contain_text("Which note?")
+            target = page.locator("#target")
+            expect(target).to_be_hidden(timeout=1500)
+            disclosure = page.locator("summary").filter(has_text="连接详情")
+            disclosure.focus()
+            disclosure.press("Enter")
+            expect(target).to_be_visible()
+            page.locator("#refresh").click()
+            expect(page.locator("#refresh")).to_be_enabled()
+            expect(target).to_be_visible()
+            disclosure.press("Enter")
+            expect(target).to_be_hidden()
+
+            question = page.get_by_text("Which note?", exact=True)
+            send = page.get_by_role("button", name="发送回答")
+            task_id = page.locator("#task-id")
+            self.assertLess(question.bounding_box()["y"], send.bounding_box()["y"])
+            self.assertLess(send.bounding_box()["y"], task_id.bounding_box()["y"])
+
+            available = False
+            page.locator("#refresh").click()
+            expect(page.locator("#error")).to_be_visible()
+            expect(target).to_be_visible()
+            available = True
+            page.locator("#refresh").click()
+            expect(page.locator("#error")).to_be_hidden()
+            expect(target).to_be_hidden()
+
     def test_late_read_cannot_undo_a_write_and_a_lost_receipt_is_not_retried(self):
         tasks = [dict(SNAPSHOT)]
         watched = threading.Event()
