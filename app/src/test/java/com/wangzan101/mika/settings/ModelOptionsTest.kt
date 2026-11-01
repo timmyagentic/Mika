@@ -28,6 +28,20 @@ class ModelOptionsTest {
         assertFalse(o.canBeMain)
     }
 
+    @Test fun userSaidVisionWinsOverListingAndPreset() {
+        assertTrue("没写 + 用户说能看", ModelOptions.seesImages(stored = false, userSaid = true, usedForVision = false))
+        assertTrue("看图也用它", ModelOptions.seesImages(stored = false, userSaid = null, usedForVision = true))
+        assertFalse("用户说不能看", ModelOptions.seesImages(stored = true, userSaid = false, usedForVision = true))
+        assertFalse("列表说不能看,用户没改", ModelOptions.seesImages(stored = false, userSaid = null, usedForVision = false))
+        val p = Provider("p", "P", ProviderConfig.Kind.OpenAiCompat, "https://relay.test/v1",
+            models = listOf(ListedModel("a"), ListedModel("b", vision = false)), visionOverrides = mapOf("a" to true))
+        val (a, b) = ModelOptions.ofProvider(p, emptyList())
+        assertTrue(a.canSee)
+        assertEquals(true, a.visionByUser)
+        assertFalse(b.canSee)
+        assertEquals(null, b.visionByUser)
+    }
+
     @Test fun toolCapableFirstAndDefaultMainPrefersConfirmed() {
         val listed = listOf(ListedModel("embed", toolCalls = false), ListedModel("guess"), ListedModel("sure", toolCalls = true))
         val options = ModelOptions.merge(listed, base)

@@ -112,7 +112,10 @@ sealed interface ExchangeStatus {
      * [key] 是这次申报的编号,按钮带着它,点在旧卡片上不算数。
      */
     data class NeedsConfirmation(val title: String, val body: String, val key: Int) : ExchangeStatus
-    data class Paused(val why: String) : ExchangeStatus
+    /** 停下来等;[resumable] 时点「继续」接着做,否则条件满足后自动继续(卡片上不给「继续」)。 */
+    data class Paused(val why: String, val resumable: Boolean = true) : ExchangeStatus
+    /** 还没开始,排在开始队列里;轮到时自动开始,只能取消。 */
+    data class Queued(val why: String) : ExchangeStatus
     /**
      * [verified] 为 false 表示办完了但没能核实,[note] 是原因;这时不打绿勾。[unconfirmed] 是回答里核对后仍没找到出处的几处,
      * 卡片上逐条列出。[reviewed] 为 false 是什么也没核对(聊天、回答里没有可核对的值):不打任何标。[evidence] 只有旧记录里模型自己写的「依据:」段才有;新的回答来源从运行记录里取(见 [evidenceSource])。
@@ -183,6 +186,7 @@ fun liveLine(ex: Exchange): String? {
         is ExchangeStatus.NeedsTakeover -> return tr(R.string.takeover_title)
         is ExchangeStatus.NeedsInput -> return tr(R.string.chat_wait_answer)
         is ExchangeStatus.NeedsConfirmation -> return tr(R.string.chat_wait_approval)
+        is ExchangeStatus.Queued -> return tr(R.string.chat_queued)
         else -> Unit
     }
     if (ex.waitingForModel) return tr(R.string.chat_working)
@@ -1187,9 +1191,13 @@ class ChatViewModel(
                     notes = if (s.step > 0 && said != null) ex.notes + (s.step to said) else ex.notes,
                 )
             }
-            // 等能力的前置条件:锁屏时自动继续,其余要你点继续
+            // 等能力的前置条件:锁屏时自动继续;排队等开始;其余能点继续的才给继续
             is TaskState.Held -> ex.copy(
-                status = if (s.reason == TaskGate.LOCKED) ExchangeStatus.WaitingUnlock else ExchangeStatus.Paused(s.reason.why),
+                status = when {
+                    s.reason == TaskGate.LOCKED -> ExchangeStatus.WaitingUnlock
+                    s.reason.queued -> ExchangeStatus.Queued(s.reason.why)
+                    else -> ExchangeStatus.Paused(s.reason.why, s.reason.resumable)
+                },
                 waitingForModel = false, draft = null,
             )
             is TaskState.WaitingTakeover ->
@@ -1396,6 +1404,8 @@ class ToolLabels(private val tools: ToolIndex, private val legacy: LegacyNames =
             "查看 App/网站知识" to R.string.tool_read_knowledge,
             "查看技能" to R.string.tool_read_skill,
             "保存技能" to R.string.tool_save_skill,
+            "查看设置" to R.string.tool_list_settings,
+            "改设置" to R.string.tool_set_setting,
             "说明没办成的原因" to R.string.tool_explain_failure,
             "问你一个问题" to R.string.tool_ask_user,
             "请你接手" to R.string.tool_takeover,

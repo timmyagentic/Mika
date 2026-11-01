@@ -71,11 +71,11 @@ adb shell getprop ro.product.cpu.abi
 
 ## Step 2: Download the latest APK
 
-Ask the GitHub API for the latest release, pick the asset named like `Mika-v*.apk`, and download its `browser_download_url`:
+Ask the GitHub API for the latest release, pick the all-architecture asset named like `Mika-v0.1.N.apk`, and download its `browser_download_url`:
 
 ```
 URL=$(curl -fsSL https://api.github.com/repos/wangzan101/Mika/releases/latest \
-  | grep -o '"browser_download_url": *"[^"]*/Mika-v[^"]*\.apk"' \
+  | grep -o '"browser_download_url": *"[^"]*/Mika-v[0-9.]*\.apk"' \
   | sed 's/.*"\(https[^"]*\)"/\1/' | head -n 1)
 echo "$URL"
 curl -fL -o Mika.apk "$URL"
@@ -83,7 +83,9 @@ curl -fL -o Mika.apk "$URL"
 
 Success: `$URL` looks like `https://github.com/wangzan101/Mika/releases/download/v0.1.N/Mika-v0.1.N.apk`, `curl` reports no error, and `Mika.apk` is in the current folder.
 
-If jq is available, parsing the JSON with it is more robust; the idea is the same: take the entry in `assets` whose name matches `Mika-v*.apk`.
+If jq is available, parsing the JSON with it is more robust; the idea is the same: take the entry in `assets` whose name matches `Mika-v0.1.N.apk`.
+
+If step 1.4 printed `arm64-v8a`, you can take the asset ending in `-arm64.apk` instead (replace `[0-9.]*\.apk` above with `[0-9.]*-arm64\.apk`): it carries native libraries for that one architecture only, so it is smaller and works the same.
 
 If GitHub cannot be reached: ask the user to open [Releases](https://github.com/wangzan101/Mika/releases/latest) in a browser, download the APK by hand and tell you where it was saved, then continue from step 3.
 

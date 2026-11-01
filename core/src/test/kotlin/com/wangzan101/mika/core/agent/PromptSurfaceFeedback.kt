@@ -132,6 +132,14 @@ internal object PromptSurfaceFeedback {
         add("skill save missing section", withSkills, "skill_save",
             """{"markdown":"---\nname: order-coffee\ndisplay: 点咖啡\ndescription: 点咖啡时用\n---\n## 入口\n打开 App","quote":"帮我建一个技能"}""")
 
+        val withHistory = toolDispatcher(FakeScreen(), runSpec = com.wangzan101.mika.core.run.RunSpec(com.wangzan101.mika.core.run.RunId("t"), "t", "thread",
+            priorTurns = listOf(Turn("之前", "好", "succeeded", runId = "r1"))), runRecords = object : com.wangzan101.mika.core.record.RunRecords {
+                override suspend fun summary(runId: String): com.wangzan101.mika.core.record.RunSummary? = null
+                override suspend fun events(runId: String) = emptyList<com.wangzan101.mika.core.record.RunEvent>()
+            })
+        add("history turn not found", withHistory, "history_read", """{"turn":5}""")
+        add("history not recorded", withHistory, "history_read", """{"turn":1}""")
+
         val notReady = toolDispatcher(FakeScreen(), sandbox = FakeSandbox(SandboxStatus.NotInstalled), workspace = { "w" })
         add("sandbox not ready", notReady, "run_command", """{"command":"ls"}""")
 

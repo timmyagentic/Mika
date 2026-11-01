@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selfcheck_title">Autoverificação de compatibilidade</string>
+    <string name="selfcheck_row_sub">Veja o que funciona neste celular e relate</string>
+    <string name="selfcheck_intro">Leva cerca de 1 minuto. Não mexe nos seus outros apps, não altera configurações e não usa a rede. Fique nesta página enquanto ela roda.</string>
+    <string name="selfcheck_start">Iniciar</string>
+    <string name="selfcheck_again">Executar de novo</string>
+    <string name="selfcheck_cancel">Cancelar</string>
+    <string name="selfcheck_task_running">Há uma tarefa em andamento. Inicie a autoverificação depois que ela terminar.</string>
+    <string name="selfcheck_checks">Verificações</string>
+    <string name="selfcheck_report">Relatório</string>
+    <string name="selfcheck_copy">Copiar relatório</string>
+    <string name="selfcheck_github">Relatar no GitHub</string>
+    <string name="selfcheck_copied">Relatório copiado</string>
+    <string name="selfcheck_github_copied">Relatório copiado. Cole-o em “Self-check report” na página que vai abrir.</string>
+    <string name="selfcheck_report_note">O relatório contém apenas o modelo do celular, a versão do sistema e o resultado de cada verificação, sem contas, listas de apps nem o seu conteúdo. Você pode lê-lo antes de publicar.</string>
+
+    <string name="selfcheck_check_device">Dispositivo</string>
+    <string name="selfcheck_check_permissions">Permissões</string>
+    <string name="selfcheck_check_helper">Assistente integrado</string>
+    <string name="selfcheck_check_display">Tela virtual</string>
+    <string name="selfcheck_check_launch">Abertura de apps</string>
+    <string name="selfcheck_check_reading">Leitura da tela</string>
+    <string name="selfcheck_check_actions">Toques e digitação</string>
+    <string name="selfcheck_check_alive">Continua em execução</string>
+    <string name="selfcheck_check_main">Sua tela sem interferência</string>
+    <string name="selfcheck_check_browser">Navegador integrado</string>
+    <string name="selfcheck_check_sandbox">Sandbox</string>
+    <string name="selfcheck_check_copies">Cópias de apps</string>
+
+    <string name="selfcheck_status_pending">Aguardando</string>
+    <string name="selfcheck_status_running">Verificando</string>
+    <string name="selfcheck_status_pass">Passou</string>
+    <string name="selfcheck_status_partial">Parcial</string>
+    <string name="selfcheck_status_fail">Falhou</string>
+    <string name="selfcheck_status_skipped">Ignorada</string>
+
+    <string name="selfcheck_line_pending">Ainda não iniciada</string>
+    <string name="selfcheck_line_running">Verificando…</string>
+    <string name="selfcheck_line_pass">Funciona</string>
+    <string name="selfcheck_line_needs">Ignorada: “%1$s” precisa passar primeiro</string>
+    <string name="selfcheck_line_other">Não passou. Veja os detalhes no relatório.</string>
+
+    <string name="selfcheck_advice_too_old">Este sistema é anterior ao Android 12, então o controle do celular não está disponível. Conversa, web e sandbox continuam funcionando.</string>
+    <string name="selfcheck_advice_no_wireless">Este sistema não tem Depuração wireless. Você pode iniciar o controle do celular por um computador via USB.</string>
+    <string name="selfcheck_advice_phone_unavailable">Este ambiente não consegue usar os apps do seu celular (sem Opções do desenvolvedor nem Depuração wireless); conversa, web, arquivos e cálculos funcionam normalmente.</string>
+    <string name="selfcheck_advice_a11y_off">A acessibilidade está desativada. Ative a acessibilidade do Mika em Configurações › Controle do celular.</string>
+    <string name="selfcheck_advice_a11y_restart">A acessibilidade está ativada, mas não está em execução. Desative e ative de novo a acessibilidade do Mika nas configurações do sistema.</string>
+    <string name="selfcheck_advice_notifications">As notificações estão bloqueadas, então você não verá o andamento das tarefas nem os alertas de “precisa de você”.</string>
+    <string name="selfcheck_advice_battery">O uso da bateria está restrito, então o Mika pode ser interrompido em segundo plano. Você pode remover essa restrição em Recuperação e reparo.</string>
+    <string name="selfcheck_advice_setup">O assistente integrado não está em execução. Conclua a configuração em Configurações › Controle do celular e execute isto de novo.</string>
+    <string name="selfcheck_advice_display">Não foi possível criar a tela virtual do Mika. Reconecte o assistente e tente de novo; se ainda falhar, relate o problema.</string>
+    <string name="selfcheck_advice_focus">A tela virtual do Mika não tem foco próprio, então a sua tela pode perder o foco de entrada por instantes enquanto o Mika trabalha. Tudo continua funcionando.</string>
+    <string name="selfcheck_advice_launch">Uma página não abriu na tela virtual do Mika. Relate este problema.</string>
+    <string name="selfcheck_advice_on_main">As Configurações do sistema abriram na sua tela em vez de na tela virtual do Mika. Relate este problema.</string>
+    <string name="selfcheck_advice_settings_in_use">As Configurações do sistema estão abertas na sua tela, então este passo não as abriu. Feche-as e execute isto de novo.</string>
+    <string name="selfcheck_advice_read">Não foi possível ler os controles da página. Desative e ative de novo a acessibilidade do Mika e execute isto outra vez.</string>
+    <string name="selfcheck_advice_blank">A imagem da tela virtual está toda preta ou vazia. Relate este problema.</string>
+    <string name="selfcheck_advice_action">Algumas ações não tiveram efeito (veja o relatório). Relate este problema.</string>
+    <string name="selfcheck_advice_frames">A tela virtual para de atualizar depois de um tempo, então as tarefas podem travar. Relate este problema.</string>
+    <string name="selfcheck_advice_main">A sua tela mudou durante a verificação. Se você ficou nesta página, relate este problema.</string>
+    <string name="selfcheck_advice_no_webview">Não há um WebView utilizável neste sistema, então o navegador integrado não pode funcionar. Instale ou atualize o componente WebView do sistema.</string>
+    <string name="selfcheck_advice_web">O navegador integrado não conseguiu ler nem tocar na página de teste local. Relate este problema.</string>
+    <string name="selfcheck_advice_sandbox_unsupported">O sandbox só está disponível em celulares ARM de 64 bits.</string>
+    <string name="selfcheck_advice_sandbox_not_prepared">O sandbox ainda não foi preparado. Ele fica pronto na primeira vez que uma tarefa o usa; depois execute isto de novo.</string>
+    <string name="selfcheck_advice_sandbox_failed">Os comandos do sandbox não deram o resultado esperado. Você pode redefinir o ambiente em Arquivos e ambiente de computação e tentar de novo.</string>
+    <string name="selfcheck_advice_timeout">Esta verificação demorou demais. Execute de novo; se continuar expirando, relate o problema.</string>
+    <string name="selfcheck_advice_error">Esta verificação encontrou um erro. Relate o problema.</string>
+    <string name="selfcheck_advice_out_of_time">A autoverificação ficou sem tempo antes desta verificação.</string>
+    <string name="selfcheck_advice_cancelled">Cancelada.</string>
+
+    <string name="selfcheck_target_title">Página de autoverificação do Mika</string>
+    <string name="selfcheck_target_note">Esta é a página de teste do próprio Mika. A autoverificação de compatibilidade toca e digita aqui; ela não mexe nos seus outros apps.</string>
+    <string name="selfcheck_target_taps">Toques: %1$d</string>
+    <string name="selfcheck_target_button">Toque em mim</string>
+    <string name="selfcheck_target_input">Digite aqui</string>
+    <string name="selfcheck_target_tick">Marcar %1$d</string>
+    <string name="selfcheck_target_row">Linha %1$d</string>
+</resources>

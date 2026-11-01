@@ -14,6 +14,8 @@ class SpeechSettingsTest {
             SpeechChoice.Auto,
             SpeechChoice.System,
             SpeechChoice.Off,
+            SpeechChoice.Doubao(),
+            SpeechChoice.Doubao(DoubaoProtocol.CONCURRENT),
             SpeechChoice.Provider("p1", "whisper-1", TranscribeMethod.AudioTranscriptions),
             SpeechChoice.Provider("p2", "gpt-4o-audio", TranscribeMethod.ChatInputAudio),
             SpeechChoice.Provider("p3", "gemini-flash", TranscribeMethod.GeminiInline),

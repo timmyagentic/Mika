@@ -1,5 +1,7 @@
 package com.wangzan101.mika.core.model
 
+import com.wangzan101.mika.core.net.NetProxy
+import com.wangzan101.mika.core.net.ProxyFailure
 import com.wangzan101.mika.core.trace.TraceCall
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -25,7 +27,16 @@ internal data class RawResponse(val status: Int, val retryAfter: String?, val bo
 /** 各适配器共用的 HTTP 执行(enqueue + 协程取消)与 Retry-After 解析。 */
 internal object HttpSupport {
     suspend fun execute(http: OkHttpClient, req: Request): RawResponse =
-        observe(req) { attempt -> executeRaw(http, req, attempt) }
+        observe(req) { attempt -> executeRaw(http, req, attempt) }.also(::requireProxyAccepted)
+
+    /** HTTP 407 只会是途中的代理要账号密码(或拒了给的),不是服务商的回复。 */
+    private fun requireProxyAccepted(raw: RawResponse) {
+        if (raw.status == 407) throw ModelError.Proxy(ProxyFailure.AuthFailed)
+    }
+
+    /** 连接失败:走了代理且错在代理那一段的说成代理的问题,别的照旧算网络失败。 */
+    fun networkError(http: OkHttpClient, req: Request, e: IOException): ModelError =
+        NetProxy.failure(http, req.url, e)?.let { ModelError.Proxy(it, e) } ?: ModelError.Network(e)
 
     private suspend inline fun observe(req: Request, send: (TraceCall.Attempt?) -> RawResponse): RawResponse {
         val wire = req.tag(InferenceRequest::class.java) ?: return send(null)
@@ -46,7 +57,7 @@ internal object HttpSupport {
         cont.invokeOnCancellation { call.cancel() }
         call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                if (cont.isActive) cont.resumeWithException(ModelError.Network(e))
+                if (cont.isActive) cont.resumeWithException(networkError(http, req, e))
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -68,14 +79,14 @@ internal object HttpSupport {
      * 没收尾算 [ModelError.StreamCut]。一个事件都没有、又不是事件流格式的成功响应(比如地址指到了网页)算 [ModelError.BadResponse]。
      */
     suspend fun stream(http: OkHttpClient, req: Request, onEvent: (String) -> Unit): RawResponse =
-        observe(req) { attempt -> streamRaw(http, req, attempt, onEvent) }
+        observe(req) { attempt -> streamRaw(http, req, attempt, onEvent) }.also(::requireProxyAccepted)
 
     private suspend fun streamRaw(http: OkHttpClient, req: Request, attempt: TraceCall.Attempt?, onEvent: (String) -> Unit): RawResponse = suspendCancellableCoroutine { cont ->
         val call = http.newCall(req)
         cont.invokeOnCancellation { call.cancel() }
         call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                if (cont.isActive) cont.resumeWithException(ModelError.Network(e))
+                if (cont.isActive) cont.resumeWithException(networkError(http, req, e))
             }
 
             override fun onResponse(call: Call, response: Response) {

@@ -48,4 +48,26 @@
     <string name="model_reasoning_high">High</string>
     <string name="model_reasoning_xhigh">Extra high</string>
     <string name="model_reasoning_max">Maximum</string>
+    <string name="speech_doubao_provider">Volcengine · speech recognition</string>
+    <string name="speech_doubao_model">Doubao streaming ASR 2.0</string>
+    <string name="speech_doubao_note">Volcengine · separate speech credentials</string>
+    <string name="speech_doubao_missing">Configure the Doubao speech credentials in Settings › Model › Speech to text.</string>
+    <string name="speech_doubao_new">New console</string>
+    <string name="speech_doubao_legacy">Legacy console</string>
+    <string name="speech_doubao_enter_app">Speech application ID</string>
+    <string name="speech_doubao_enter_key">Enter a speech service credential</string>
+    <string name="speech_doubao_duration">Duration plan</string>
+    <string name="speech_doubao_concurrent">Concurrency plan</string>
+    <string name="speech_doubao_privacy">Saving doesn\'t go online and doesn\'t check access yet. While you hold to talk, audio goes to Volcengine and may be billed. Credentials are encrypted on this phone.</string>
+    <string name="speech_doubao_save">Save and use</string>
+    <string name="speech_doubao_remove">Remove saved credentials</string>
+    <string name="speech_doubao_save_failed">Could not encrypt and save the speech credentials. Try again.</string>
+    <string name="speech_doubao_group">Live speech services</string>
+    <string name="speech_doubao_configured">Volcengine · %1$s</string>
+    <string name="speech_doubao_edit">Settings</string>
+    <string name="speech_doubao_setup_hint">Volcengine speech recognition, with words appearing as you speak. Turn on Speech Recognition 2.0 in Volcengine first; its credentials are separate from chat models.</string>
+    <string name="speech_doubao_credentials">Credentials</string>
+    <string name="speech_doubao_plan">Billing</string>
+    <string name="speech_doubao_duration_note">Billed by recognition time</string>
+    <string name="speech_doubao_concurrent_note">Billed by simultaneous connections</string>
 </resources>

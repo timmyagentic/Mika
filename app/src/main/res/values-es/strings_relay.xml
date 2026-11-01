@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">Remoto</string>
+    <string name="relay_pair_title">Vincular una pasarela remota</string>
+    <string name="relay_pair_sub">Crea un código de vinculación en la página web de la pasarela y escribe abajo su dirección y el código.</string>
+    <string name="relay_gateway">Pasarela</string>
+    <string name="relay_code">Código de vinculación</string>
+    <string name="relay_code_hint">Código de un solo uso de tu pasarela</string>
+    <string name="relay_pair">Vincular pasarela</string>
+    <string name="relay_busy">Espera un momento…</string>
+    <string name="relay_enable">Permitir acceso remoto</string>
+    <string name="relay_disabled">Vinculada. El acceso remoto está desactivado</string>
+    <string name="relay_online">Pasarela conectada. Esperando solicitudes de CLI / MCP</string>
+    <string name="relay_connecting">Conectando con la pasarela remota…</string>
+    <string name="relay_offline">Se perdió la conexión. Reconectando automáticamente</string>
+    <string name="relay_unauthorized">La vinculación caducó o se revocó. Vuelve a vincular la pasarela</string>
+    <string name="relay_copy_address">Copiar dirección MCP</string>
+    <string name="relay_client_help">Copia la configuración en tu cliente MCP del ordenador para conectar.</string>
+    <string name="relay_unpair">Desvincular pasarela</string>
+    <string name="relay_unpair_body">Desconecta este teléfono de la pasarela. Se necesita conexión a internet. El token de acceso del teléfono no cambia.</string>
+    <string name="relay_failed">No se pudo completar. Revisa la dirección de la pasarela, la conexión a internet y el código de vinculación. Si falló la desvinculación, el acceso está desactivado; reinténtalo o revoca el teléfono en la pasarela.</string>
+    <string name="relay_notif_body">El acceso remoto está activado. Abre Mika para comprobar la conexión con la pasarela.</string>
+    <string name="relay_incompatible">Actualiza Mika y la pasarela a versiones que coincidan</string>
+    <string name="relay_copy_gateway">Copiar dirección de la pasarela</string>
+    <string name="relay_cli_help">Guarda el token de acceso en un archivo de tu ordenador y ejecuta el comando de conexión de arriba.</string>
+    <string name="relay_intro">La pasarela reenvía a tu teléfono, para el acceso remoto, las solicitudes de CLI y MCP que normalmente van por Wi-Fi / red local. Despliégala en tu propio servidor público antes de vincular.</string>
+    <string name="relay_device_access">Permitir activar y desbloquear a través de la pasarela</string>
+    <string name="relay_device_access_sub">Desactivado por defecto. También requiere “Permitir activación y desbloqueo remotos” en esta página. Con ambos activados, cualquiera con el token de acceso puede activar y desbloquear este teléfono por internet.</string>
+</resources>

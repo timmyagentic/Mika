@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.model
 
+import com.wangzan101.mika.core.net.ProxyFailure
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -109,9 +110,21 @@ enum class ListFailure(val text: String) {
     Quota("账户额度已用完"),
     RateLimited("请求太频繁,请稍后再试"),
     Network("连不上这个地址,请检查网络和接口地址"),
+    ProxyUnreachable("连不上网络代理,或代理没有转发这个请求;请检查设置 › 网络代理"),
+    ProxyAuth("网络代理拒绝了账号或密码,请检查设置 › 网络代理"),
     NotSupported("这个服务不提供模型列表"),
     Server("服务暂时出错,请稍后再试"),
     BadResponse("返回的内容看不懂,请检查接口地址和接口类型"),
+    ;
+
+    companion object {
+        /** 请求没发成:代理那一段的问题照实说,别的算连不上。 */
+        fun of(e: Throwable): ListFailure = when ((e as? ModelError.Proxy)?.failure) {
+            ProxyFailure.Unreachable -> ProxyUnreachable
+            ProxyFailure.AuthFailed -> ProxyAuth
+            null -> Network
+        }
+    }
 }
 
 sealed interface ModelListResult {
@@ -294,7 +307,7 @@ class ModelCatalog(private val http: OkHttpClient) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            return Result.failure(Failure(ModelListResult.Failed(ListFailure.Network)))
+            return Result.failure(Failure(ModelListResult.Failed(ListFailure.of(e))))
         }
         if (raw.status !in 200..299) return Result.failure(Failure(failureFor(raw.status, raw.body)))
         val root = try { json.parseToJsonElement(raw.body).jsonObject } catch (e: Exception) { null }

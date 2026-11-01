@@ -12,8 +12,9 @@ class McpAccessTest {
     private var now = 0L
     private val access = RemoteAccess({ TOKEN }, { now })
 
-    private fun req(headers: Map<String, String> = emptyMap(), path: String = "/mcp", from: String = "192.168.1.20") =
-        HttpRequest("POST", path, headers.mapKeys { it.key.lowercase() }, ByteArray(0), InetAddress.getByName(from))
+    private fun req(headers: Map<String, String> = emptyMap(), path: String = "/mcp", from: String = "192.168.1.20", source: String? = null) =
+        HttpRequest("POST", path, headers.mapKeys { it.key.lowercase() }, ByteArray(0), InetAddress.getByName(from),
+            source = source ?: InetAddress.getByName(from).hostAddress)
 
     private fun status(v: RemoteAccess.Verdict) = (v as? RemoteAccess.Verdict.Reject)?.status ?: 200
 
@@ -55,6 +56,16 @@ class McpAccessTest {
         assertEquals(RemoteAccess.Verdict.Pass, access.check(req(mapOf("Authorization" to "Bearer $TOKEN"), from = "192.168.1.21")))
         now += 61_000
         assertEquals(RemoteAccess.Verdict.Pass, access.check(req(mapOf("Authorization" to "Bearer $TOKEN"))))
+    }
+
+    @Test fun relayedCallersCoolDownSeparatelyAndALockedCallerLearnsNothing() {
+        val relay = RemoteAccess({ TOKEN }, { now })
+        val guesser = "relay|203.0.113.9"; val owner = "relay|198.51.100.7"
+        repeat(5) { assertEquals(401, status(relay.check(req(from = "0.0.0.0", source = guesser)))) }
+        // 冷却中连正确令牌也是 429:放行就会把「猜对了」告诉猜的人
+        assertEquals(429, status(relay.check(req(mapOf("Authorization" to "Bearer $TOKEN"), from = "0.0.0.0", source = guesser))))
+        assertEquals(RemoteAccess.Verdict.Pass, relay.check(req(mapOf("Authorization" to "Bearer $TOKEN"), from = "0.0.0.0", source = owner)))
+        assertEquals(403, status(relay.check(req(mapOf("Authorization" to "Bearer $TOKEN", "Origin" to "https://example.test"), from = "0.0.0.0", source = owner))))
     }
 
     @Test fun failuresSpreadOutDoNotLock() {

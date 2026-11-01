@@ -117,6 +117,10 @@ curl -s http://192.168.1.23:8765/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 ```
 
+## Self-hosted remote access
+
+For public remote access, deploy the optional self-hosted gateway. Pair and explicitly enable access under **MCP → Remote**, then copy the config to a client supporting Authorization headers. **CLI / Skill → Remote** uses the same gateway and phone LAN access token. The phone authenticates requests; the gateway manages pairing and forwards requests, without access-token management or OAuth flows. No shared Wi-Fi or VPN is required. The first version is single-owner, single-device. See the [deployment guide](../tools/relay/README.md). HTTPS ends at the gateway, which can read forwarded contents; use one you trust.
+
 ## Tools
 
 | Tool | Arguments | What it does |
@@ -133,7 +137,8 @@ Statuses:
 
 - `starting`: just handed to the phone, not started yet.
 - `running`: in progress, with the latest progress note.
-- `paused`: waiting for a condition, such as the phone being unlocked (it carries on by itself afterwards), or waiting in the queue.
+- `queued`: not started yet, waiting behind other tasks (the limit on tasks running at once is reached, or this conversation already has a task running); it starts by itself when its turn comes. Wait or cancel.
+- `paused`: waiting for a condition, such as the phone being unlocked (it carries on by itself afterwards).
 - `waiting_for_answer`: Mika asked a question; answer with `mika_answer` (answering on the phone works too). If nobody answers for a long time, Mika carries on as if there were no answer.
 - `waiting_on_phone`: this step can only be handled by a person on the phone, such as a step handed over for you to do yourself. The computer can't answer it; wait or cancel. The phone shows its usual notification.
 - `done`: finished, with the answer; `verified` says whether the answer was checked.
@@ -146,7 +151,7 @@ After steering, use `mika_task_status` to find the `message_id` in `steers`: `re
 
 ## Remote wake and unlock
 
-On the phone, open Settings › Connect a computer › Advanced settings and turn on “Allow remote wake and unlock” (off by default). Swipe/no-credential locks need no saved credential. Configure the current PIN or password twice on that page; the computer cannot set or read it.
+On the phone, open Settings › Connect a computer › Advanced settings and turn on “Allow remote wake and unlock” (off by default). Clients connecting through a self-hosted gateway also need “Allow wake and unlock through the gateway” on the Remote page (off by default); otherwise these three tools are not offered to them. Swipe/no-credential locks need no saved credential. Configure the current PIN or password twice on that page; the computer cannot set or read it.
 
 | Tool | Arguments | Purpose |
 | --- | --- | --- |

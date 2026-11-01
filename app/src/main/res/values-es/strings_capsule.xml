@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_approve_once">Aprobar solo esta vez</string>
+    <string name="card_see_process">Volver a Mika para ver todo el proceso</string>
+    <string name="card_back_to_mika">Volver a Mika</string>
+    <string name="card_continue_last">Continuar el último chat</string>
+    <string name="card_screen">Pantalla en segundo plano, toca para ampliar</string>
+    <string name="card_screen_label">Segundo plano</string>
+    <string name="card_zoomed">Pantalla en segundo plano ampliada, toca para cerrar</string>
+    <string name="card_zoom_hint">Mika está trabajando en segundo plano · toca para cerrar</string>
+    <string name="card_continuing">Continuar “%1$s”</string>
+    <string name="card_queued_ahead">Termina primero la otra tarea que te necesita y luego esta</string>
+    <string name="card_hint_answer">Responde a Mika…</string>
+    <string name="card_hint_continue">Sigue hablando…</string>
+    <plurals name="capsule_behind">
+        <item quantity="one">Después de esta, te espera %1$d más</item>
+        <item quantity="many">Después de esta, te esperan %1$d más</item>
+        <item quantity="other">Después de esta, te esperan %1$d más</item>
+    </plurals>
+    <string name="capsule_hold">En espera</string>
+    <string name="capsule_handed_over">Lo haces tú</string>
+    <string name="capsule_running">Trabajando</string>
+    <string name="capsule_done">Hecho</string>
+    <string name="capsule_failed">No salió bien</string>
+    <string name="capsule_stopped">Detenido</string>
+    <string name="capsule_stop">Dejar de hacerlo</string>
+    <string name="capsule_expand">Ampliar esta tarea</string>
+    <string name="capsule_talk">Hablar con Mika</string>
+    <string name="capsule_swap_side">Mover al otro lado</string>
+    <string name="capsule_desc_needs">%1$s, toca para atenderlo</string>
+    <string name="capsule_desc_running">Mika está trabajando: %1$s, toca para ver detalles</string>
+    <string name="capsule_desc_other">Mika: %1$s, toca para ver detalles</string>
+    <string name="capsule_then_tap_right">Toca el lado derecho cuando termines</string>
+    <string name="capsule_need_of_total">%1$d te necesitan · %2$d en total</string>
+    <string name="capsule_of_total">%1$s · %2$d en total</string>
+    <string name="capsule_done_tap">Hecho · toca para ver el resultado</string>
+    <string name="capsule_failed_tap">No salió bien · toca para ver el motivo</string>
+    <string name="capsule_needs_you">Te necesita: %1$s</string>
+    <string name="capsule_handle_it">échale un vistazo</string>
+    <string name="capsule_needs_ok">Necesita tu visto bueno: %1$s</string>
+    <string name="capsule_asks">Mika pregunta: %1$s</string>
+    <string name="capsule_hold_why">En espera: %1$s</string>
+    <string name="capsule_you_handle">Te toca a ti</string>
+    <string name="capsule_thinking">Pensando el siguiente paso</string>
+    <string name="capsule_continuing">Siguiendo adelante</string>
+    <string name="capsule_replay">Siguiendo una ruta %1$d/%2$d</string>
+    <plurals name="capsule_batch">
+        <item quantity="one">%1$d paso de una vez</item>
+        <item quantity="many">%1$d pasos de una vez</item>
+        <item quantity="other">%1$d pasos de una vez</item>
+    </plurals>
+    <string name="and_more">" y más"</string>
+</resources>

@@ -111,12 +111,14 @@ object SystemSpeech {
     /** 本机识别说这个语言用不了(没装语言包等):换成联网识别再试。 */
     internal fun languageMissing(code: Int) = code == ERROR_LANGUAGE_NOT_SUPPORTED || code == ERROR_LANGUAGE_UNAVAILABLE
 
-    /** App 语言对应的识别语言(BCP-47);跟随系统时用系统的语言。界面是英文、系统也是英文时沿用系统的地区。 */
-    fun speechTag(language: AppLanguage, system: Locale = Locale.getDefault()): String = when (language) {
-        AppLanguage.SimplifiedChinese -> "zh-CN"
-        AppLanguage.TraditionalChinese -> "zh-TW"
-        AppLanguage.English -> if (system.language == "en") languageRegion(system) else "en-US"
-        AppLanguage.System -> languageRegion(system)
+    /** App 语言对应的识别语言(BCP-47);跟随系统时用系统的语言。选的语言和系统语言相同时(中文除外)沿用系统的地区。 */
+    fun speechTag(language: AppLanguage, system: Locale = Locale.getDefault()): String = when {
+        language == AppLanguage.System -> languageRegion(system)
+        // 中文按选的简繁定地区,不跟系统
+        language.language == "zh" -> language.speechTag!!
+        // 系统也是这种语言时用系统的地区(英式英语、墨西哥西班牙语…),否则用这种语言最常见的地区
+        AppLanguage.modernCode(system.language) == language.language -> languageRegion(system)
+        else -> language.speechTag!!
     }
 
     /**
@@ -220,10 +222,6 @@ class SystemSpeechSession(
         if (notedSilent) return
         notedSilent = true
         onNoResponse()
-    }
-
-    init {
-        onMain { open(onDevice && attempts.firstOrNull() == null) }
     }
 
     override fun release() = onMain {
@@ -401,6 +399,11 @@ class SystemSpeechSession(
                 is SystemSpeech.Outcome.Fail -> finish(SpeechEvent.Failed(o.why))
             }
         }
+    }
+
+    // 放在所有属性之后:onMain 在主线程上是当场执行,open 用到的 listener 等属性此时都已初始化
+    init {
+        onMain { open(onDevice && attempts.firstOrNull() == null) }
     }
 
     companion object {

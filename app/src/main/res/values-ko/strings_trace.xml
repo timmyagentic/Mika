@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trace_switch">상세 트레이스 기록</string>
+    <string name="trace_switch_detail">새로 실행하는 작업에 적용돼요. 요청 텍스트에 개인 정보가 들어 있을 수 있어요. 끄면 즉시 수집을 멈춰요.</string>
+    <string name="trace_storage_limit">트레이스 저장 한도</string>
+    <string name="trace_storage_hint">공간이 필요하면 끝난 오래된 트레이스부터 삭제돼요.</string>
+    <string name="trace_storage_value">%1$d MiB</string>
+    <string name="trace_title">상세 트레이스</string>
+    <string name="trace_partial">일부만 기록됨</string>
+    <string name="trace_recorded">이 기기에 기록됨</string>
+    <string name="trace_unknown">보고되지 않음</string>
+    <string name="trace_ok">정상</string>
+    <string name="trace_error">오류</string>
+    <string name="trace_cancelled">취소됨</string>
+    <string name="trace_attempt">%1$d단계 · %2$d번째 시도 · %3$s</string>
+    <string name="trace_tool">%1$d단계 · %2$s</string>
+    <string name="trace_counts">입력 %1$s · 캐시 %2$s · 캐시 안 됨 %3$s · 출력 %4$s</string>
+    <string name="trace_largest">캐시되지 않은 입력이 가장 많은 항목</string>
+    <string name="trace_diff">처음 달라진 곳: %1$s</string>
+    <string name="trace_no_body">요청 본문이 수집되지 않았어요</string>
+    <string name="trace_attach">가린 텍스트 포함</string>
+    <string name="trace_attach_hint">로컬 ZIP에만 포함돼요. 저장하기 전에 위의 요청 텍스트를 확인하세요.</string>
+    <string name="trace_save">이 트레이스 저장</string>
+    <string name="trace_saved">트레이스를 저장했어요</string>
+    <string name="trace_failed">트레이스 내보내기에 실패했어요</string>
+    <string name="trace_send">OTLP/HTTP로 보내기</string>
+    <string name="trace_network_hint">이 트레이스의 메타데이터만 보내요.</string>
+    <string name="trace_endpoint">트레이스 엔드포인트</string>
+    <string name="trace_endpoint_hint">공개 주소에는 HTTPS를 쓰세요. localhost와 로컬 네트워크에서는 HTTP도 허용돼요.</string>
+    <string name="trace_header_name">인증 헤더 이름</string>
+    <string name="trace_header_value">인증 헤더 값 (선택)</string>
+    <string name="trace_sent">트레이스가 수락되었어요</string>
+    <string name="trace_sent_warning">수신 측 경고와 함께 트레이스가 수락되었어요</string>
+    <string name="trace_rejected">수신 측에서 스팬 %1$d개를 거부했어요</string>
+    <string name="trace_http_error">수신 측이 HTTP %1$d을(를) 반환했어요</string>
+    <string name="trace_send_failed">트레이스를 보내지 못했어요</string>
+</resources>

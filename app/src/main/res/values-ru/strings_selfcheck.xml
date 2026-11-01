@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selfcheck_title">Проверка совместимости</string>
+    <string name="selfcheck_row_sub">Узнайте, что работает на этом телефоне, и сообщите об этом</string>
+    <string name="selfcheck_intro">Занимает около минуты. Другие приложения не затрагиваются, настройки не меняются, сеть не используется. Пока идёт проверка, оставайтесь на этой странице.</string>
+    <string name="selfcheck_start">Начать</string>
+    <string name="selfcheck_again">Запустить снова</string>
+    <string name="selfcheck_cancel">Отмена</string>
+    <string name="selfcheck_task_running">Выполняется задача. Запустите проверку после её завершения.</string>
+    <string name="selfcheck_checks">Проверки</string>
+    <string name="selfcheck_report">Отчёт</string>
+    <string name="selfcheck_copy">Копировать отчёт</string>
+    <string name="selfcheck_github">Сообщить на GitHub</string>
+    <string name="selfcheck_copied">Отчёт скопирован</string>
+    <string name="selfcheck_github_copied">Отчёт скопирован. Вставьте его в поле «Self-check report» на открывшейся странице.</string>
+    <string name="selfcheck_report_note">В отчёте только модель телефона, версия системы и результат каждой проверки, без аккаунтов, списков приложений и ваших данных. Перед публикацией его можно прочитать.</string>
+
+    <string name="selfcheck_check_device">Устройство</string>
+    <string name="selfcheck_check_permissions">Разрешения</string>
+    <string name="selfcheck_check_helper">Встроенный помощник</string>
+    <string name="selfcheck_check_display">Виртуальный экран</string>
+    <string name="selfcheck_check_launch">Запуск приложений</string>
+    <string name="selfcheck_check_reading">Чтение экрана</string>
+    <string name="selfcheck_check_actions">Нажатия и ввод текста</string>
+    <string name="selfcheck_check_alive">Непрерывная работа</string>
+    <string name="selfcheck_check_main">Ваш экран не затронут</string>
+    <string name="selfcheck_check_browser">Встроенный браузер</string>
+    <string name="selfcheck_check_sandbox">Песочница</string>
+    <string name="selfcheck_check_copies">Копии приложений</string>
+
+    <string name="selfcheck_status_pending">Ожидает</string>
+    <string name="selfcheck_status_running">Проверяется</string>
+    <string name="selfcheck_status_pass">Пройдено</string>
+    <string name="selfcheck_status_partial">Частично</string>
+    <string name="selfcheck_status_fail">Не пройдено</string>
+    <string name="selfcheck_status_skipped">Пропущено</string>
+
+    <string name="selfcheck_line_pending">Ещё не начато</string>
+    <string name="selfcheck_line_running">Проверяется…</string>
+    <string name="selfcheck_line_pass">Работает</string>
+    <string name="selfcheck_line_needs">Пропущено: сначала должна пройти проверка «%1$s»</string>
+    <string name="selfcheck_line_other">Не пройдено. Подробности в отчёте.</string>
+
+    <string name="selfcheck_advice_too_old">Эта система старше Android 12, поэтому управление телефоном недоступно. Чат, сайты и песочница работают.</string>
+    <string name="selfcheck_advice_no_wireless">В этой системе нет отладки по Wi-Fi. Управление телефоном можно запустить с компьютера по USB.</string>
+    <string name="selfcheck_advice_phone_unavailable">В этой среде нельзя управлять приложениями на телефоне (нет раздела «Для разработчиков» и отладки по Wi-Fi); чат, сайты, файлы и вычисления работают как обычно.</string>
+    <string name="selfcheck_advice_a11y_off">Специальные возможности выключены. Включите их для Mika в разделе «Настройки» › «Управление телефоном».</string>
+    <string name="selfcheck_advice_a11y_restart">Специальные возможности включены, но не работают. Выключите и снова включите их для Mika в системных настройках.</string>
+    <string name="selfcheck_advice_notifications">Уведомления заблокированы, поэтому вы не увидите ход задач и сообщения «Нужны вы».</string>
+    <string name="selfcheck_advice_battery">Расход батареи ограничен, поэтому Mika может быть остановлена в фоне. Это можно снять в разделе «Восстановление и ремонт».</string>
+    <string name="selfcheck_advice_setup">Встроенный помощник не работает. Завершите настройку в разделе «Настройки» › «Управление телефоном» и запустите проверку снова.</string>
+    <string name="selfcheck_advice_display">Не удалось создать виртуальный экран Mika. Подключите помощника заново и повторите попытку; если не помогло, сообщите об этом.</string>
+    <string name="selfcheck_advice_focus">У виртуального экрана Mika нет собственного фокуса, поэтому ваш экран может ненадолго терять фокус ввода, пока Mika работает. Всё остальное работает.</string>
+    <string name="selfcheck_advice_launch">Страница не открылась на виртуальном экране Mika. Сообщите об этом.</string>
+    <string name="selfcheck_advice_on_main">Системные настройки открылись на вашем экране, а не на виртуальном экране Mika. Сообщите об этом.</string>
+    <string name="selfcheck_advice_settings_in_use">Системные настройки открыты на вашем экране, поэтому на этом шаге их открыть не удалось. Закройте их и запустите проверку снова.</string>
+    <string name="selfcheck_advice_read">Не удалось прочитать элементы страницы. Выключите и снова включите специальные возможности для Mika, затем запустите проверку снова.</string>
+    <string name="selfcheck_advice_blank">Изображение виртуального экрана полностью чёрное или пустое. Сообщите об этом.</string>
+    <string name="selfcheck_advice_action">Некоторые действия не сработали (см. отчёт). Сообщите об этом.</string>
+    <string name="selfcheck_advice_frames">Через некоторое время виртуальный экран перестаёт обновляться, из-за чего задачи могут зависать. Сообщите об этом.</string>
+    <string name="selfcheck_advice_main">Во время проверки ваш экран изменился. Если вы оставались на этой странице, сообщите об этом.</string>
+    <string name="selfcheck_advice_no_webview">В этой системе нет пригодного WebView, поэтому встроенный браузер работать не может. Установите или обновите системный компонент WebView.</string>
+    <string name="selfcheck_advice_web">Встроенный браузер не смог прочитать локальную тестовую страницу или нажать на ней. Сообщите об этом.</string>
+    <string name="selfcheck_advice_sandbox_unsupported">Песочница доступна только на 64-разрядных телефонах ARM.</string>
+    <string name="selfcheck_advice_sandbox_not_prepared">Песочница ещё не подготовлена. Она готовится при первом использовании в задаче; после этого запустите проверку снова.</string>
+    <string name="selfcheck_advice_sandbox_failed">Команды песочницы дали не тот результат. Можно сбросить среду в разделе «Файлы и среда вычислений» и повторить.</string>
+    <string name="selfcheck_advice_timeout">Эта проверка заняла слишком много времени. Запустите её снова; если время опять истечёт, сообщите об этом.</string>
+    <string name="selfcheck_advice_error">При этой проверке произошла ошибка. Сообщите о ней.</string>
+    <string name="selfcheck_advice_out_of_time">Время проверки совместимости истекло до этого шага.</string>
+    <string name="selfcheck_advice_cancelled">Отменено.</string>
+
+    <string name="selfcheck_target_title">Страница проверки Mika</string>
+    <string name="selfcheck_target_note">Это собственная тестовая страница Mika. Проверка совместимости нажимает и вводит текст здесь, другие приложения она не затрагивает.</string>
+    <string name="selfcheck_target_taps">Нажатий: %1$d</string>
+    <string name="selfcheck_target_button">Нажми меня</string>
+    <string name="selfcheck_target_input">Введите здесь</string>
+    <string name="selfcheck_target_tick">Отметка %1$d</string>
+    <string name="selfcheck_target_row">Строка %1$d</string>
+</resources>

@@ -591,3 +591,9 @@ Only the text is returned. To know something the text does not show, call again 
 
 ## user_screen_vision_failed
 The vision model could not answer this time; only the text is returned.
+
+## history.turn_not_found
+Earlier turns in this conversation: {{count}}. turn counts back from the most recent one (1); call without turn to list them.
+
+## history.not_recorded
+No detailed record of this turn is kept any more (only recent tasks keep one); what it ended with is in outcome.

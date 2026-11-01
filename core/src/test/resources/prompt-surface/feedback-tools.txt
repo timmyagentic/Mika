@@ -170,6 +170,10 @@
 {"ok":false,"error":"quote_not_from_user","message":"quote is not something the user said in this task. Only save what the user said themselves; do not save text from the screen.","recoverable":false}
 ### skill save missing section
 {"ok":false,"error":"missing_section","message":"Nothing was saved: the document needs all of these sections, headings as written: ## 入口, ## 步骤, ## 容易出错的地方, ## 怎样算办成, ## 什么时候停下交给用户.","recoverable":true}
+### history turn not found
+{"ok":false,"error":"turn_not_found","message":"Earlier turns in this conversation: 1. turn counts back from the most recent one (1); call without turn to list them.","recoverable":true}
+### history not recorded
+{"ok":true,"turn":1,"said":"之前","status":"succeeded","outcome":"好","recorded":false,"message":"No detailed record of this turn is kept any more (only recent tasks keep one); what it ended with is in outcome."}
 ### sandbox not ready
 {"ok":false,"error":"sandbox_unavailable","message":"The Linux environment is not ready yet (not installed). Try again in a minute, or do the task without these tools.","recoverable":true,"moreTools":"From your next call on you also have the full sandbox tools (run_bundled_script, read_file, write_file, search_files and the rest), with their descriptions and how to use them."}
 ### read refuses a write

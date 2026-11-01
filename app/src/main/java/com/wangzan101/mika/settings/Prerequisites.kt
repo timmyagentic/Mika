@@ -33,6 +33,8 @@ data class SystemStatus(
     val wirelessDebugging: Boolean = false,
     /** 系统里根本没有「无线调试」这一项(没带这个功能):引导页据此给「改用电脑启动」。 */
     val wirelessDebuggingMissing: Boolean = false,
+    /** 系统里打不开「开发者选项」页:和 [wirelessDebuggingMissing] 一起成立时,这个环境设置不了手机操作。 */
+    val developerSettingsMissing: Boolean = false,
     /** 系统「USB 调试」开着:开着时 Wi-Fi 断开助手也不停。 */
     val usbDebugging: Boolean = true,
     /** 系统可能拦着不让打开无障碍(安卓 13 起,没从应用商店装的 App 要先允许受限制的设置)。 */

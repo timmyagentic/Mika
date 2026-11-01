@@ -1,4 +1,4 @@
-<!-- translated-from: README.md @ e407f162fc39 -->
+<!-- translated-from: README.md @ 960f4051ce73 -->
 <div align="center">
 
 <img src="../media/logo.png" alt="Mika" width="88" />
@@ -138,7 +138,7 @@
 
 **能用自己電腦上跑的模型嗎？** 可以，服務商選「自定義」，填區域網路位址即可。
 
-**App 有繁體中文介面嗎？** 有。介面有繁體中文、簡體中文和英文，跟隨系統語言，也可以在 設定 › 語言 裡切換。
+**App 有繁體中文介面嗎？** 有。介面有繁體中文、簡體中文、英文、日文、韓文、西班牙文、葡萄牙文、俄文和印尼文，跟隨系統語言，也可以在 設定 › 語言 裡切換。
 
 **更新從哪裡來？** 只從本倉庫的 [Releases](https://github.com/wangzan101/Mika/releases) 發布；App 裡「關於 › 檢查更新」也能直接升級。
 
@@ -149,7 +149,7 @@
 ## 社群與貢獻
 
 - **文件**：全部文件和閱讀順序見[文件目錄](../README.md)
-- **交流**：App 裡「關於 › 聯絡作者」掃碼加作者微信（請備註 Mika）；不用微信的話可以加入 [X 群聊](https://x.com/i/chat/group_join/g2116500883139862983/xP74Qyff3X)
+- **交流**：App 裡「關於 › 聯絡作者」掃碼加作者微信（請備註 Mika）；不用微信的話可以加入 [X 群聊](https://x.com/i/chat/group_join/g2116926829198246025/48B52j5svL)
 - **關注作者**：X [@wangzan101](https://x.com/wangzan101)
 - **回報問題**：[開 Issue](https://github.com/wangzan101/Mika/issues/new/choose)，App 裡「關於 › 回報問題」可以附上診斷資訊
 - **參與貢獻**：為某個 App、網站補一份使用知識（純文字，不用寫程式），或者貢獻程式碼，見[貢獻指南](../../.github/CONTRIBUTING.zh-CN.md)
@@ -158,8 +158,8 @@
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-0434" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-0434" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-1623" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-1623" width="600" />
   </picture>
 </a>
 

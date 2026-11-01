@@ -41,6 +41,8 @@
     <string name="tool_find_skill">Look up skills</string>
     <string name="tool_read_knowledge">Read app/site knowledge</string>
     <string name="tool_read_skill">Read skill</string>
+    <string name="tool_list_settings">Read settings</string>
+    <string name="tool_set_setting">Change a setting</string>
     <string name="tool_save_skill">Save skill</string>
     <string name="tool_explain_failure">Explain why it didn’t work</string>
     <string name="tool_ask_user">Ask you a question</string>

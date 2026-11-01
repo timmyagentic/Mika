@@ -1,4 +1,4 @@
-<!-- translated-from: README.md @ e407f162fc39 -->
+<!-- translated-from: README.md @ 960f4051ce73 -->
 <div align="center">
 
 <img src="../media/logo.png" alt="Mika" width="88" />
@@ -72,7 +72,7 @@ Trabaja en una pantalla en segundo plano que no ves, así que puedes seguir usan
 ## Empieza en tres pasos
 
 1. **Instálalo**: descarga el APK desde [Releases](https://github.com/wangzan101/Mika/releases/latest).
-2. **Conecta un modelo**: en Settings › Model, elige un proveedor e introduce una clave de API, o simplemente inicia sesión con una cuenta ([modelos e inicio de sesión](../models.en.md)).
+2. **Conecta un modelo**: en Ajustes › Modelo, elige un proveedor e introduce una clave de API, o simplemente inicia sesión con una cuenta ([modelos e inicio de sesión](../models.en.md)).
 3. **Para que maneje apps del móvil**: sigue el asistente «Set up phone control» de los ajustes y empareja la depuración inalámbrica una sola vez ([guía de configuración](../setup-guide.en.md)). Si solo quieres chatear, navegar y trabajar con archivos, puedes saltarte este paso.
 
 Después, prueba a decirle: «Pon alarmas mañana a las 9:40 y a las 10:00» o «Mira el tiempo cada mañana a las 8 y avísame solo si va a llover».
@@ -121,7 +121,7 @@ También puedes prescindir de la clave e iniciar sesión con una cuenta de ChatG
 | Manejar apps del móvil | Android 12 o posterior; **se recomienda Android 14+** (la pantalla en segundo plano tiene su propio foco, así que no interfiere cuando escribes en la pantalla principal) |
 | Sandbox de Linux | Dispositivos arm64 |
 
-¿No sabes si tu móvil sirve? Ejecuta Settings › Recovery & repair › **Compatibility self-check**: 12 comprobaciones en un minuto, y puedes [enviarnos el resultado](https://github.com/wangzan101/Mika/issues/new?template=device-report.yml) con un toque.
+¿No sabes si tu móvil sirve? Ejecuta Ajustes › Recuperación y reparación › **Autocomprobación de compatibilidad**: 12 comprobaciones en un minuto, y puedes [enviarnos el resultado](https://github.com/wangzan101/Mika/issues/new?template=device-report.yml) con un toque.
 
 ## Privacidad y seguridad
 
@@ -140,9 +140,9 @@ También puedes prescindir de la clave e iniciar sesión con una cuenta de ChatG
 
 **¿Puedo usar un modelo que se ejecuta en mi propio ordenador?** Sí: elige «Custom» como proveedor e introduce su dirección en tu red local.
 
-**¿La app está en español?** Por ahora la interfaz está en inglés, chino simplificado y chino tradicional, sigue el idioma del sistema y se puede cambiar en Settings › Language. Todavía no hay interfaz en español, pero puedes hablarle a Mika en español sin problema. El conocimiento integrado sobre apps y sitios web está escrito en chino, y el modelo lo entiende sin dificultad.
+**¿La app está en español?** Sí. La interfaz está en español, inglés, chino simplificado, chino tradicional, japonés, coreano, portugués, ruso e indonesio, sigue el idioma del sistema y se puede cambiar en Ajustes › Idioma. Puedes hablarle a Mika en español sin problema. El conocimiento integrado sobre apps y sitios web está escrito en chino, y el modelo lo entiende sin dificultad.
 
-**¿De dónde vienen las actualizaciones?** Solo de los [Releases](https://github.com/wangzan101/Mika/releases) de este repositorio; también puedes actualizar desde la app en About › Check for updates.
+**¿De dónde vienen las actualizaciones?** Solo de los [Releases](https://github.com/wangzan101/Mika/releases) de este repositorio; también puedes actualizar desde la app en Acerca de Mika › Buscar actualizaciones.
 
 Hay más respuestas en las [preguntas frecuentes](../faq.en.md).
 
@@ -151,17 +151,17 @@ Hay más respuestas en las [preguntas frecuentes](../faq.en.md).
 ## Comunidad y contribuciones
 
 - **Documentación**: toda la documentación y un orden de lectura sugerido están en el [índice de documentación](../README.en.md)
-- **Comunidad**: únete al [chat de grupo en X](https://x.com/i/chat/group_join/g2116500883139862983/xP74Qyff3X); para escribir al autor por WeChat, escanea el código QR de la app en About › Contact the author (menciona «Mika» en la solicitud)
+- **Comunidad**: únete al [chat de grupo en X](https://x.com/i/chat/group_join/g2116926829198246025/48B52j5svL); para escribir al autor por WeChat, escanea el código QR de la app en Acerca de Mika › Contactar con el autor (menciona «Mika» en la solicitud)
 - **Sigue al autor**: X [@wangzan101](https://x.com/wangzan101)
-- **Informa de un problema**: [abre un issue](https://github.com/wangzan101/Mika/issues/new/choose); en la app, About › Send feedback permite adjuntar información de diagnóstico
+- **Informa de un problema**: [abre un issue](https://github.com/wangzan101/Mika/issues/new/choose); en la app, Acerca de Mika › Enviar comentarios permite adjuntar información de diagnóstico
 - **Contribuye**: añade conocimiento de uso para una app o un sitio web (texto plano, sin programar) o contribuye con código; consulta la [guía de contribución](../../.github/CONTRIBUTING.md)
 
 ## Star History
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-0434" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-0434" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-1623" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-1623" width="600" />
   </picture>
 </a>
 

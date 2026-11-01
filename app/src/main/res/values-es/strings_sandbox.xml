@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="install_check">Comprobando el dispositivo</string>
+    <string name="install_extract">Descomprimiendo</string>
+    <string name="install_configure">Configurando</string>
+    <string name="install_skills">Sincronizando los scripts de habilidades</string>
+    <string name="install_interrupted">La configuración se interrumpió; puedes reintentarlo</string>
+    <string name="install_checksum">La suma de verificación del archivo no coincide</string>
+    <string name="install_unpack_failed">No se pudo descomprimir el entorno; reinstala Mika: %1$s</string>
+    <string name="install_unsupported">No es compatible con este dispositivo (requiere arm64)</string>
+    <string name="install_no_space">Espacio insuficiente: se necesitan %1$d MB (hay %2$d MB libres)</string>
+    <string name="install_cannot_start">El entorno no arranca: %1$s</string>
+    <string name="install_exit_code">código de salida %1$d</string>
+    <string name="install_no_client">Falta el comando mika (paquete incompleto)</string>
+    <string name="sandbox_resetting">Restableciendo</string>
+    <string name="sandbox_incomplete">Los archivos del entorno están incompletos; puedes restablecerlo en Ajustes → Avanzado</string>
+    <string name="sandbox_not_finished">La configuración no terminó; puedes reintentarlo</string>
+    <string name="sandbox_network">Permitir que los scripts se conecten a internet</string>
+    <string name="sandbox_network_sub">Desactivado por defecto</string>
+    <string name="sandbox_network_explain">Por defecto Mika trabaja con archivos y ejecuta scripts sin conexión. Con esto activado, los scripts pueden usar la red (por ejemplo, para buscar artículos o mapas) y también podrían enviar al exterior archivos del chat.</string>
+    <string name="sandbox_isolation_unavailable">Este dispositivo no puede mantener los scripts sin conexión: Mika solo puede trabajar con archivos y ejecutar scripts si “Permitir que los scripts se conecten a internet” está activado</string>
+    <string name="sandbox_reset_title">¿Restablecer el entorno?</string>
+    <string name="sandbox_reset_body">Elimina el entorno que Mika usa para archivos y scripts, además de los archivos creados en cada chat (incluidos los que adjuntaste), y lo vuelve a configurar automáticamente. Los chats y los ajustes no se ven afectados.</string>
+    <string name="sandbox_broken">La configuración no terminó: %1$s</string>
+    <string name="sandbox_reset_sub">Para cuando algo falla: lo elimina y lo vuelve a configurar</string>
+    <string name="sandbox_reset">Restablecer entorno</string>
+    <string name="reset">Restablecer</string>
+</resources>

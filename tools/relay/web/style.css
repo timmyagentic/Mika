@@ -1,0 +1,46 @@
+/* Semantic values match app/ui/theme/Colors.kt and Tokens.kt. */
+:root { color-scheme: light dark; --bg: #f7f7f8; --surface: #fff; --fill: #0000000a; --ink: #1c1c1e; --ink2: #5f6068; --ink3: #9a9ba3; --hair: #00000012; --edge: #0000000d; --accent: #0a7cff; --on-accent: #fff; --ok: #1f9d55; --ok-soft: #1f9d551f; --bad: #e5483d; --bad-soft: #e5483d1a; --shadow: 0 3px 6px #0000000d; --card-radius: 16px; --button-radius: 14px; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0e0e10; --surface: #1a1a1d; --fill: #ffffff0f; --ink: #f2f2f4; --ink2: #a4a5ad; --ink3: #6c6d75; --hair: #ffffff14; --edge: #ffffff0f; --accent: #3d97ff; --ok: #3ccf7a; --ok-soft: #3ccf7a24; --bad: #ff6961; --bad-soft: #ff696124; --shadow: none; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: .96875rem/1.375rem system-ui, -apple-system, sans-serif; }
+.topbar { min-height: 56px; border-bottom: .5px solid var(--hair); }
+.topbar-inner { max-width: 592px; min-height: 56px; padding: 12px 16px; margin: auto; display: flex; align-items: center; gap: 12px; font-size: 1.0625rem; line-height: 1.375rem; font-weight: 600; }
+.brand { color: var(--accent); }
+main { max-width: 592px; margin: 0 auto; padding: 20px 16px 24px; }
+h1 { font-size: 1.75rem; line-height: 2.1875rem; font-weight: 700; margin: 0 0 8px; }
+h2 { font-size: 1.0625rem; line-height: 1.375rem; margin: 0 0 12px; font-weight: 600; }
+p { margin: 0; color: var(--ink2); overflow-wrap: anywhere; }
+.intro { margin: 4px 0 24px; }
+.group-label { margin: 20px 16px 8px; color: var(--ink2); font-size: .8125rem; line-height: 1.125rem; font-weight: 500; }
+.card { background: var(--surface); border: .5px solid var(--edge); border-radius: var(--card-radius); box-shadow: var(--shadow); margin: 0 0 12px; overflow: hidden; }
+.field-row { display: flex; gap: 12px; align-items: center; min-height: 52px; padding: 16px; }
+.field-row label { flex: 0 0 100px; }
+input, select { color: var(--ink); font: inherit; border: 0; background: transparent; min-width: 0; }
+input { flex: 1; width: 100%; padding: 8px 0; border-radius: 4px; }
+.form-copy { padding: 0 16px 4px; }
+.caption { font-size: .8125rem; line-height: 1.125rem; }
+.form-copy p + p { margin-top: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px; }
+.button { appearance: none; display: inline-flex; align-items: center; justify-content: center; min-height: 42px; max-width: 100%; border: 0; border-radius: 12px; padding: 10px 14px; background: var(--accent); color: var(--on-accent); font: 600 .90625rem/1.1875rem system-ui, -apple-system, sans-serif; cursor: pointer; text-decoration: none; text-align: center; }
+.button-tonal { background: var(--fill); color: var(--ink); }
+.button-small { min-height: 32px; border-radius: 16px; font-size: .84375rem; line-height: 1.125rem; padding: 7px 14px; }
+.button:hover { filter: brightness(.96); }
+.button:disabled { opacity: .45; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.notice { padding: 16px; border-radius: var(--card-radius); margin-bottom: 20px; }
+.notice-ok { background: var(--ok-soft); color: var(--ok); }
+.notice-bad { background: var(--bad-soft); color: var(--bad); }
+.pairing-code { padding: 20px 16px; }
+.pairing-code output { display: block; font: 600 1.25rem/1.75rem ui-monospace, monospace; letter-spacing: .04em; overflow-wrap: anywhere; margin-bottom: 8px; }
+.text-row { padding: 16px; }
+.text-row + .text-row { border-top: .5px solid var(--hair); }
+.text-row p { margin-top: 4px; }
+.footer-note, footer { margin: 12px 16px 20px; color: var(--ink2); font-size: .75rem; line-height: 1.0625rem; }
+.language-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 24px 16px; }
+select { border-radius: 8px; padding: 8px; background: var(--fill); max-width: 100%; }
+footer { text-align: center; margin-bottom: 0; }
+dialog { width: min(440px, calc(100% - 32px)); max-height: calc(100% - 48px); padding: 24px; background: var(--surface); color: var(--ink); border: .5px solid var(--edge); border-radius: 20px; box-shadow: var(--shadow); }
+dialog .actions { justify-content: flex-end; padding: 20px 0 0; }
+dialog::backdrop { background: #00000066; }
+@media (max-width: 420px) { .actions > .button { flex: 1 1 100%; } .field-row { align-items: stretch; flex-direction: column; gap: 4px; } .field-row label { flex-basis: auto; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }

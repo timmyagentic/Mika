@@ -18,6 +18,7 @@
     <string name="chat_wait_unlock">Waiting for you to unlock</string>
     <string name="chat_waiting_for_you">Waiting for you</string>
     <string name="chat_paused">Paused</string>
+    <string name="chat_queued">Queued</string>
     <plurals name="chat_earlier_steps">
         <item quantity="one">%1$d earlier step</item>
         <item quantity="other">%1$d earlier steps</item>

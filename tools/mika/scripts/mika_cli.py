@@ -24,7 +24,7 @@ CONNECT_SCRIPT = PHONE_FILES + "/connect-computer.sh"
 MAX_RESPONSE = 4 * 1024 * 1024
 HANDOFF = {"waiting_for_answer", "waiting_on_phone"}
 TERMINAL = {"done", "failed", "cancelled"}
-STATUSES = TERMINAL | HANDOFF | {"starting", "running", "paused"}
+STATUSES = TERMINAL | HANDOFF | {"starting", "queued", "running", "paused"}
 RETRY_HINT = "Unlock the phone, open Mika once, then retry connect."
 
 

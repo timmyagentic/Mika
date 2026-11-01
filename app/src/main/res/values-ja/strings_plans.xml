@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trigger_reminder">Mika からのリマインダー</string>
+    <string name="trigger_not_started_body">スケジュールされたタスクを開始できませんでした。「スケジュールされたタスク」のページで確認して、もう一度実行してください。</string>
+    <string name="trigger_start_failed">開始に失敗しました</string>
+    <string name="trigger_not_started">スケジュールされたタスクが開始されませんでした</string>
+    <string name="trigger_interrupted_body">スケジュールされたタスクが中断され、結果を確認できません。まず実際に何が起きたかを確認してください。Mika が自動でやり直すことはありません。</string>
+    <string name="trigger_unconfirmed">スケジュールされたタスクの結果を確認してください</string>
+    <string name="trigger_alarm_title">スケジュールされたタスクには「アラームとリマインダー」の権限が必要です</string>
+    <string name="trigger_alarm_body">権限がないと、スケジュールされたタスクが遅れたり、実行されなかったりすることがあります。ここをタップしてオンにしてください。</string>
+    <string name="op_failed">問題が発生しました</string>
+    <string name="plans_alarm_body">この権限がないと、スケジュールされたタスクが遅れたり、実行されなかったりすることがあります。オンにするのは一度だけです。</string>
+    <string name="plans_running_n">有効 %1$d</string>
+    <string name="plans_stopped_n">オフ %1$d</string>
+    <string name="plans_empty">スケジュールされたタスクはまだありません\nチャットで、いつリマインドするか、いつ代わりに何かをするかを Mika に伝えてください。</string>
+    <string name="plans_none_running">有効なスケジュールされたタスクはありません</string>
+    <string name="plans_none_stopped">オフにしたスケジュールされたタスクはありません</string>
+    <string name="plans_footer">チャットで「毎日 8 時に…」や「値段が下がったら教えて」と話しかけても作れます。結果はそのチャットに戻ります。時間指定の実行は、バッテリーの節約機能の影響を受けることがあります。オフにしたり削除したりすると、今後の実行にだけ影響します。</string>
+    <string name="plans_open_chat">チャットを開く</string>
+    <string name="plans_run_now">今すぐ実行</string>
+    <string name="plans_edit_time">時刻を変更</string>
+    <string name="plans_edit_title">次回の実行時刻を変更</string>
+    <string name="plans_edit_label">現地時刻: yyyy-MM-dd HH:mm</string>
+    <string name="plans_need_future">未来の有効な時刻を入力してください</string>
+    <string name="plans_delete_title">このスケジュールされたタスクを削除しますか？</string>
+    <string name="plans_done">完了</string>
+    <string name="plans_checked">確認済み</string>
+    <string name="plans_check_failed">確認に失敗しました</string>
+    <string name="plans_result_pending">結果の確認が必要です</string>
+    <string name="plans_every_day">毎日</string>
+    <plurals name="plans_every_minutes">
+        <item quantity="other">%1$d 分ごと</item>
+    </plurals>
+    <string name="plans_once">1 回のみ</string>
+    <string name="plans_next">%1$s · 次回 %2$s</string>
+    <string name="plans_condition">次の場合のみ実行: %1$s · %2$s</string>
+    <string name="plans_last">前回 %1$s · %2$s</string>
+    <string name="plans_never_run">まだ実行されていません</string>
+    <string name="plans_delivered">通知済み</string>
+    <string name="plans_unchanged">条件は変わっていません</string>
+    <string name="plans_running_now">実行中</string>
+    <string name="trigger_deleted">スケジュールされたタスクを削除しました</string>
+    <string name="trigger_busy">このタスクはまだ実行中です</string>
+</resources>

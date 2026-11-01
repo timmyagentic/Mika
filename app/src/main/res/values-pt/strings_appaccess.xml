@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appaccess_title">Acesso a apps</string>
+    <string name="appaccess_row_sub">Bloqueie apps e o compartilhamento de tela por app</string>
+    <string name="appaccess_intro">Escolha quais apps o Mika pode ler e operar com as ferramentas padrão do celular. Comandos de shell, o sandbox e o acesso ao computador (MCP) não são limitados por esta configuração.</string>
+    <string name="appaccess_privacy">Para categorizar, os nomes e os nomes de pacote dos apps são enviados ao modelo de IA; “Atualizar lista de apps” pergunta antes.</string>
+    <string name="appaccess_unavailable">Não foi possível ler as configurações de acesso a apps, então o acesso padrão ao celular está pausado. Redefinir apaga as permissões e categorias salvas.</string>
+    <string name="appaccess_reset">Redefinir acesso a apps</string>
+    <string name="appaccess_search">Buscar nome ou pacote</string>
+    <string name="appaccess_refreshing">Categorizando…</string>
+    <string name="appaccess_refresh">Atualizar lista de apps</string>
+    <string name="appaccess_recommend">Recomendado bloquear</string>
+    <string name="appaccess_recommend_count">Recomendado bloquear · %1$d</string>
+    <string name="appaccess_allow_all">Permitir todos</string>
+    <string name="appaccess_risk_note">A operação automática pode levar a restrições na conta nestes apps; bloqueie os que você não precisa.</string>
+    <string name="appaccess_blocked">Bloqueado</string>
+    <string name="appaccess_allowed">Permitido</string>
+    <string name="appaccess_revoke_share">Revogar compartilhamento de tela de %1$s</string>
+
+    <string name="appaccess_send_title">Enviar a lista de apps para a IA?</string>
+    <string name="appaccess_send_body">Atualizar lê os apps instalados e envia os nomes e os nomes de pacote ao modelo de IA que você configurou, para avaliar uma categoria de risco. Nada de dentro dos apps é enviado.</string>
+    <string name="appaccess_send_confirm">Continuar e categorizar</string>
+    <string name="appaccess_cancel">Cancelar</string>
+
+    <string name="appaccess_recommend_title">Recomendado bloquear: apps financeiros</string>
+    <string name="appaccess_recommend_body">Estes apps são classificados como financeiros ou de pagamento, e o Mika ainda pode operá-los. Bloqueie um por um ou todos de uma vez.</string>
+    <string name="appaccess_recommend_empty">Nada para bloquear.</string>
+    <string name="appaccess_block">Bloquear</string>
+    <string name="appaccess_block_all">Bloquear todos</string>
+
+    <string name="appaccess_edit_category">Alterar categoria</string>
+    <string name="appaccess_category_manual">Definida por você</string>
+
+    <string name="appaccess_error_save">Não foi possível salvar</string>
+    <string name="appaccess_error_no_model">Nenhum modelo disponível. A lista de apps foi atualizada, mas não pôde ser categorizada.</string>
+    <string name="appaccess_error_refresh">Falha ao atualizar</string>
+    <string name="appaccess_error_load">Não foi possível ler a lista de apps</string>
+
+    <string name="appaccess_category_finance">Finanças</string>
+    <string name="appaccess_category_social">Social</string>
+    <string name="appaccess_category_game">Jogos</string>
+    <string name="appaccess_category_shopping">Compras</string>
+    <string name="appaccess_category_productivity">Produtividade</string>
+    <string name="appaccess_category_media">Mídia</string>
+    <string name="appaccess_category_other">Outros</string>
+    <string name="appaccess_category_unknown">Sem categoria</string>
+
+    <string name="appaccess_share_title">Compartilhar a tela de %1$s</string>
+    <string name="appaccess_share_body">Este app está bloqueado. O compartilhamento de tela permite que você o compartilhe de propósito; a leitura e a operação automáticas continuam bloqueadas.</string>
+    <string name="appaccess_share_allow">Permitir só o compartilhamento de tela</string>
+    <string name="appaccess_share_unblock">Remover dos bloqueados</string>
+    <string name="appaccess_share_cancel">Cancelar compartilhamento</string>
+    <string name="appaccess_share_expired">A permissão de compartilhamento de tela expirou. Tire uma nova captura de tela.</string>
+</resources>

@@ -210,6 +210,8 @@ object Diagnostics {
         if (i.accessibilitySkipped) line("accessibility step", "skipped")
         if (i.repair) line("repair", "yes")
         line("developer options", onOff(i.developerOptions))
+        if (i.developerSettingsMissing) line("developer options page", "missing")
+        if (i.wirelessMissing) line("wireless debugging setting", "missing")
         line("USB debugging", onOff(i.usbDebugging))
         line("wireless debugging", p.wirelessDebuggingSetting?.let(::onOff) ?: "unreadable")
         line("accessibility", when (p.accessibility) {

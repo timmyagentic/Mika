@@ -93,6 +93,8 @@ val chatgptSignInCheck by tasks.registering(JavaExec::class) {
 tasks.test {
     // 跨语言 CLI 契约由 cliTest 显式运行;纯 JVM 测试不要求电脑安装 Python。
     exclude("**/RemoteCliContractTest*")
+    // 真网关跨语言测试显式运行,普通 JVM 测试不要求安装 Go。
+    exclude("**/RelayGatewayIntegrationTest*")
     // testFixtures 会把 core 的 jar 放到测试类路径前面;让目录排在前面,按目录读资源的测试才找得到文件
     classpath = sourceSets.main.get().output + classpath
     // TaskSetTest 读仓库根目录的评测任务集
@@ -113,6 +115,29 @@ tasks.test {
         systemProperty("mika.updateSnapshots", "true")
         outputs.upToDateWhen { false }
     }
+}
+
+val relayGatewayBinary = tasks.register<Exec>("relayGatewayBinary") {
+    group = "verification"
+    description = "构建自托管远程 MCP 网关,供跨语言集成测试使用"
+    val output = layout.buildDirectory.file("relay-check/mika-relay")
+    workingDir(rootProject.file("tools/relay"))
+    inputs.files(fileTree(rootProject.file("tools/relay")) { include("*.go", "go.mod", "go.sum", "web/**") })
+    outputs.file(output)
+    environment("GOCACHE", rootProject.layout.buildDirectory.dir("go-cache").get().asFile.absolutePath)
+    doFirst { output.get().asFile.parentFile.mkdirs() }
+    commandLine("go", "build", "-trimpath", "-o", output.get().asFile.absolutePath, ".")
+}
+
+tasks.register<Test>("relayTest") {
+    group = "verification"
+    description = "真实 Go 网关连接 Kotlin 手机隧道,验证远程 CLI / MCP 全链路"
+    dependsOn(relayGatewayBinary)
+    inputs.file(layout.buildDirectory.file("relay-check/mika-relay")).withPropertyName("relayGatewayBinary")
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    include("**/RelayGatewayIntegrationTest*")
+    systemProperty("mika.relayBinary", layout.buildDirectory.file("relay-check/mika-relay").get().asFile.absolutePath)
 }
 
 val cliContractTest by tasks.registering(Test::class) {

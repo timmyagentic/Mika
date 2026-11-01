@@ -49,7 +49,7 @@ Wait rule: call `task wait --timeout 45` (allowed 1-50) in the foreground, one c
 
 | Returned state | Next action |
 | --- | --- |
-| `starting`, `running`, `paused` | Read progress; wait again within the active task when appropriate. |
+| `starting`, `queued`, `running`, `paused` | Read progress; wait again within the active task when appropriate. |
 | `waiting_for_answer` | Inspect `question` and `options`. Answer from known user instructions, or ask the user for missing information. |
 | `waiting_on_phone` | Tell the user what needs attention on the phone; an answer command cannot approve or complete this step. |
 | `done` | Report the answer and its actual verification fields. Missing `verified` means unknown. |

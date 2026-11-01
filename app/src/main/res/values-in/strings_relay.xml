@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">Jarak jauh</string>
+    <string name="relay_pair_title">Pasangkan gateway jarak jauh</string>
+    <string name="relay_pair_sub">Buat kode pemasangan di halaman web gateway, lalu masukkan alamat dan kodenya di bawah.</string>
+    <string name="relay_gateway">Gateway</string>
+    <string name="relay_code">Kode pemasangan</string>
+    <string name="relay_code_hint">Kode sekali pakai dari gateway Anda</string>
+    <string name="relay_pair">Pasangkan gateway</string>
+    <string name="relay_busy">Harap tunggu…</string>
+    <string name="relay_enable">Izinkan akses jarak jauh</string>
+    <string name="relay_disabled">Terpasang. Akses jarak jauh nonaktif</string>
+    <string name="relay_online">Gateway tersambung. Menunggu permintaan CLI / MCP</string>
+    <string name="relay_connecting">Menyambung ke gateway jarak jauh…</string>
+    <string name="relay_offline">Koneksi terputus. Menyambung ulang otomatis</string>
+    <string name="relay_unauthorized">Pemasangan kedaluwarsa atau dicabut. Pasangkan gateway lagi</string>
+    <string name="relay_copy_address">Salin alamat MCP</string>
+    <string name="relay_client_help">Salin konfigurasi ke klien MCP di komputer untuk menyambung.</string>
+    <string name="relay_unpair">Lepas pemasangan gateway</string>
+    <string name="relay_unpair_body">Putuskan ponsel ini dari gateway. Koneksi internet diperlukan. Token akses ponsel tidak berubah.</string>
+    <string name="relay_failed">Gagal menyelesaikan. Periksa alamat gateway, koneksi internet, dan kode pemasangan. Jika pelepasan gagal, akses nonaktif; coba lagi atau cabut ponsel di gateway.</string>
+    <string name="relay_notif_body">Akses jarak jauh diaktifkan. Buka Mika untuk memeriksa koneksi gateway.</string>
+    <string name="relay_incompatible">Perbarui Mika dan gateway ke versi yang cocok</string>
+    <string name="relay_copy_gateway">Salin alamat gateway</string>
+    <string name="relay_cli_help">Simpan token akses ke berkas di komputer Anda, lalu jalankan perintah koneksi di atas.</string>
+    <string name="relay_intro">Gateway meneruskan permintaan CLI dan MCP yang biasanya lewat Wi-Fi / LAN ke ponsel Anda untuk akses jarak jauh. Pasang di server publik Anda sendiri sebelum memasangkan.</string>
+    <string name="relay_device_access">Izinkan bangun dan buka kunci lewat gateway</string>
+    <string name="relay_device_access_sub">Nonaktif secara default. Juga memerlukan “Izinkan bangun dan buka kunci jarak jauh” di halaman ini. Jika keduanya aktif, siapa pun yang memegang token akses dapat membangunkan dan membuka kunci ponsel ini lewat internet.</string>
+</resources>

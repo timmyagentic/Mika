@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="metrics_model">Razonamiento del modelo</string>
+    <string name="metrics_observe">Lectura de la pantalla</string>
+    <string name="metrics_act">Acciones</string>
+    <string name="metrics_other">Otros (esperas, reintentos)</string>
+    <string name="metrics_title">Estadísticas de ejecución</string>
+    <string name="metrics_sub">Tiempo, idas y vueltas al modelo y tokens de las últimas ejecuciones</string>
+    <string name="metrics_empty">Aún no hay estadísticas. Pídele algo a Mika y quedará registrado aquí.</string>
+    <string name="metrics_note">Solo se cuentan las últimas %1$d ejecuciones en este teléfono. El tiempo empieza cuando Mika se pone a trabajar; la primera respuesta es cuando ves por primera vez lo que está haciendo.</string>
+    <string name="metrics_copy">Copiar JSON</string>
+    <string name="metrics_share">Compartir JSON</string>
+    <string name="metrics_last_10">Últimas 10</string>
+    <plurals name="metrics_runs">
+        <item quantity="one">%1$d</item>
+        <item quantity="many">%1$d</item>
+        <item quantity="other">%1$d</item>
+    </plurals>
+    <string name="duration_h_m">%1$d h %2$d min</string>
+    <string name="metrics_total">%1$s en total</string>
+    <plurals name="metrics_round_trips">
+        <item quantity="one">%1$d ida y vuelta al modelo</item>
+        <item quantity="many">%1$d idas y vueltas al modelo</item>
+        <item quantity="other">%1$d idas y vueltas al modelo</item>
+    </plurals>
+    <string name="metrics_first_feedback_at">primera respuesta %1$s</string>
+    <string name="metrics_retry_wait">De ello, esperas por reintentos</string>
+    <string name="metrics_input_tokens">Tokens de entrada</string>
+    <string name="metrics_output_tokens">Tokens de salida</string>
+    <string name="usage_cached">Aciertos de caché</string>
+    <string name="metrics_no_usage">Sin uso informado</string>
+    <string name="metrics_all_calls">Todas las solicitudes al modelo</string>
+    <plurals name="metrics_all_calls_value">
+        <item quantity="one">%1$d (incl. llamadas auxiliares y reintentos)</item>
+        <item quantity="many">%1$d (incl. llamadas auxiliares y reintentos)</item>
+        <item quantity="other">%1$d (incl. llamadas auxiliares y reintentos)</item>
+    </plurals>
+    <string name="metrics_steps">Pasos</string>
+    <string name="metrics_observe_act">Lecturas / acciones</string>
+    <string name="metrics_observe_act_value">%1$d / %2$d</string>
+    <string name="metrics_counted">Contadas</string>
+    <plurals name="metrics_n_runs">
+        <item quantity="one">%1$d ejecución</item>
+        <item quantity="many">%1$d ejecuciones</item>
+        <item quantity="other">%1$d ejecuciones</item>
+    </plurals>
+    <string name="metrics_success_rate">Tasa de éxito</string>
+    <string name="metrics_success_value">%1$s (%2$d/%3$d)</string>
+    <string name="metrics_median_time">Tiempo mediano</string>
+    <string name="metrics_median_feedback">Primera respuesta mediana</string>
+    <string name="metrics_avg_round_trips">Idas y vueltas al modelo (media)</string>
+    <string name="metrics_avg_round_trips_value">%1$s</string>
+    <string name="metrics_avg_tokens">Tokens (media)</string>
+    <plurals name="metrics_copied">
+        <item quantity="one">Se copió el resumen de %1$d ejecución</item>
+        <item quantity="many">Se copiaron los resúmenes de %1$d ejecuciones</item>
+        <item quantity="other">Se copiaron los resúmenes de %1$d ejecuciones</item>
+    </plurals>
+    <string name="metrics_export_failed">No se pudo exportar; puede que los datos sean demasiado grandes. Prueba con un rango menor.</string>
+    <string name="metrics_where_time">Ver en qué se fue el tiempo</string>
+    <string name="metrics_overview">Resumen</string>
+    <string name="metrics_time_split">En qué se fue el tiempo</string>
+    <string name="metrics_export">Exportar</string>
+    <plurals name="metrics_summary_of">
+        <item quantity="one">Resumen de esta ejecución (%1$d)</item>
+        <item quantity="many">Resumen de estas %1$d ejecuciones</item>
+        <item quantity="other">Resumen de estas %1$d ejecuciones</item>
+    </plurals>
+    <string name="metrics_summary_sub">Una entrada por ejecución, para tu propio análisis</string>
+    <plurals name="chat_steps_n">
+        <item quantity="one">%1$d paso</item>
+        <item quantity="many">%1$d pasos</item>
+        <item quantity="other">%1$d pasos</item>
+    </plurals>
+</resources>

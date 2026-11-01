@@ -43,6 +43,7 @@
 
     <string name="selfcheck_advice_too_old">This system is older than Android 12, so phone control isn’t available. Chat, web and the sandbox still work.</string>
     <string name="selfcheck_advice_no_wireless">This system has no Wireless debugging. You can start phone control from a computer over USB instead.</string>
+    <string name="selfcheck_advice_phone_unavailable">This environment can’t operate the apps on your phone (no Developer options or Wireless debugging); chat, web, files and calculations work as usual.</string>
     <string name="selfcheck_advice_a11y_off">Accessibility is off. Turn on Mika’s accessibility in Settings › Phone control.</string>
     <string name="selfcheck_advice_a11y_restart">Accessibility is on but not running. Turn Mika’s accessibility off and on again in system settings.</string>
     <string name="selfcheck_advice_notifications">Notifications are blocked, so you won’t see task progress or “needs you” alerts.</string>

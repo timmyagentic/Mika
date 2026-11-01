@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rec_a11y">Ativar a acessibilidade por mim</string>
+    <string name="rec_default_on">Ativado por padrão</string>
+    <string name="rec_a11y_body">O Mika usa a Acessibilidade para ler o texto e os botões da tela. Com isto ativado, o Mika liga para você o próprio serviço de acessibilidade nas configurações do sistema; outros serviços de acessibilidade que você usa não são afetados. Desative e o Mika desliga o próprio serviço.</string>
+    <string name="rec_battery">Bateria sem restrições</string>
+    <string name="rec_battery_body">Com isto ativado, o Mika se adiciona às exceções de otimização de bateria do sistema, para não ser interrompido em segundo plano para economizar energia, e o controle do celular cai menos. Pode gastar um pouco mais de bateria. Desative para voltar ao padrão do sistema.</string>
+    <string name="rec_boot">Restaurar após reiniciar</string>
+    <string name="rec_boot_body">A “Depuração wireless” se desativa sozinha depois de reiniciar. Com isto ativado, o Mika a ativa de novo na inicialização e reconecta. Isso exige a permissão “Modificar configurações do sistema”, usada só para ativar a Depuração wireless, e funciona apenas em redes Wi-Fi em que você confia. Desativar isto ou desparear devolve a permissão.</string>
+    <string name="rec_auto_wireless">Ativar a Depuração wireless automaticamente</string>
+    <string name="rec_auto_wireless_body">Depois que o Wi-Fi cai ou o celular reinicia, o sistema desativa a “Depuração wireless”. O controle do celular normalmente não precisa dela — só ao reiniciar (por exemplo, depois de uma atualização do Mika). Com isto ativado, nesses momentos e enquanto estiver no Wi-Fi, o Mika a ativa e reconecta, mas nunca a desativa por você. Isso usa a mesma permissão “Modificar configurações do sistema” de “Restaurar após reiniciar” e funciona apenas em redes Wi-Fi que você permitiu. Desative e o Mika deixa de fazer isso.</string>
+    <string name="rec_need_setup">Conclua primeiro a configuração do controle do celular</string>
+    <string name="rec_failed">Não foi possível concluir. Confirme que o controle do celular está pronto e tente de novo.</string>
+    <string name="rec_working">Processando…</string>
+    <string name="rec_restarted_at">O serviço de acessibilidade foi reiniciado automaticamente às %1$s.</string>
+    <string name="rec_not_allowed_here">A Depuração wireless ainda não é permitida neste Wi-Fi, então o Mika não pode ativá-la. Ative-a você mesmo uma vez e marque “Sempre permitir nesta rede” quando perguntar; depois disso, o Mika consegue ativá-la sozinho.</string>
+    <string name="rec_refused">Este celular não deixa o Mika ativar a Depuração wireless. Ative você mesmo quando precisar e o Mika se conectará.</string>
+    <string name="rec_gave_up">O Mika ativou a Depuração wireless algumas vezes, mas o controle do celular ainda não iniciou, então ele parou. Troque de Wi-Fi ou toque em Tentar de novo em Controle do celular e o Mika tentará outra vez.</string>
+    <string name="rec_permission_missing">Na última inicialização a permissão não estava mais lá, então não foi possível restaurar. Desative e ative esta opção de novo.</string>
+    <string name="rec_setting_unavailable">Este celular não deixa o Mika ativar a Depuração wireless na inicialização. Depois de reiniciar, ative você mesmo e o Mika se conectará.</string>
+    <string name="rec_not_recovered">Não foi possível reconectar automaticamente na última inicialização. Confirme que você está em um Wi-Fi confiável com a Depuração wireless ativada e o Mika se conectará.</string>
+    <string name="rec_needs_pairing">Só funciona depois de parear a Depuração wireless. O assistente foi iniciado com o comando USB, então execute o comando de novo depois que o celular reiniciar.</string>
+</resources>

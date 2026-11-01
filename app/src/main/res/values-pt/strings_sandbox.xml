@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="install_check">Verificando o dispositivo</string>
+    <string name="install_extract">Descompactando</string>
+    <string name="install_configure">Configurando</string>
+    <string name="install_skills">Sincronizando scripts de habilidades</string>
+    <string name="install_interrupted">A configuração foi interrompida; você pode tentar de novo</string>
+    <string name="install_checksum">O checksum do arquivo não confere</string>
+    <string name="install_unpack_failed">Não foi possível descompactar o ambiente; reinstale o Mika: %1$s</string>
+    <string name="install_unsupported">Não compatível com este dispositivo (exige arm64)</string>
+    <string name="install_no_space">Espaço insuficiente: precisa de %1$d MB (%2$d MB livres)</string>
+    <string name="install_cannot_start">O ambiente não inicia: %1$s</string>
+    <string name="install_exit_code">código de saída %1$d</string>
+    <string name="install_no_client">O comando mika não foi encontrado (pacote incompleto)</string>
+    <string name="sandbox_resetting">Redefinindo</string>
+    <string name="sandbox_incomplete">Os arquivos do ambiente estão incompletos; você pode redefini-lo em Configurações → Avançado</string>
+    <string name="sandbox_not_finished">A configuração não terminou; você pode tentar de novo</string>
+    <string name="sandbox_network">Permitir que scripts acessem a internet</string>
+    <string name="sandbox_network_sub">Desativado por padrão</string>
+    <string name="sandbox_network_explain">Por padrão, o Mika trabalha com arquivos e executa scripts offline. Com isto ativado, os scripts podem usar a rede (por exemplo, para buscar artigos ou mapas) e também poderiam enviar para fora arquivos da conversa.</string>
+    <string name="sandbox_isolation_unavailable">Este dispositivo não consegue manter os scripts offline: o Mika só pode trabalhar com arquivos e executar scripts quando “Permitir que scripts acessem a internet” está ativado</string>
+    <string name="sandbox_reset_title">Redefinir o ambiente?</string>
+    <string name="sandbox_reset_body">Exclui o ambiente que o Mika usa para arquivos e scripts, além dos arquivos criados em cada conversa (inclusive os que você anexou), e depois o configura de novo automaticamente. As conversas e as configurações não são afetadas.</string>
+    <string name="sandbox_broken">A configuração não terminou: %1$s</string>
+    <string name="sandbox_reset_sub">Para quando algo der errado: exclui e configura de novo</string>
+    <string name="sandbox_reset">Redefinir ambiente</string>
+    <string name="reset">Redefinir</string>
+</resources>

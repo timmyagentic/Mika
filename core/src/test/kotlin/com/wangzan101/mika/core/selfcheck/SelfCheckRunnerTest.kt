@@ -161,4 +161,17 @@ class SelfCheckRunnerTest {
         assertTrue(s.results.all { it.status == CheckStatus.Pending })
         assertNull(s.facts)
     }
+
+    @Test
+    fun environmentWithoutAWayToStartTheHelperFailsDeviceAndSkipsPhoneChecks() = runTest {
+        val f = facts.copy(wirelessDebugging = false, developerOptionsPage = false, phoneControlUnavailable = true)
+        val o = SelfCheckRunner.judgeDevice(f)
+        assertEquals(CheckStatus.Fail, o.status)
+        assertEquals(Advice.PhoneControlUnavailable, o.advice)
+        assertTrue(o.detail, o.detail.contains("developer options page missing"))
+        val s = SelfCheckRunner(FakePort(f), now = { testScheduler.currentTime }).run()
+        assertEquals(CheckStatus.Skipped, s.of(SelfCheck.HELPER).status)
+        assertEquals(CheckStatus.Pass, s.of(SelfCheck.BROWSER).status)
+        assertEquals(CheckStatus.Pass, s.of(SelfCheck.SANDBOX).status)
+    }
 }

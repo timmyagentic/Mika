@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_access_group">リモートでのスリープ解除とロック解除</string>
+    <string name="device_access_title">リモートでのスリープ解除とロック解除を許可</string>
+    <string name="device_access_sub">MCP トークンを持つパソコンから、このスマホのスリープ解除とロック解除ができます。</string>
+    <string name="device_access_credential">画面ロックの認証情報</string>
+    <string name="device_access_no_credential">未設定 · スワイプまたは画面ロックなしの場合のみ</string>
+    <string name="device_access_pin_saved">PIN を保存済み · タップで置き換え</string>
+    <string name="device_access_password_saved">パスワードを保存済み · タップで置き換え</string>
+    <string name="device_access_blocked">ロック解除を一時停止中 · このスマホで認証情報をもう一度確認して保存してください</string>
+    <string name="device_access_clear">保存した認証情報を削除</string>
+    <string name="device_access_foot">デフォルトではオフです。認証情報はこのスマホの中で暗号化されて保存され、モデルやパソコンには送信されません。認証情報の入力に 1 回失敗すると、以降の試行は停止します。再起動後は、まず自分でスマホのロックを 1 回解除してください。スマホの操作の設定が必要です。</string>
+    <string name="device_access_pin">PIN</string>
+    <string name="device_access_password">パスワード</string>
+    <string name="device_access_value">認証情報</string>
+    <string name="device_access_value_hint">現在の画面ロックを入力</string>
+    <string name="device_access_repeat">確認</string>
+    <string name="device_access_repeat_hint">もう一度入力</string>
+    <string name="device_access_save">認証情報を保存</string>
+    <string name="device_access_pin_hint">現在使っている 4～16 桁の PIN を入力してください。失敗したあとにもう一度保存すると、1 回だけ試行できるようになります。</string>
+    <string name="device_access_password_hint">現在使っている 4～64 文字のパスワードを入力してください。使えるのは英字、数字、スペース、一般的な ASCII 記号です。それ以外の文字とパターンロックには対応していません。</string>
+    <string name="device_access_save_failed">保存できませんでした。スマホのストレージを確認して、もう一度お試しください。</string>
+</resources>

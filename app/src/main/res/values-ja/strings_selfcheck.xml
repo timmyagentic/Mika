@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selfcheck_title">互換性セルフチェック</string>
+    <string name="selfcheck_row_sub">このスマホで何が動くかを確認して報告</string>
+    <string name="selfcheck_intro">約 1 分かかります。ほかのアプリには触れず、設定も変更せず、ネットワークも使いません。実行中は、このページから離れないでください。</string>
+    <string name="selfcheck_start">開始</string>
+    <string name="selfcheck_again">もう一度実行</string>
+    <string name="selfcheck_cancel">キャンセル</string>
+    <string name="selfcheck_task_running">タスクを実行中です。終わってからセルフチェックを開始してください。</string>
+    <string name="selfcheck_checks">チェック項目</string>
+    <string name="selfcheck_report">レポート</string>
+    <string name="selfcheck_copy">レポートをコピー</string>
+    <string name="selfcheck_github">GitHub で報告</string>
+    <string name="selfcheck_copied">レポートをコピーしました</string>
+    <string name="selfcheck_github_copied">レポートをコピーしました。開いたページの「Self-check report」に貼り付けてください。</string>
+    <string name="selfcheck_report_note">レポートに含まれるのは、スマホの機種、システムのバージョン、各チェックの結果だけで、アカウント、アプリの一覧、あなたの内容は含まれません。投稿する前に内容を確認できます。</string>
+
+    <string name="selfcheck_check_device">端末</string>
+    <string name="selfcheck_check_permissions">権限</string>
+    <string name="selfcheck_check_helper">内蔵ヘルパー</string>
+    <string name="selfcheck_check_display">仮想ディスプレイ</string>
+    <string name="selfcheck_check_launch">アプリの起動</string>
+    <string name="selfcheck_check_reading">画面の読み取り</string>
+    <string name="selfcheck_check_actions">タップと入力</string>
+    <string name="selfcheck_check_alive">動き続ける</string>
+    <string name="selfcheck_check_main">あなたの画面に影響しない</string>
+    <string name="selfcheck_check_browser">内蔵ブラウザ</string>
+    <string name="selfcheck_check_sandbox">サンドボックス</string>
+    <string name="selfcheck_check_copies">アプリのコピー</string>
+
+    <string name="selfcheck_status_pending">待機中</string>
+    <string name="selfcheck_status_running">チェック中</string>
+    <string name="selfcheck_status_pass">合格</string>
+    <string name="selfcheck_status_partial">一部のみ</string>
+    <string name="selfcheck_status_fail">失敗</string>
+    <string name="selfcheck_status_skipped">スキップ</string>
+
+    <string name="selfcheck_line_pending">まだ開始していません</string>
+    <string name="selfcheck_line_running">チェック中…</string>
+    <string name="selfcheck_line_pass">動作します</string>
+    <string name="selfcheck_line_needs">スキップ: 先に「%1$s」に合格する必要があります</string>
+    <string name="selfcheck_line_other">合格しませんでした。詳しくはレポートをご覧ください。</string>
+
+    <string name="selfcheck_advice_too_old">このシステムは Android 12 より古いため、スマホの操作は使えません。チャット、ウェブ、サンドボックスは使えます。</string>
+    <string name="selfcheck_advice_no_wireless">このシステムにはワイヤレス デバッグがありません。代わりに、USB 経由でパソコンからスマホの操作を開始できます。</string>
+    <string name="selfcheck_advice_phone_unavailable">この環境ではスマホのアプリを操作できません（開発者向けオプションとワイヤレス デバッグがありません）。チャット、ウェブ、ファイル、計算はいつもどおり使えます。</string>
+    <string name="selfcheck_advice_a11y_off">ユーザー補助がオフです。「設定 › スマホの操作」で Mika のユーザー補助をオンにしてください。</string>
+    <string name="selfcheck_advice_a11y_restart">ユーザー補助はオンですが、動作していません。システム設定で Mika のユーザー補助をいったんオフにして、もう一度オンにしてください。</string>
+    <string name="selfcheck_advice_notifications">通知がブロックされているため、タスクの進行状況や「対応が必要」の通知が表示されません。</string>
+    <string name="selfcheck_advice_battery">バッテリーの使用が制限されているため、Mika がバックグラウンドで停止されることがあります。「復旧と修復」で解除できます。</string>
+    <string name="selfcheck_advice_setup">内蔵ヘルパーが動作していません。「設定 › スマホの操作」でセットアップを済ませてから、もう一度実行してください。</string>
+    <string name="selfcheck_advice_display">Mika の仮想ディスプレイを作成できませんでした。ヘルパーを再接続してもう一度お試しください。それでも失敗する場合は、ご報告ください。</string>
+    <string name="selfcheck_advice_focus">Mika の仮想ディスプレイには独自のフォーカスがないため、Mika の作業中、あなたの画面が一時的に入力フォーカスを失うことがあります。すべて問題なく動作します。</string>
+    <string name="selfcheck_advice_launch">Mika の仮想ディスプレイでページが開きませんでした。ご報告ください。</string>
+    <string name="selfcheck_advice_on_main">システム設定が、Mika の仮想ディスプレイではなくあなたの画面で開きました。ご報告ください。</string>
+    <string name="selfcheck_advice_settings_in_use">システム設定があなたの画面で開いているため、このステップでは開けませんでした。閉じてから、もう一度実行してください。</string>
+    <string name="selfcheck_advice_read">ページのコントロールを読み取れませんでした。Mika のユーザー補助をいったんオフにして、もう一度オンにしてから、もう一度実行してください。</string>
+    <string name="selfcheck_advice_blank">仮想ディスプレイの映像が真っ黒か空です。ご報告ください。</string>
+    <string name="selfcheck_advice_action">反映されなかった操作があります(レポートをご覧ください)。ご報告ください。</string>
+    <string name="selfcheck_advice_frames">仮想ディスプレイが、しばらくすると更新されなくなるため、タスクが止まることがあります。ご報告ください。</string>
+    <string name="selfcheck_advice_main">チェック中にあなたの画面が変化しました。このページから離れていない場合は、ご報告ください。</string>
+    <string name="selfcheck_advice_no_webview">このシステムには使える WebView がないため、内蔵ブラウザは動作しません。システムの WebView コンポーネントをインストールするか、アップデートしてください。</string>
+    <string name="selfcheck_advice_web">内蔵ブラウザが、ローカルのテストページを読み取れないか、タップできませんでした。ご報告ください。</string>
+    <string name="selfcheck_advice_sandbox_unsupported">サンドボックスは、64 ビット ARM のスマホでのみ使えます。</string>
+    <string name="selfcheck_advice_sandbox_not_prepared">サンドボックスはまだ準備されていません。最初にタスクで使うときに準備されます。そのあと、もう一度実行してください。</string>
+    <string name="selfcheck_advice_sandbox_failed">サンドボックスのコマンドが、期待した結果を返しませんでした。「ファイルと計算環境」で環境をリセットして、もう一度お試しください。</string>
+    <string name="selfcheck_advice_timeout">このチェックに時間がかかりすぎました。もう一度実行してください。何度もタイムアウトする場合は、ご報告ください。</string>
+    <string name="selfcheck_advice_error">このチェックでエラーが発生しました。ご報告ください。</string>
+    <string name="selfcheck_advice_out_of_time">このチェックの前に、セルフチェックの制限時間を超えました。</string>
+    <string name="selfcheck_advice_cancelled">キャンセルしました。</string>
+
+    <string name="selfcheck_target_title">Mika セルフチェックページ</string>
+    <string name="selfcheck_target_note">これは Mika 自身のテストページです。互換性セルフチェックは、ここでタップと入力を行います。ほかのアプリには触れません。</string>
+    <string name="selfcheck_target_taps">タップ回数: %1$d</string>
+    <string name="selfcheck_target_button">タップしてください</string>
+    <string name="selfcheck_target_input">ここに入力</string>
+    <string name="selfcheck_target_tick">チェック %1$d</string>
+    <string name="selfcheck_target_row">行 %1$d</string>
+</resources>

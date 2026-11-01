@@ -1,0 +1,29 @@
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    command:
+      - -listen
+      - 0.0.0.0:8787
+      - -public-url
+      - https://${MIKA_DOMAIN:?Set MIKA_DOMAIN in .env}
+      - -data
+      - /data/relay.json
+      - -owner-key-file
+      - /data/owner-key
+      - -trust-proxy
+    ports:
+      - "127.0.0.1:18787:8787"
+    volumes:
+      - relay_data:/data
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  relay_data:

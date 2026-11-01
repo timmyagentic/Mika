@@ -12,7 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import com.wangzan101.mika.core.workspace.WorkspaceFileGate
-import okhttp3.OkHttpClient
+import com.wangzan101.mika.core.net.NetProxy
 import java.io.File
 import com.wangzan101.mika.core.workspace.SandboxTree
 
@@ -40,7 +40,7 @@ class WebStack private constructor(
 
     /** 下载与上传;没有工作区时为空(两者都报不可用)。 */
     val files: WebFiles? = workspace?.let { w ->
-        val downloads = WebDownloads(w.dir, w.gate, w.tree, OkHttpClient(), cookies = { url -> WebTab.cookieManager().getCookie(url) }, scope = transfers)
+        val downloads = WebDownloads(w.dir, w.gate, w.tree, NetProxy.shared.client(), cookies = { url -> WebTab.cookieManager().getCookie(url) }, scope = transfers)
         WebFiles(context, w.dir, downloads, w.gate, transfers)
     }
 

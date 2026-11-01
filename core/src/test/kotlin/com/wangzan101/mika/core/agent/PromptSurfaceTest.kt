@@ -53,6 +53,12 @@ class PromptSurfaceTest {
                     web = FakeWebPort(), inlineScreen = true, deepLinks = true,
                     memory = mem, utterances = UserUtterances(), sandbox = FakeSandbox(SandboxStatus.Ready(network = false)), workspace = { "w" },
                     personalSkills = com.wangzan101.mika.core.skills.InMemoryPersonalSkills(),
+                    // 子任务和之前几轮的记录:之前有记过运行的一轮时才有 history_read
+                    runSpec = com.wangzan101.mika.core.run.RunSpec(com.wangzan101.mika.core.run.RunId("t"), "t", "thread",
+                        priorTurns = listOf(Turn("之前", "好", "succeeded", runId = "r1"))),
+                    childHost = com.wangzan101.mika.core.child.ChildRunHost { spec, _ ->
+                        com.wangzan101.mika.core.child.ChildResult(spec.id, com.wangzan101.mika.core.child.ChildPhase.Completed, "") },
+                    runRecords = NoRecords,
                 )
             }, SpeedFlags(inlineScreen = true, batchSteps = true, deepLinks = true), mem)
         },
@@ -113,6 +119,11 @@ class PromptSurfaceTest {
 
     @Test fun feedbackFromLoop() {
         PromptSurface.check("feedback-loop", PromptSurfaceFeedback.loop())
+    }
+
+    private object NoRecords : com.wangzan101.mika.core.record.RunRecords {
+        override suspend fun summary(runId: String): com.wangzan101.mika.core.record.RunSummary? = null
+        override suspend fun events(runId: String) = emptyList<com.wangzan101.mika.core.record.RunEvent>()
     }
 
     /** 只回一个 finish:记下开工那次请求的系统提示词和工具。 */

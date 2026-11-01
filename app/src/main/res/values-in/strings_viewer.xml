@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="viewer_no_open_app">Tidak ada aplikasi yang bisa membuka berkas ini</string>
+    <string name="viewer_no_share_app">Tidak ada aplikasi yang bisa membagikan berkas ini</string>
+    <string name="viewer_open_elsewhere">Buka dengan aplikasi lain</string>
+    <string name="viewer_unsupported">Berkas ini tidak bisa dilihat di Mika.</string>
+    <string name="viewer_read_error">Terjadi kesalahan saat membaca berkas ini.</string>
+    <string name="viewer_page">Halaman %1$d</string>
+    <string name="viewer_truncated">Berkas ini besar; hanya bagian awal yang ditampilkan.</string>
+</resources>

@@ -43,6 +43,15 @@ class SelfCheckReportTest {
     }
 
     @Test
+    fun environmentWithoutPhoneControlIsWrittenInTheHeader() {
+        val f = facts.copy(wirelessDebugging = false, developerOptionsPage = false, phoneControlUnavailable = true)
+        val text = SelfCheckReport.render(done().copy(facts = f))
+        assertTrue(text.contains("Developer options page: missing"))
+        assertTrue(text.contains("Phone control: unavailable in this environment"))
+        assertFalse(SelfCheckReport.render(done()).contains("Phone control:"))
+    }
+
+    @Test
     fun cancelledRunSaysSo() {
         val s = done().copy(phase = SelfCheckState.Phase.Cancelled, elapsedMs = 9_000)
         assertTrue(SelfCheckReport.render(s).contains("Result: cancelled after 9 s;"))
@@ -61,7 +70,7 @@ class SelfCheckReportTest {
     @Test
     fun onlyKnownLinesAppear() {
         val text = SelfCheckReport.render(done())
-        val allowed = listOf("Mika self-check ", "Device: ", "Wireless debugging: ", "Result: ") +
+        val allowed = listOf("Mika self-check ", "Device: ", "Wireless debugging: ", "Developer options page: ", "Phone control: ", "Result: ") +
             SelfCheck.entries.map { "${it.number} ${it.key}: " }
         for (l in text.lines().filter { it.isNotEmpty() }) assertTrue(l, allowed.any { l.startsWith(it) })
     }

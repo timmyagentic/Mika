@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="viewer_no_open_app">Nenhum app consegue abrir este arquivo</string>
+    <string name="viewer_no_share_app">Nenhum app consegue compartilhar este arquivo</string>
+    <string name="viewer_open_elsewhere">Abrir com outro app</string>
+    <string name="viewer_unsupported">Este arquivo não pode ser visualizado no Mika.</string>
+    <string name="viewer_read_error">Algo deu errado ao ler este arquivo.</string>
+    <string name="viewer_page">Página %1$d</string>
+    <string name="viewer_truncated">Este arquivo é grande; só o início é mostrado.</string>
+</resources>

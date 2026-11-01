@@ -973,7 +973,12 @@ class TaskService : Service() {
                 state.step == 0 -> state.note
                 else -> tr(R.string.task_step_note, state.step, state.note).trimEnd(':', ' ')
             })
-            is TaskState.Held -> if (state.reason == TaskGate.LOCKED) tr(R.string.task_wait_unlock) to tr(R.string.task_wait_unlock_body) else tr(R.string.chat_paused) to state.reason.why
+            is TaskState.Held -> when {
+                state.reason == TaskGate.LOCKED -> tr(R.string.task_wait_unlock) to tr(R.string.task_wait_unlock_body)
+                state.reason.queued -> tr(R.string.chat_queued) to state.reason.why
+                state.reason.resumable -> tr(R.string.chat_paused) to state.reason.why
+                else -> tr(R.string.chat_waiting_for_you) to state.reason.why
+            }
             is TaskState.WaitingTakeover -> tr(R.string.takeover_title) to state.message
             is TaskState.WaitingInput -> tr(R.string.input_title) to state.prompt
             is TaskState.WaitingConfirmation -> ConfirmationCopy.title(state.request) to ConfirmationCopy.body(state.request, appLabel(state.request.app))

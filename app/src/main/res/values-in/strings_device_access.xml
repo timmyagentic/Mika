@@ -1,0 +1,22 @@
+<resources>
+    <string name="device_access_group">Bangunkan dan buka kunci dari jarak jauh</string>
+    <string name="device_access_title">Izinkan bangun dan buka kunci jarak jauh</string>
+    <string name="device_access_sub">Komputer dengan token MCP Anda dapat membangunkan dan membuka kunci ponsel ini.</string>
+    <string name="device_access_credential">Kredensial kunci layar</string>
+    <string name="device_access_no_credential">Belum diatur · hanya geser atau tanpa kunci layar</string>
+    <string name="device_access_pin_saved">PIN tersimpan · ketuk untuk mengganti</string>
+    <string name="device_access_password_saved">Sandi tersimpan · ketuk untuk mengganti</string>
+    <string name="device_access_blocked">Buka kunci dijeda · periksa dan simpan ulang kredensial di ponsel ini</string>
+    <string name="device_access_clear">Hapus kredensial tersimpan</string>
+    <string name="device_access_foot">Nonaktif secara default. Kredensial tetap terenkripsi di ponsel ini dan tidak pernah dikirim ke model atau komputer. Satu kali percobaan kredensial yang gagal akan menjeda percobaan berikutnya. Setelah dimulai ulang, buka kunci ponsel sendiri sekali dulu. Kontrol ponsel harus sudah disiapkan.</string>
+    <string name="device_access_pin">PIN</string>
+    <string name="device_access_password">Sandi</string>
+    <string name="device_access_value">Kredensial</string>
+    <string name="device_access_value_hint">Masukkan kunci layar Anda saat ini</string>
+    <string name="device_access_repeat">Konfirmasi</string>
+    <string name="device_access_repeat_hint">Masukkan sekali lagi</string>
+    <string name="device_access_save">Simpan kredensial</string>
+    <string name="device_access_pin_hint">Gunakan PIN 4–16 digit yang berlaku saat ini. Menyimpan ulang memberi satu kesempatan baru setelah gagal.</string>
+    <string name="device_access_password_hint">Gunakan sandi 4–64 karakter yang berlaku saat ini: huruf Inggris, angka, spasi, dan simbol ASCII umum. Karakter lain dan kunci pola tidak didukung.</string>
+    <string name="device_access_save_failed">Gagal menyimpan. Periksa penyimpanan ponsel lalu coba lagi.</string>
+</resources>

@@ -76,7 +76,7 @@ The apps and websites that already have usage knowledge are listed in the collap
 
 - Each conversation gets a workspace that can run Python, Node and shell commands, process files you send, and save results to your phone's Download/Mika folder.
 - Offline by default; when needed, turn on "Allow scripts to go online" (允许脚本联网) under "Files & computing environment" (文件与计算环境) in Settings. arm64 devices only; on other devices the app installs normally and the sandbox shows "not supported on this device".
-- When it is online you can give these commands a network proxy (it may include a user name and password, stored encrypted on the phone); Mika's own model calls don't use it.
+- When it is online these commands also use **Settings › Network proxy** (the same proxy Mika uses for model calls, updates and the in-app browser; see [Models and sign-in](models.en.md#network-proxy)).
 - The same page shows how much space the sandbox uses and lets you clear a conversation's workspace files; conversations with a running task are skipped.
 
 ## AI tools on your computer can use it (CLI / MCP)

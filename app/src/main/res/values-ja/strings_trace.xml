@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trace_switch">詳細なトレースを記録</string>
+    <string name="trace_switch_detail">新しい実行に適用されます。リクエストのテキストに個人情報が含まれることがあります。オフにすると、すぐに記録を停止します。</string>
+    <string name="trace_storage_limit">トレースの保存上限</string>
+    <string name="trace_storage_hint">容量が必要になると、完了した古いトレースから削除されます。</string>
+    <string name="trace_storage_value">%1$d MiB</string>
+    <string name="trace_title">詳細なトレース</string>
+    <string name="trace_partial">一部の記録</string>
+    <string name="trace_recorded">この端末に記録済み</string>
+    <string name="trace_unknown">報告なし</string>
+    <string name="trace_ok">OK</string>
+    <string name="trace_error">エラー</string>
+    <string name="trace_cancelled">キャンセル</string>
+    <string name="trace_attempt">ステップ %1$d · %2$d 回目 · %3$s</string>
+    <string name="trace_tool">ステップ %1$d · %2$s</string>
+    <string name="trace_counts">入力 %1$s · キャッシュ %2$s · 非キャッシュ %3$s · 出力 %4$s</string>
+    <string name="trace_largest">非キャッシュの入力が最大</string>
+    <string name="trace_diff">最初の違い: %1$s</string>
+    <string name="trace_no_body">リクエスト本文は記録されていません</string>
+    <string name="trace_attach">伏せ字にしたテキストを含める</string>
+    <string name="trace_attach_hint">ローカルの ZIP のみ。保存する前に、上のリクエストのテキストを確認してください。</string>
+    <string name="trace_save">このトレースを保存</string>
+    <string name="trace_saved">トレースを保存しました</string>
+    <string name="trace_failed">トレースのエクスポートに失敗しました</string>
+    <string name="trace_send">OTLP/HTTP で送信</string>
+    <string name="trace_network_hint">このトレースのメタデータだけを送信します。</string>
+    <string name="trace_endpoint">トレースのエンドポイント</string>
+    <string name="trace_endpoint_hint">公開アドレスには HTTPS を使ってください。localhost とローカルネットワークでは HTTP も使えます。</string>
+    <string name="trace_header_name">認証ヘッダー名</string>
+    <string name="trace_header_value">認証ヘッダーの値(省略可)</string>
+    <string name="trace_sent">トレースが受理されました</string>
+    <string name="trace_sent_warning">トレースは受理されましたが、受信側から警告がありました</string>
+    <string name="trace_rejected">受信側が %1$d 個のスパンを拒否しました</string>
+    <string name="trace_http_error">受信側が HTTP %1$d を返しました</string>
+    <string name="trace_send_failed">トレースを送信できませんでした</string>
+</resources>

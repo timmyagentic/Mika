@@ -42,7 +42,7 @@ import com.wangzan101.mika.cap.sandbox.SandboxDirs
 import com.wangzan101.mika.cap.sandbox.SandboxUsage
 import com.wangzan101.mika.cap.sandbox.SandboxUsageReader
 import com.wangzan101.mika.cap.sandbox.WorkspaceUsage
-import com.wangzan101.mika.settings.ContainerProxyStore
+import com.wangzan101.mika.settings.NetProxyStore
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import kotlinx.coroutines.Dispatchers
@@ -57,9 +57,7 @@ object SandboxCopy {
     val NETWORK_TITLE: String get() = tr(R.string.sandbox_network)
     val NETWORK_SUBTITLE: String get() = tr(R.string.sandbox_network_sub)
     val NETWORK_EXPLAIN: String get() = tr(R.string.sandbox_network_explain)
-    val PROXY_TITLE: String get() = tr(R.string.sandbox_proxy)
-    val PROXY_HINT: String get() = tr(R.string.sandbox_proxy_hint)
-    val PROXY_INVALID: String get() = tr(R.string.sandbox_proxy_invalid)
+    val PROXY_TITLE: String get() = tr(R.string.net_proxy)
     val USAGE_TITLE: String get() = tr(R.string.sandbox_usage)
     val USAGE_NOTE: String get() = tr(R.string.sandbox_usage_note)
     val CLEAR: String get() = tr(R.string.sandbox_usage_clear)
@@ -69,13 +67,13 @@ object SandboxCopy {
     val CLEAR_ALL_BODY: String get() = tr(R.string.sandbox_usage_clear_all_body)
 
     /**
-     * 代理那一行的说明:没设是直连;设了写主机和端口(不带账号密码,这一行随时看得到);
-     * 联网关着时说要先允许联网才生效。
+     * 代理那一行的说明(代理在 设置 › 网络代理 里改,这里只引过来看):没设是直连;设了写主机和端口
+     * (不带账号密码,这一行随时看得到);联网关着时说要先允许联网才生效。
      */
     fun proxySub(proxy: String, networkAllowed: Boolean): String = when {
         proxy.isBlank() -> tr(R.string.sandbox_proxy_sub)
-        !networkAllowed -> tr(R.string.sandbox_proxy_off, ContainerProxyStore.display(proxy))
-        else -> ContainerProxyStore.display(proxy)
+        !networkAllowed -> tr(R.string.sandbox_proxy_off, NetProxyStore.display(proxy))
+        else -> tr(R.string.sandbox_proxy_on, NetProxyStore.display(proxy))
     }
 
     fun clearBody(w: WorkspaceUsage): String = tr(R.string.sandbox_usage_clear_body, workspaceTitle(w))
@@ -110,7 +108,7 @@ object SandboxCopy {
 }
 
 /**
- * 接上真实状态的「文件与计算环境」页内容:联网开关读写 [SandboxState];代理经 [ContainerProxyStore] 加密存;
+ * 接上真实状态的「文件与计算环境」页内容:联网开关读写 [SandboxState];代理读 [NetProxyStore](在设置首页改,这里只显示);
  * 已用空间进页面时在后台读一遍,清理经 [SandboxUsageReader](有任务在跑的对话不清);重置后马上在后台重新准备。
  */
 @Composable
@@ -119,9 +117,8 @@ fun AdvancedSettings() {
     val state = remember { SandboxState.get(context) }
     val status by state.status.collectAsState()
     var network by remember { mutableStateOf(state.networkAllowed) }
-    val proxies = remember { ContainerProxyStore.get(context) }
+    val proxies = remember { NetProxyStore.get(context) }
     var proxy by remember { mutableStateOf("") }
-    var editingProxy by remember { mutableStateOf(false) }
     val app = context.applicationContext as MikaApp
     val usageReader = remember {
         SandboxUsageReader(SandboxDirs(context), { app.conversations.list() }, { app.taskState.activeConversations.value })
@@ -142,7 +139,7 @@ fun AdvancedSettings() {
     AdvancedSection(
         status = status, networkAllowed = network, isolationIssue = state.isolationIssue != null,
         onNetworkChange = { state.networkAllowed = it; network = it },
-        proxy = proxy, onProxy = { editingProxy = true },
+        proxy = proxy,
         usage = usage,
         onClearWorkspace = { w -> clearing { usageReader.clear(w.dirName) } },
         onClearAll = { clearing { usageReader.clearAll() } },
@@ -154,40 +151,6 @@ fun AdvancedSettings() {
             }
         },
     )
-    if (editingProxy) ProxyDialog(
-        initial = proxy,
-        onDismiss = { editingProxy = false },
-        onSave = { v ->
-            scope.launch {
-                withContext(Dispatchers.IO) { proxies.set(v) }
-                proxy = v.trim()
-                editingProxy = false
-            }
-        },
-    )
-}
-
-/** 改容器的网络代理:一个输入框,空着表示不用;写得不对时就地说怎么写,不存。 */
-@Composable
-private fun ProxyDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
-    var text by remember { mutableStateOf(initial) }
-    val ok = ContainerProxyStore.valid(text)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(SandboxCopy.PROXY_TITLE) },
-        text = {
-            Column {
-                Text(SandboxCopy.PROXY_HINT, style = MikaType.Caption, color = MikaTheme.colors.ink3)
-                OutlinedTextField(
-                    text, { text = it }, Modifier.fillMaxWidth().padding(top = 8.dp).testTag("sandbox-proxy-input"),
-                    singleLine = true, isError = !ok, placeholder = { Text("http://127.0.0.1:7890") },
-                )
-                if (!ok) Text(SandboxCopy.PROXY_INVALID, Modifier.padding(top = 4.dp), style = MikaType.Hint, color = MikaTheme.colors.bad)
-            }
-        },
-        confirmButton = { TextButton({ onSave(text) }, enabled = ok) { Text(stringResource(R.string.save)) } },
-        dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
 }
 
 /** 不带状态的「文件与计算环境」页内容,便于测试。不支持的设备整组不显示。 */
@@ -198,9 +161,8 @@ fun AdvancedSection(
     isolationIssue: Boolean,
     onNetworkChange: (Boolean) -> Unit,
     onReset: () -> Unit,
-    /** 容器的网络代理,空串表示不用。 */
+    /** 网络代理(设置 › 网络代理),空串表示不用。 */
     proxy: String = "",
-    onProxy: () -> Unit = {},
     /** 已用空间;还没读出来为 null(这一组先不显示)。 */
     usage: SandboxUsage? = null,
     onClearWorkspace: (WorkspaceUsage) -> Unit = {},
@@ -216,8 +178,8 @@ fun AdvancedSection(
             MikaSwitch(networkAllowed, onNetworkChange, Modifier.testTag("sandbox-network"))
         }
         Note(SandboxCopy.NETWORK_EXPLAIN, if (networkAllowed) MikaTheme.colors.warn else MikaTheme.colors.ink3)
-        // 代理只给这里的命令用,只在允许联网时生效;不影响 Mika 自己调模型
-        ListRow(MikaIcons.Globe, SandboxCopy.PROXY_TITLE, SandboxCopy.proxySub(proxy, networkAllowed), onClick = onProxy) { RowChevron() }
+        // 代理在设置首页改(Mika 自己的连接也走它);这里的命令只在允许联网时拿到它
+        ListRow(MikaIcons.Globe, SandboxCopy.PROXY_TITLE, SandboxCopy.proxySub(proxy, networkAllowed))
         if (isolationIssue) Note(SandboxCopy.ISOLATION_UNAVAILABLE, MikaTheme.colors.bad)
         ListRow(MikaIcons.Close, tr(R.string.sandbox_reset), SandboxCopy.resetSubtitle(status), titleColor = MikaTheme.colors.bad, tone = TileTone.Bad,
             onClick = if (status is SandboxStatus.Installing) null else ({ confirming = true }))

@@ -40,6 +40,8 @@ import com.wangzan101.mika.core.uistate.AppCopies
 import com.wangzan101.mika.core.uistate.PressKeys
 import java.io.File
 import java.io.ByteArrayOutputStream
+import java.lang.reflect.Method
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.system.exitProcess
@@ -105,19 +107,58 @@ class ShellService(
     }
 
     private fun createVirtualDisplay(surface: Surface, width: Int, height: Int, dpi: Int, trusted: Boolean): Int {
-        val vd = displayManager.createVirtualDisplay(
-            "mika-agent", width, height, dpi, surface, displayFlags(Build.VERSION.SDK_INT, trusted),
-        )
+        val flags = displayFlags(Build.VERSION.SDK_INT, trusted)
+        val vd = displayManager.createVirtualDisplay("mika-agent", width, height, dpi, surface, flags)
         val id = vd.display.displayId
         synchronized(displays) { displays[id] = vd }
         setImePolicy(id)
+        if (DisplayAwake.needed(flags, FLAG_OWN_DISPLAY_GROUP, displayGroup(id))) awake.start(id)
         return id
     }
+
+    /** 自成一组的虚拟屏一直不睡,见 [DisplayAwake]。 */
+    private val awake by lazy {
+        val timer = Executors.newSingleThreadScheduledExecutor { Thread(it, "mika-display-awake").apply { isDaemon = true } }
+        DisplayAwake(::pokeDisplay) { r ->
+            val f = timer.scheduleWithFixedDelay(r, 0, DisplayAwake.PERIOD_MS, TimeUnit.MILLISECONDS)
+            return@DisplayAwake { f.cancel(false) }
+        }
+    }
+
+    /** IPowerManager 和它按屏报用户操作的方法;拿不到为 null(只记一次,屏照常用,只是没人替它续亮)。 */
+    @get:SuppressLint("PrivateApi")
+    private val userActivity: Pair<Any, Method>? by lazy {
+        runCatching {
+            val binder = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java).invoke(null, "power")
+            val power = Class.forName("android.os.IPowerManager\$Stub").getMethod("asInterface", android.os.IBinder::class.java).invoke(null, binder)!!
+            power to (DisplayAwake.userActivityMethod(power.javaClass) ?: error("no per-display userActivity"))
+        }.onFailure { Log.w(TAG, "display keep-awake unavailable: ${it.message}") }.getOrNull()
+    }
+
+    private fun pokeDisplay(displayId: Int): Boolean {
+        val (power, method) = userActivity ?: return false
+        return try {
+            method.invoke(power, displayId, SystemClock.uptimeMillis(), DisplayAwake.EVENT_TOUCH, 0)
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "userActivity failed, display keep-awake off", t)
+            false
+        }
+    }
+
+    /** 这块屏所在的显示组(DisplayInfo.displayGroupId,隐藏字段);读不到为 null。 */
+    @SuppressLint("PrivateApi")
+    private fun displayGroup(displayId: Int): Int? = runCatching {
+        val global = Class.forName("android.hardware.display.DisplayManagerGlobal").getMethod("getInstance").invoke(null)!!
+        val info = global.javaClass.getMethod("getDisplayInfo", Int::class.java).invoke(global, displayId)!!
+        info.javaClass.getField("displayGroupId").getInt(info)
+    }.getOrNull()
 
     /** 只往这个服务自己建的虚拟屏上启动,调用方传错屏号(比如主屏)也不会打扰用户。 */
     private fun ownDisplay(displayId: Int): Boolean = synchronized(displays) { displayId in displays }
 
     override fun releaseDisplay(displayId: Int) {
+        awake.stop(displayId)
         synchronized(displays) { displays.remove(displayId) }?.release()
     }
 
@@ -963,14 +1004,8 @@ class ShellService(
         return send(n - 1, MotionEvent.ACTION_UP) || send(n - 1, MotionEvent.ACTION_UP)
     }
 
-    /**
-     * 只有 DOWN 就没注入成功时才退回 shell 命令;DOWN 已送达后再退回会造成一次多余的完整点击/按键,
-     * 这时只补发 UP(失败重试一次)。
-     */
-    private inline fun injectPair(down: InputEvent, up: InputEvent, displayId: Int, fallback: () -> Boolean): Boolean {
-        if (!inject(down, displayId)) return fallback()
-        return inject(up, displayId) || inject(up, displayId)
-    }
+    private inline fun injectPair(down: InputEvent, up: InputEvent, displayId: Int, fallback: () -> Boolean): Boolean =
+        sendPair({ inject(down, displayId) }, { inject(up, displayId) }, fallback)
 
     /**
      * `appops set <pkg> PLAY_AUDIO ignore`;首次静音时记下原模式(同时落文件),取消静音时恢复。
@@ -1266,6 +1301,7 @@ class ShellService(
         synchronized(muted) { muted.packages() }.forEach { key ->
             AppAudioKey.parse(key)?.let { (pkg, user) -> audioMuted(pkg, user, false) } ?: synchronized(muted) { muted.remove(key) }
         }
+        awake.stopAll()
         synchronized(displays) { displays.values.toList().also { displays.clear() } }.forEach { it.release() }
     }
 
@@ -1288,7 +1324,7 @@ class ShellService(
         event.javaClass.getMethod("setDisplayId", Int::class.java).invoke(event, displayId)
         val manager = inputManager()
         manager.javaClass.getMethod("injectInputEvent", InputEvent::class.java, Int::class.java)
-            .invoke(manager, event, if (waitForFinish) INJECT_MODE_WAIT_FOR_FINISH else INJECT_MODE_ASYNC) as Boolean
+            .invoke(manager, event, injectMode(event is KeyEvent, waitForFinish)) as Boolean
     } catch (t: Throwable) {
         Log.w(TAG, "injectInputEvent failed", t)
         false
@@ -1387,6 +1423,7 @@ class ShellService(
         private val TASK_INFO: Class<*> by lazy { Class.forName("android.app.TaskInfo") }
         private val WCT: Class<*> by lazy { Class.forName("android.window.WindowContainerTransaction") }
         private const val INJECT_MODE_ASYNC = 0 // InputManager.INJECT_INPUT_EVENT_MODE_ASYNC
+        private const val INJECT_MODE_WAIT_FOR_RESULT = 1 // InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT
         private const val INJECT_MODE_WAIT_FOR_FINISH = 2 // InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH
         private const val VIRTUAL_KEYBOARD = -1 // KeyCharacterMap.VIRTUAL_KEYBOARD
         private const val USER_CURRENT = -2 // UserHandle.USER_CURRENT
@@ -1425,6 +1462,26 @@ class ShellService(
                 flags = flags or FLAG_OWN_FOCUS or FLAG_STEAL_TOP_FOCUS_DISABLED
             }
             return flags
+        }
+
+        /**
+         * 注入方式。按键等到系统定下投给谁(WAIT_FOR_RESULT):屏上没有能接按键的窗口时注入报失败,调用方才会退回 shell 命令
+         * 或报动作失败,不再「发了就算成」;只等派发、不等 App 处理完,最多等到系统自己的注入超时。
+         * 触摸照旧不等(ASYNC):一笔划要按时间逐点送,等派发会打乱快慢。[waitForFinish] 的(主屏解锁输入)等 App 处理完。
+         */
+        internal fun injectMode(key: Boolean, waitForFinish: Boolean): Int = when {
+            waitForFinish -> INJECT_MODE_WAIT_FOR_FINISH
+            key -> INJECT_MODE_WAIT_FOR_RESULT
+            else -> INJECT_MODE_ASYNC
+        }
+
+        /**
+         * 一对按下/抬起:只有按下就没注入成功时才走 [fallback](shell 命令);按下已送达后再退回会造成一次多余的完整点击/按键,
+         * 这时只补发抬起(失败重试一次)。
+         */
+        internal inline fun sendPair(down: () -> Boolean, up: () -> Boolean, fallback: () -> Boolean): Boolean {
+            if (!down()) return fallback()
+            return up() || up()
         }
 
         /** 只有缺权限(SecurityException,如 shell 没有 ADD_TRUSTED_DISPLAY)才值得去掉可信标志再试;别的失败照旧报错。 */

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">Remote</string>
+    <string name="relay_pair_title">Pair a remote gateway</string>
+    <string name="relay_pair_sub">Create a pairing code on the gateway web page, then enter its address and code below.</string>
+    <string name="relay_gateway">Gateway</string>
+    <string name="relay_code">Pairing code</string>
+    <string name="relay_code_hint">One-time code from your gateway</string>
+    <string name="relay_pair">Pair gateway</string>
+    <string name="relay_busy">Please wait…</string>
+    <string name="relay_enable">Allow remote access</string>
+    <string name="relay_disabled">Paired. Remote access is off</string>
+    <string name="relay_online">Gateway connected. Waiting for CLI / MCP requests</string>
+    <string name="relay_connecting">Connecting to the remote gateway…</string>
+    <string name="relay_offline">Connection lost. Reconnecting automatically</string>
+    <string name="relay_unauthorized">Pairing expired or revoked. Pair the gateway again</string>
+    <string name="relay_copy_address">Copy MCP address</string>
+    <string name="relay_client_help">Copy the config to your MCP client on the computer to connect.</string>
+    <string name="relay_unpair">Unpair gateway</string>
+    <string name="relay_unpair_body">Disconnect this phone from the gateway. An internet connection is required. The phone access token stays unchanged.</string>
+    <string name="relay_failed">Couldn’t finish. Check the gateway address, internet connection and pairing code. If unpairing failed, access is off; retry or revoke the phone on the gateway.</string>
+    <string name="relay_notif_body">Remote access is enabled. Open Mika to check the gateway connection.</string>
+    <string name="relay_incompatible">Update Mika and the gateway to matching versions</string>
+    <string name="relay_copy_gateway">Copy gateway address</string>
+    <string name="relay_cli_help">Save the access token to a file on your computer, then run the connection command above.</string>
+    <string name="relay_intro">The gateway forwards the CLI and MCP requests normally sent over Wi-Fi / LAN to your phone for remote access. Deploy it on your own public server before pairing.</string>
+    <string name="relay_device_access">Allow wake and unlock through the gateway</string>
+    <string name="relay_device_access_sub">Off by default. Also needs “Allow remote wake and unlock” on this page. When both are on, anyone with the access token can wake and unlock this phone over the internet.</string>
+</resources>

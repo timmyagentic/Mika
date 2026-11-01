@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="metrics_model">Размышления модели</string>
+    <string name="metrics_observe">Чтение экрана</string>
+    <string name="metrics_act">Действия</string>
+    <string name="metrics_other">Прочее (ожидание, повторы)</string>
+    <string name="metrics_title">Статистика запусков</string>
+    <string name="metrics_sub">Время, обращения к модели и токены последних запусков</string>
+    <string name="metrics_empty">Статистики пока нет. Поручите Mika что-нибудь, и она появится здесь.</string>
+    <string name="metrics_note">Учитываются только последние запуски на этом телефоне (не более %1$d). Время отсчитывается с момента, когда Mika приступила к работе; первый отклик — это момент, когда вы впервые увидели, что она делает.</string>
+    <string name="metrics_copy">Копировать JSON</string>
+    <string name="metrics_share">Отправить JSON</string>
+    <string name="metrics_last_10">Последние 10</string>
+    <plurals name="metrics_runs">
+        <item quantity="one">%1$d</item>
+        <item quantity="few">%1$d</item>
+        <item quantity="many">%1$d</item>
+        <item quantity="other">%1$d</item>
+    </plurals>
+    <string name="duration_h_m">%1$d ч %2$d мин</string>
+    <string name="metrics_total">Всего: %1$s</string>
+    <plurals name="metrics_round_trips">
+        <item quantity="one">%1$d обращение к модели</item>
+        <item quantity="few">%1$d обращения к модели</item>
+        <item quantity="many">%1$d обращений к модели</item>
+        <item quantity="other">%1$d обращения к модели</item>
+    </plurals>
+    <string name="metrics_first_feedback_at">первый отклик: %1$s</string>
+    <string name="metrics_retry_wait">В том числе ожидание повторов</string>
+    <string name="metrics_input_tokens">Входные токены</string>
+    <string name="metrics_output_tokens">Выходные токены</string>
+    <string name="usage_cached">Попадания в кеш</string>
+    <string name="metrics_no_usage">Расход не сообщён</string>
+    <string name="metrics_all_calls">Все запросы к модели</string>
+    <plurals name="metrics_all_calls_value">
+        <item quantity="one">%1$d (включая вспомогательные и повторные)</item>
+        <item quantity="few">%1$d (включая вспомогательные и повторные)</item>
+        <item quantity="many">%1$d (включая вспомогательные и повторные)</item>
+        <item quantity="other">%1$d (включая вспомогательные и повторные)</item>
+    </plurals>
+    <string name="metrics_steps">Шаги</string>
+    <string name="metrics_observe_act">Чтения / действия</string>
+    <string name="metrics_observe_act_value">%1$d / %2$d</string>
+    <string name="metrics_counted">Учтено</string>
+    <plurals name="metrics_n_runs">
+        <item quantity="one">%1$d запуск</item>
+        <item quantity="few">%1$d запуска</item>
+        <item quantity="many">%1$d запусков</item>
+        <item quantity="other">%1$d запуска</item>
+    </plurals>
+    <string name="metrics_success_rate">Доля успешных</string>
+    <string name="metrics_success_value">%1$s (%2$d/%3$d)</string>
+    <string name="metrics_median_time">Медианное время</string>
+    <string name="metrics_median_feedback">Медианный первый отклик</string>
+    <string name="metrics_avg_round_trips">В среднем обращений к модели</string>
+    <string name="metrics_avg_round_trips_value">%1$s</string>
+    <string name="metrics_avg_tokens">В среднем токенов</string>
+    <plurals name="metrics_copied">
+        <item quantity="one">Скопирована сводка по %1$d запуску</item>
+        <item quantity="few">Скопированы сводки по %1$d запускам</item>
+        <item quantity="many">Скопированы сводки по %1$d запускам</item>
+        <item quantity="other">Скопированы сводки по %1$d запуска</item>
+    </plurals>
+    <string name="metrics_export_failed">Не удалось экспортировать; данных может быть слишком много. Выберите диапазон поменьше.</string>
+    <string name="metrics_where_time">Куда ушло время</string>
+    <string name="metrics_overview">Обзор</string>
+    <string name="metrics_time_split">Куда ушло время</string>
+    <string name="metrics_export">Экспорт</string>
+    <plurals name="metrics_summary_of">
+        <item quantity="one">Сводка по этому %1$d запуску</item>
+        <item quantity="few">Сводка по этим %1$d запускам</item>
+        <item quantity="many">Сводка по этим %1$d запускам</item>
+        <item quantity="other">Сводка по этим %1$d запуска</item>
+    </plurals>
+    <string name="metrics_summary_sub">По одной записи на запуск, для вашего собственного анализа</string>
+    <plurals name="chat_steps_n">
+        <item quantity="one">%1$d шаг</item>
+        <item quantity="few">%1$d шага</item>
+        <item quantity="many">%1$d шагов</item>
+        <item quantity="other">%1$d шага</item>
+    </plurals>
+</resources>

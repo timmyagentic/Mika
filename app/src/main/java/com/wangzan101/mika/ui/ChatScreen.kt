@@ -922,9 +922,13 @@ private fun StatusCard(
             CardButton(stringResource(R.string.chat_refuse), onClick = { vm.decline(status.key) })
             CardButton(stringResource(R.string.chat_allow_once), primary = true, onClick = { vm.approve(status.key) })
         }
-        is ExchangeStatus.Paused -> NeedCard(stringResource(R.string.chat_paused), status.why) {
+        is ExchangeStatus.Paused -> NeedCard(stringResource(if (status.resumable) R.string.chat_paused else R.string.chat_waiting_for_you), status.why) {
             CardButton(stringResource(R.string.action_cancel_task), onClick = vm::cancel)
-            CardButton(stringResource(R.string.chat_continue), primary = true, onClick = vm::resume)
+            if (status.resumable) CardButton(stringResource(R.string.chat_continue), primary = true, onClick = vm::resume)
+        }
+        // 排队等开始:轮到时自动开始,点继续不能插队,只给取消
+        is ExchangeStatus.Queued -> NeedCard(stringResource(R.string.chat_queued), status.why) {
+            CardButton(stringResource(R.string.action_cancel_task), onClick = vm::cancel)
         }
         // 长按整块回答弹菜单;复制、引用的只是回答的字,不带上面的提示和下面的来源
         is ExchangeStatus.Done -> Box(Modifier.padding(bottom = 12.dp)) {

@@ -23,6 +23,9 @@ object PhoneSetupCopy {
     /** 引导页顶栏上的短标题。 */
     val BAR_TITLE: String get() = tr(R.string.phone_bar_title)
     val SKIP_NOTE: String get() = tr(R.string.phone_skip_note)
+    /** 这个环境设置不了手机操作(见 [com.wangzan101.mika.core.shell.PhoneSetupFlow.unavailable]):一句结论,一句原因。 */
+    val UNAVAILABLE: String get() = tr(R.string.phone_unavailable)
+    val UNAVAILABLE_REASON: String get() = tr(R.string.phone_unavailable_reason)
 
     /** [brief] 是清单里没轮到、或已做完时那一行的短说明;轮到时显示完整的 [body]。 */
     data class StepCopy(val title: String, val body: String, val action: String?, val done: String, val brief: String)

@@ -18,6 +18,7 @@
     <string name="chat_wait_unlock">等你解鎖手機</string>
     <string name="chat_waiting_for_you">等你處理</string>
     <string name="chat_paused">已暫停</string>
+    <string name="chat_queued">排隊中</string>
     <plurals name="chat_earlier_steps">
         <item quantity="other">前面還有 %1$d 步</item>
     </plurals>

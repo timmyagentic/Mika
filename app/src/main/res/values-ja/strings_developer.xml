@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev_adaptive">まず要素を読み取り、必要なときだけ画像を使う</string>
+    <string name="dev_adaptive_sub">UI ツリーで足りるときは画像を送らず、足りないときだけ 1 枚追加します</string>
+    <string name="dev_inline">操作のあとに画面の変化を返す</string>
+    <string name="dev_inline_sub">操作のたびに画面をざっと確認し、別に読み取る手間を省きます</string>
+    <string name="dev_batch">確実なときは複数ステップをまとめて実行</string>
+    <string name="dev_batch_sub">確実なステップは、モデルに確認せず一気に実行します</string>
+    <string name="dev_deep_links">目的のページを直接開く</string>
+    <string name="dev_deep_links_sub">タップで順にたどらず、リンクでアプリ内のページへ直接移動します</string>
+    <string name="dev_light">簡単なステップは軽量モデルに任せる</string>
+    <string name="dev_light_sub">簡単なステップは高速な軽量モデルが担当し、難しいステップはメインモデルが担当します</string>
+    <string name="dev_replay">前回うまくいった手順を再利用</string>
+    <string name="dev_replay_sub">以前に行った作業は保存した手順で再実行し、合わないときはモデルに引き継ぎます</string>
+    <string name="dev_parallel">チャットを並行して実行</string>
+    <string name="dev_parallel_sub">別々のチャットのタスクに、それぞれ仮想画面を割り当てて同時に実行します</string>
+    <string name="dev_compaction">長いタスクを構造化して要約</string>
+    <string name="dev_compaction_sub">多くのステップを圧縮するとき、目標、事実、進捗、次のステップをメモします</string>
+    <string name="dev_group">Mika の動き方</string>
+    <string name="dev_autonomy">自律モード</string>
+    <string name="dev_autonomy_sub">オンにすると、支払い前でも確認せずに最後までやり遂げます。オフのときは、支払い前だけ確認します</string>
+    <string name="dev_note">これらのスイッチは、Mika の動き方と速さに影響します。通常はデフォルトのままにしてください。</string>
+    <string name="dev_grounding">ビジョンの位置特定を検証済み</string>
+    <string name="dev_grounding_sub">ビジョンモデル %1$s で位置を正確に特定できると確認できたらオンにしてください。オフの間は、モデルが示した位置を Mika がタップする前に、別の根拠が必要です。</string>
+    <string name="dev_speed">速度</string>
+    <string name="dev_experiments">実験的機能</string>
+    <string name="dev_run_log">実行ログ</string>
+</resources>

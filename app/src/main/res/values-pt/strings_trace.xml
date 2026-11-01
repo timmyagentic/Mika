@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trace_switch">Gravar rastreamento detalhado</string>
+    <string name="trace_switch_detail">Para novas execuções. O texto das solicitações pode conter informações privadas. Desativar isto interrompe a captura imediatamente.</string>
+    <string name="trace_storage_limit">Limite de armazenamento do rastreamento</string>
+    <string name="trace_storage_hint">Rastreamentos concluídos mais antigos são removidos quando for preciso espaço.</string>
+    <string name="trace_storage_value">%1$d MiB</string>
+    <string name="trace_title">Rastreamento detalhado</string>
+    <string name="trace_partial">Registro parcial</string>
+    <string name="trace_recorded">Gravado neste dispositivo</string>
+    <string name="trace_unknown">Não informado</string>
+    <string name="trace_ok">OK</string>
+    <string name="trace_error">Erro</string>
+    <string name="trace_cancelled">Cancelado</string>
+    <string name="trace_attempt">Passo %1$d · Tentativa %2$d · %3$s</string>
+    <string name="trace_tool">Passo %1$d · %2$s</string>
+    <string name="trace_counts">Entrada %1$s · Em cache %2$s · Sem cache %3$s · Saída %4$s</string>
+    <string name="trace_largest">Maior entrada sem cache</string>
+    <string name="trace_diff">Primeira diferença: %1$s</string>
+    <string name="trace_no_body">Corpo da solicitação não capturado</string>
+    <string name="trace_attach">Incluir texto com dados ocultados</string>
+    <string name="trace_attach_hint">Somente ZIP local. Revise o texto da solicitação acima antes de salvar.</string>
+    <string name="trace_save">Salvar este rastreamento</string>
+    <string name="trace_saved">Rastreamento salvo</string>
+    <string name="trace_failed">Falha ao exportar o rastreamento</string>
+    <string name="trace_send">Enviar por OTLP/HTTP</string>
+    <string name="trace_network_hint">Envia só os metadados deste rastreamento.</string>
+    <string name="trace_endpoint">Endpoint de rastreamentos</string>
+    <string name="trace_endpoint_hint">Use HTTPS para endereços públicos. HTTP é permitido em localhost e na rede local.</string>
+    <string name="trace_header_name">Nome do cabeçalho de autenticação</string>
+    <string name="trace_header_value">Valor do cabeçalho de autenticação (opcional)</string>
+    <string name="trace_sent">Rastreamento aceito</string>
+    <string name="trace_sent_warning">Rastreamento aceito com um aviso do receptor</string>
+    <string name="trace_rejected">O receptor rejeitou %1$d spans</string>
+    <string name="trace_http_error">O receptor retornou HTTP %1$d</string>
+    <string name="trace_send_failed">Não foi possível enviar o rastreamento</string>
+</resources>

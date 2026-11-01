@@ -47,6 +47,11 @@
     <string name="models_not_listed">还没列出这家的模型。</string>
     <string name="refresh">刷新</string>
     <string name="models_in_use">正在用这个</string>
+    <string name="models_sees_images">能看图</string>
+    <string name="models_sees_note_user">按你的设定。主模型能看图时，截图直接给它看。</string>
+    <string name="models_sees_note_vision">已用作看图模型，算能看图。</string>
+    <string name="models_sees_note_listed">服务商的模型列表写明的，可以改。</string>
+    <string name="models_sees_note_unconfirmed">未确认：模型列表没写。它能看图就打开，截图直接给它看，不必另调一次看图。</string>
     <string name="models_delete">删除这个服务商</string>
     <string name="role_main">主模型</string>
     <string name="role_vision">看图模型</string>
@@ -166,7 +171,7 @@
     <!-- 设置 › 模型:语音转文字这个用途和它的选择页 -->
     <string name="role_speech">语音转文字</string>
     <string name="role_speech_what">按住说话时用</string>
-    <string name="speech_hint">手机自带的不花钱、边说边出字。手机没有，或者认得不准时，选一个服务商的模型：说完再转，用你的额度。</string>
+    <string name="speech_hint">可使用手机自带识别、边说边转的语音服务，或说完再转的服务商模型；在线服务使用你的服务商额度。</string>
     <string name="speech_system">手机自带</string>
     <string name="speech_system_offline">可离线</string>
     <string name="speech_system_online">需联网</string>

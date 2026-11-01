@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rec_a11y">ユーザー補助を自動でオンにする</string>
+    <string name="rec_default_on">デフォルトでオン</string>
+    <string name="rec_a11y_body">Mika は、ユーザー補助を使って画面上のテキストやボタンを読み取ります。これをオンにすると、Mika が自分のユーザー補助サービスをシステム設定で代わりにオンにします。オンにしているほかのユーザー補助サービスには影響しません。これをオフにすると、Mika は自分のサービスをオフにします。</string>
+    <string name="rec_battery">バッテリーを制限しない</string>
+    <string name="rec_battery_body">オンにすると、Mika がシステムのバッテリー最適化の対象外に自分を追加します。節電のためにバックグラウンドで停止されにくくなり、スマホの操作が途切れにくくなります。バッテリーの消費が少し増えることがあります。オフにすると、システムのデフォルトに戻ります。</string>
+    <string name="rec_boot">再起動後に復元</string>
+    <string name="rec_boot_body">「ワイヤレス デバッグ」は、再起動するとオフになります。これをオンにすると、Mika が起動時にそれをオンに戻して再接続します。「システム設定の変更」権限が必要で、ワイヤレス デバッグをオンにするためだけに使い、信頼済みの Wi-Fi でだけ動作します。これをオフにするか、ペア設定を解除すると、権限を返します。</string>
+    <string name="rec_auto_wireless">ワイヤレス デバッグを自動でオンにする</string>
+    <string name="rec_auto_wireless_body">Wi-Fi が切れたりスマホを再起動したりすると、システムが「ワイヤレス デバッグ」をオフにします。スマホの操作に通常これは不要で、再起動するとき(Mika のアップデート後など)だけ必要です。これをオンにすると、そのようなときに Wi-Fi に接続していれば、Mika がオンにして再接続します。ただし、Mika が自分でオフにすることはありません。「再起動後に復元」と同じ「システム設定の変更」権限を使い、許可済みの Wi-Fi でだけ動作します。オフにすると、Mika はこの動作をやめます。</string>
+    <string name="rec_need_setup">先にスマホの操作の設定を済ませてください</string>
+    <string name="rec_failed">完了できませんでした。スマホの操作の準備ができているか確認して、もう一度お試しください。</string>
+    <string name="rec_working">処理中…</string>
+    <string name="rec_restarted_at">ユーザー補助サービスは %1$s に自動で再起動しました。</string>
+    <string name="rec_not_allowed_here">この Wi-Fi では、まだワイヤレス デバッグが許可されていないため、Mika はオンにできません。一度ご自身でオンにして、確認が出たら「このネットワークで常に許可」にチェックを入れてください。それ以降は、Mika が自分でオンにできます。</string>
+    <string name="rec_refused">このスマホでは、Mika がワイヤレス デバッグをオンにできません。必要なときにご自身でオンにすると、Mika が接続します。</string>
+    <string name="rec_gave_up">Mika はワイヤレス デバッグを何度かオンにしましたが、スマホの操作がまだ始まらなかったため、あきらめました。Wi-Fi を切り替えるか、「スマホの操作」で「再試行」をタップすると、Mika がもう一度試します。</string>
+    <string name="rec_permission_missing">前回の起動時に権限がなくなっていたため、復元できませんでした。このスイッチをいったんオフにして、もう一度オンにしてください。</string>
+    <string name="rec_setting_unavailable">このスマホでは、Mika が起動時にワイヤレス デバッグをオンにできません。再起動後はご自身でオンにすると、Mika が接続します。</string>
+    <string name="rec_not_recovered">前回の起動時に自動で再接続できませんでした。信頼済みの Wi-Fi に接続して、ワイヤレス デバッグがオンになっているか確認してください。Mika が接続します。</string>
+    <string name="rec_needs_pairing">ワイヤレス デバッグのペア設定後にだけ使えます。ヘルパーは USB コマンドで起動したため、スマホの再起動後はもう一度コマンドを実行してください。</string>
+</resources>

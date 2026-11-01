@@ -111,6 +111,7 @@ object SelfCheckCopy {
         when (a) {
             Advice.PhoneTooOld -> R.string.selfcheck_advice_too_old
             Advice.NoWirelessDebugging -> R.string.selfcheck_advice_no_wireless
+            Advice.PhoneControlUnavailable -> R.string.selfcheck_advice_phone_unavailable
             Advice.TurnOnAccessibility -> R.string.selfcheck_advice_a11y_off
             Advice.RestartAccessibility -> R.string.selfcheck_advice_a11y_restart
             Advice.AllowNotifications -> R.string.selfcheck_advice_notifications

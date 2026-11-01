@@ -5,6 +5,8 @@
     <string name="phone_later">Not now</string>
     <string name="phone_bar_title">Phone control</string>
     <string name="phone_skip_note">You can skip this for now and just use web, files and chat; Mika will remind you the first time it needs an app.</string>
+    <string name="phone_unavailable">This environment can’t operate the apps on your phone; chat, web, files and calculations work as usual.</string>
+    <string name="phone_unavailable_reason">Phone control needs Android’s Developer options and Wireless debugging, and neither is available here.</string>
     <string name="phone_step_dev">Turn on Developer options</string>
     <string name="phone_step_dev_body">Open “About phone” in Settings and tap “Build number” 7 times until you see “You are now a developer”. On some phones “Build number” is under “Software information”.</string>
     <string name="phone_step_dev_action">Open About phone</string>

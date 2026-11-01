@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="install_check">Проверка устройства</string>
+    <string name="install_extract">Распаковка</string>
+    <string name="install_configure">Настройка</string>
+    <string name="install_skills">Синхронизация скриптов навыков</string>
+    <string name="install_interrupted">Настройка прервана; можно повторить</string>
+    <string name="install_checksum">Контрольная сумма файла не совпадает</string>
+    <string name="install_unpack_failed">Не удалось распаковать среду; переустановите Mika: %1$s</string>
+    <string name="install_unsupported">Это устройство не поддерживается (нужна архитектура arm64)</string>
+    <string name="install_no_space">Не хватает места: нужно %1$d МБ (свободно %2$d МБ)</string>
+    <string name="install_cannot_start">Среда не запускается: %1$s</string>
+    <string name="install_exit_code">код завершения %1$d</string>
+    <string name="install_no_client">Отсутствует команда mika (пакет неполный)</string>
+    <string name="sandbox_resetting">Сброс</string>
+    <string name="sandbox_incomplete">Файлы среды неполные; её можно сбросить в разделе «Настройки» → «Дополнительно»</string>
+    <string name="sandbox_not_finished">Настройка не завершена; можно повторить</string>
+    <string name="sandbox_network">Разрешить скриптам выходить в интернет</string>
+    <string name="sandbox_network_sub">По умолчанию выключено</string>
+    <string name="sandbox_network_explain">По умолчанию Mika работает с файлами и запускает скрипты без доступа к сети. Когда это включено, скрипты могут пользоваться сетью (например, чтобы искать статьи или карты), а также могли бы отправлять наружу файлы из чата.</string>
+    <string name="sandbox_isolation_unavailable">Это устройство не может запускать скрипты без доступа к сети: Mika сможет работать с файлами и запускать скрипты, только если включено «Разрешить скриптам выходить в интернет»</string>
+    <string name="sandbox_reset_title">Сбросить среду?</string>
+    <string name="sandbox_reset_body">Удаляет среду, которую Mika использует для файлов и скриптов, а также файлы, созданные в каждом чате (включая прикреплённые вами), после чего настраивает её заново автоматически. Чаты и настройки не затрагиваются.</string>
+    <string name="sandbox_broken">Настройка не завершена: %1$s</string>
+    <string name="sandbox_reset_sub">На случай неполадок: удаляет среду и настраивает заново</string>
+    <string name="sandbox_reset">Сбросить среду</string>
+    <string name="reset">Сбросить</string>
+</resources>

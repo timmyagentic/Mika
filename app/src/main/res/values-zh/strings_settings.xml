@@ -2,7 +2,7 @@
 <resources>
     <string name="language_title">语言</string>
     <string name="language_system">跟随系统</string>
-    <string name="language_system_detail">系统是简体或繁体中文时用对应的中文,其他语言时用英文</string>
+    <string name="language_system_detail">系统语言 Mika 有译文时用它,没有时用英文</string>
     <string name="settings_basic">基本</string>
     <string name="settings_model">模型</string>
     <string name="settings_not_set">未设置</string>
@@ -44,7 +44,7 @@
     <string name="settings_allowed">已允许</string>
     <string name="settings_task_notifs">任务通知</string>
     <string name="settings_keep_on">屏幕保持常亮</string>
-    <string name="settings_keep_on_sub">任务进行时屏幕不熄灭,结束后恢复</string>
+    <string name="settings_keep_on_sub">任务进行时屏幕不熄灭(没在用时照常变暗),结束后恢复</string>
     <string name="settings_mute">被操作的 App 静音</string>
     <string name="settings_mute_sub">Mika 操作的 App 不出声,你接手时恢复声音</string>
     <string name="settings_pace">操作节奏</string>
@@ -79,11 +79,18 @@
     <string name="routes_clear_title">清除全部已记住的操作路线?</string>
     <string name="routes_clear_body">清除后,做过的事下次会重新一步步来做,不影响别的设置。</string>
     <string name="clear">清除</string>
-    <string name="sandbox_proxy">网络代理</string>
-    <string name="sandbox_proxy_sub">没设置：命令直接连网</string>
     <string name="sandbox_proxy_off">%1$s · 允许联网后才生效</string>
-    <string name="sandbox_proxy_hint">只给这里运行的命令用（http_proxy、https_proxy、all_proxy），而且只在允许联网时生效；Mika 自己连模型不走它。可以带账号密码，加密保存在这台手机上。留空表示不用代理。</string>
-    <string name="sandbox_proxy_invalid">写成 http://主机:端口 的样子（也可以是 https、socks5、socks5h），主机前面可以带「用户:密码@」。</string>
+    <string name="net_proxy">网络代理</string>
+    <string name="net_proxy_row_sub">调模型、下更新、内置浏览器和命令都走它</string>
+    <string name="net_proxy_hint">Mika 调模型（对话、模型列表、账号登录）、在 App 里下载更新、内置浏览器，以及「文件与计算环境」里的命令（那里允许联网时）都走这个代理。这台手机和局域网里的地址（localhost、192.168.x.x、10.x.x.x、以 .local 结尾的名字）始终直连，本地模型照常能用。可以带「用户:密码@」，加密保存在这台手机上。留空表示直连。</string>
+    <string name="net_proxy_invalid">写成 http://主机:端口 的样子（也可以是 socks5、socks5h、https），主机前面可以带「用户:密码@」。</string>
+    <string name="net_proxy_container_only">https:// 代理只给「文件与计算环境」里的命令用，Mika 自己的连接照旧直连。想全部走代理，请用 http:// 或 socks5://。</string>
+    <string name="net_proxy_browser_unsupported">这台手机的 WebView 不支持单独设代理，内置浏览器直连。</string>
+    <string name="net_proxy_browser_socks_auth">内置浏览器用不了要账号密码的 SOCKS 代理，它直连。</string>
+    <string name="net_proxy_unreachable">连不上网络代理，或代理没有转发这个请求。请检查代理是否开着、设置 › 网络代理 里的地址是否正确。</string>
+    <string name="net_proxy_auth_failed">网络代理拒绝了账号或密码，请在 设置 › 网络代理 里检查。</string>
+    <string name="sandbox_proxy_sub">没设置：命令直接连网。在 设置 › 网络代理 里改</string>
+    <string name="sandbox_proxy_on">%1$s · 在 设置 › 网络代理 里改</string>
     <string name="sandbox_usage">已用空间</string>
     <string name="sandbox_usage_total">合计</string>
     <string name="sandbox_usage_runtime">运行环境</string>
@@ -98,4 +105,12 @@
     <string name="sandbox_usage_clear_all_title">清空所有对话的工作区？</string>
     <string name="sandbox_usage_clear_all_body">每个对话工作区里的文件都会被删掉：附件、屏幕截图和任务写的文件。对话都还在。有任务在跑的对话不清。</string>
     <string name="sandbox_usage_note">运行环境和技能随 App 自带，不在这里清理；要从头准备，用上面的「重置运行环境」。</string>
+    <string name="appearance_title">语言与外观</string>
+    <string name="appearance_group">外观</string>
+    <string name="appearance_system">跟随系统</string>
+    <string name="appearance_system_detail">手机是浅色就浅色，深色就深色</string>
+    <string name="appearance_light">一直浅色</string>
+    <string name="appearance_dark">一直深色</string>
+    <string name="settings_self_config">允许 Mika 改自己的设置</string>
+    <string name="settings_self_config_sub">打开后，任务里会多一件工具，能看和改这些偏好（操作节奏、静音、胶囊、外观、屏幕常亮）。模型和 Key、容器联网、任何删数据的操作都不在其中</string>
 </resources>

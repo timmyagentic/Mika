@@ -78,13 +78,14 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.time.ZoneId
 import com.wangzan101.mika.core.userscreen.UserScreenSource
+import com.wangzan101.mika.core.general.HISTORY_READ
 import com.wangzan101.mika.core.general.VIEW_USER_SCREEN
 
 /** 批做完后另看的一眼:内容和画面同一时刻。 */
 private fun batchViewNote(content: String) = Feedback.format("batch_view_note", "screen" to content)
 private val MEMORY_VERBS = setOf(Verb.MemorySearch, Verb.MemorySave)
-/** 讨论历史时仍可查本地记忆与技能资料；这些调用不会打开 App 或网站。 */
-private val DISCUSSION_LOOKUP_VERBS = setOf(Verb.MemorySearch, Verb.KnowledgeSearch, Verb.KnowledgeRead, Verb.SkillSearch, Verb.SkillRead)
+/** 讨论历史时仍可查本地记忆与技能资料、之前几轮的记录；这些调用不会打开 App 或网站。 */
+private val DISCUSSION_LOOKUP_VERBS = setOf(Verb.MemorySearch, Verb.KnowledgeSearch, Verb.KnowledgeRead, Verb.SkillSearch, Verb.SkillRead, Verb.HistoryRead)
 
 /**
  * 驱动“模型 ↔ 工具”的循环,只做调度:问模型([ModelCaller])→ 交执行入口([ActionExecutor])→
@@ -396,7 +397,10 @@ class AgentLoop(
         val matched = knowledge?.matchTask(task, Int.MAX_VALUE, installed).orEmpty()
         val index = if (skills != null && recommendSkills) GuideRecommender.index(skills, task) else null
         val start = ctx.start(
-            task, priorTurns = context?.let { (it.parts.single() as Part.Text).text },
+            task, priorTurns = context?.let { (it.parts.single() as Part.Text).text }?.let { prior ->
+                // 之前几轮读到的东西查得到时说一句(只在有记过运行的轮次、提供了 history_read 时)
+                if (tools.definitions().any { it.name == HISTORY_READ }) Feedback.format("history_hint", "turns" to prior) else prior
+            },
             memory = listOfNotNull(ProfileContext.render(profileSnapshot), block?.message).takeIf { it.isNotEmpty() }?.joinToString("\n\n"),
             channel = if (knowledge != null) channelLine(matched) else null,
             knowledge = matched, knowledgeNote = toolsNote(tools.scriptsOffered()), withLinks = flags.deepLinks,

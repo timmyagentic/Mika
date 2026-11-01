@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev_adaptive">Ler os elementos primeiro, imagens quando precisar</string>
+    <string name="dev_adaptive_sub">Não envia imagens quando a árvore da interface basta; adiciona uma quando não basta</string>
+    <string name="dev_inline">Devolver as mudanças da tela após as ações</string>
+    <string name="dev_inline_sub">Dá uma olhada na tela após cada ação, evitando uma leitura separada</string>
+    <string name="dev_batch">Fazer vários passos quando tiver certeza</string>
+    <string name="dev_batch_sub">Faz passos certos de uma vez, sem parar para consultar o modelo</string>
+    <string name="dev_deep_links">Abrir direto a página de destino</string>
+    <string name="dev_deep_links_sub">Usa links para ir direto às páginas dentro dos apps, em vez de tocar passo a passo</string>
+    <string name="dev_light">Passos fáceis vão para o modelo leve</string>
+    <string name="dev_light_sub">O modelo leve, mais rápido, faz os passos fáceis; o modelo principal fica com os difíceis</string>
+    <string name="dev_replay">Repetir o que deu certo da última vez</string>
+    <string name="dev_replay_sub">Reproduz roteiros salvos de coisas já feitas; devolve ao modelo se não corresponderem</string>
+    <string name="dev_parallel">Executar conversas em paralelo</string>
+    <string name="dev_parallel_sub">As tarefas de conversas diferentes ganham cada uma uma tela virtual e rodam juntas</string>
+    <string name="dev_compaction">Resumos estruturados para tarefas longas</string>
+    <string name="dev_compaction_sub">Quando muitos passos precisam ser comprimidos, anota objetivo, fatos, progresso e próximo passo</string>
+    <string name="dev_group">Como o Mika trabalha</string>
+    <string name="dev_autonomy">Modo autônomo</string>
+    <string name="dev_autonomy_sub">Ligado, o Mika não pergunta nem antes de pagar e simplesmente conclui; desligado, pergunta apenas antes de pagar</string>
+    <string name="dev_note">Estas opções afetam como e com que rapidez o Mika trabalha. Normalmente, deixe nos valores padrão.</string>
+    <string name="dev_grounding">Localização visual verificada</string>
+    <string name="dev_grounding_sub">Ative depois de testar que o modelo de visão %1$s localiza as coisas com precisão; desligado, as posições que ele marca precisam de outra evidência antes de o Mika tocar nelas.</string>
+    <string name="dev_speed">Velocidade</string>
+    <string name="dev_experiments">Experimentos</string>
+    <string name="dev_run_log">Registros de execução</string>
+</resources>

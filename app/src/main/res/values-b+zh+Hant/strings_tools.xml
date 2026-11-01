@@ -41,6 +41,8 @@
     <string name="tool_find_skill">查詢技能</string>
     <string name="tool_read_knowledge">檢視 App/網站知識</string>
     <string name="tool_read_skill">檢視技能</string>
+    <string name="tool_list_settings">檢視設定</string>
+    <string name="tool_set_setting">修改設定</string>
     <string name="tool_save_skill">儲存技能</string>
     <string name="tool_explain_failure">說明沒辦成的原因</string>
     <string name="tool_ask_user">問你一個問題</string>

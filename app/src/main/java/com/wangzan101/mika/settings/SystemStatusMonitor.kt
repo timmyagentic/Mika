@@ -85,6 +85,7 @@ class SystemStatusMonitor(context: Context, private val shell: BuiltinShellContr
         developerOptions = DeveloperSettings.developerOptions(app.contentResolver),
         wirelessDebugging = DeveloperSettings.wirelessDebugging(app.contentResolver),
         wirelessDebuggingMissing = DeveloperSettings.wirelessDebuggingMissing(app.contentResolver),
+        developerSettingsMissing = DeveloperSettings.developerOptionsPageMissing(app.packageManager),
         usbDebugging = DeveloperSettings.usbDebugging(app.contentResolver),
         restrictedSettings = restrictedSettings(),
         helperRestart = shell.restart,

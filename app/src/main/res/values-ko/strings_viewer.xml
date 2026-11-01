@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="viewer_no_open_app">이 파일을 열 수 있는 앱이 없어요</string>
+    <string name="viewer_no_share_app">이 파일을 공유할 수 있는 앱이 없어요</string>
+    <string name="viewer_open_elsewhere">다른 앱으로 열기</string>
+    <string name="viewer_unsupported">Mika에서는 이 파일을 볼 수 없어요.</string>
+    <string name="viewer_read_error">이 파일을 읽는 중 문제가 생겼어요.</string>
+    <string name="viewer_page">%1$d페이지</string>
+    <string name="viewer_truncated">파일이 커서 앞부분만 표시해요.</string>
+</resources>

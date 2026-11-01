@@ -9,6 +9,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * [toolCallsKnown]、[visionKnown] 记下哪些是接口明确说的(界面上据此标「未确认」)。
  * [chat] 是接口说没说它是对话模型(见 [ListedModel.chat]),没说为 null。
  * [typed] 为真是不在列出的模型里、用户手填的(界面上标「手填」)。
+ * [visionByUser] 是用户说的能不能看图(见 [Provider.visionOverrides]),没说为 null;说了的已算进 [capabilities]。
  */
 data class ModelOption(
     val id: String,
@@ -19,6 +20,7 @@ data class ModelOption(
     val displayName: String = "",
     val chat: Boolean? = null,
     val typed: Boolean = false,
+    val visionByUser: Boolean? = null,
 ) {
     /** 供参考的能力标记;用户选模型时不按它们过滤。 */
     val canBeMain: Boolean get() = capabilities.toolCalls
@@ -94,14 +96,26 @@ object ModelOptions {
         else -> "$tokens"
     }
 
+    /**
+     * 一个模型办事时算不算能看图:用户在这个模型上说过的([userSaid])为准;没说过的,看图也用它([usedForVision]:
+     * 选它当看图模型,或看图「用主模型」)就是用户说了它能看;都没有才按 [stored](列表写明的,没写的是预设初值)。
+     */
+    fun seesImages(stored: Boolean, userSaid: Boolean?, usedForVision: Boolean): Boolean = userSaid ?: (usedForVision || stored)
+
     /** 服务商的能力初值:地址对得上预设的用预设的,否则用「自定义」的。 */
     fun baseOf(p: Provider): Capabilities = (ProviderPresets.forBaseUrl(p.baseUrl) ?: ProviderPresets.custom).capabilities
 
     /**
      * 一个服务商可选的全部模型:记住的列表(合并能力初值;已有配置的用配置里的能力),
      * 再加上已有配置、但列表里没有的模型(例如手动填的),和手填过、还没有配置的([Provider.typedModels])。
+     * 用户说过能不能看图的([Provider.visionOverrides])按用户说的。
      */
-    fun ofProvider(p: Provider, configs: List<ProviderConfig>): List<ModelOption> {
+    fun ofProvider(p: Provider, configs: List<ProviderConfig>): List<ModelOption> = listedOf(p, configs).map { o ->
+        val said = p.visionOverrides[o.id] ?: return@map o
+        o.copy(capabilities = o.capabilities.copy(vision = said), visionByUser = said)
+    }
+
+    private fun listedOf(p: Provider, configs: List<ProviderConfig>): List<ModelOption> {
         val saved = configs.filter { it.providerId == p.id }
         val byModel = saved.associateBy { it.model }
         val listed = merge(p.models.orEmpty(), baseOf(p)).map { o -> byModel[o.id]?.let { o.copy(capabilities = it.capabilities) } ?: o }

@@ -47,6 +47,11 @@
     <string name="models_not_listed">This provider’s models haven’t been listed yet.</string>
     <string name="refresh">Refresh</string>
     <string name="models_in_use">In use</string>
+    <string name="models_sees_images">Can see images</string>
+    <string name="models_sees_note_user">Set by you. When the main model can see, screenshots go straight to it.</string>
+    <string name="models_sees_note_vision">Used as the vision model, so it counts as able to see images.</string>
+    <string name="models_sees_note_listed">As the provider’s model list says. You can change it.</string>
+    <string name="models_sees_note_unconfirmed">Unconfirmed: the model list doesn’t say. If it can see images, turn this on and screenshots go straight to it, without a separate vision call.</string>
     <string name="models_delete">Delete this provider</string>
     <string name="role_main">Main model</string>
     <string name="role_vision">Vision model</string>
@@ -169,7 +174,7 @@
     <!-- Settings > Models: speech-to-text usage and its picker page -->
     <string name="role_speech">Speech to text</string>
     <string name="role_speech_what">Used while you hold to talk</string>
-    <string name="speech_hint">The phone’s built-in recognition is free and shows words as you speak. If the phone has none, or it mishears you, pick a provider’s model instead: it transcribes after you finish, using your quota.</string>
+    <string name="speech_hint">Choose the phone’s built-in recognition, a live speech service, or a provider model that transcribes after you finish. Online services use your provider quota.</string>
     <string name="speech_system">Built into the phone</string>
     <string name="speech_system_offline">Works offline</string>
     <string name="speech_system_online">Needs internet</string>

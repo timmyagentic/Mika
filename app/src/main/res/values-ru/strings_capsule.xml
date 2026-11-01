@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_approve_once">Разрешить только в этот раз</string>
+    <string name="card_see_process">Вернуться в Mika, чтобы увидеть весь ход работы</string>
+    <string name="card_back_to_mika">Вернуться в Mika</string>
+    <string name="card_continue_last">Продолжить прошлый чат</string>
+    <string name="card_screen">Фоновый экран, нажмите, чтобы увеличить</string>
+    <string name="card_screen_label">Фон</string>
+    <string name="card_zoomed">Увеличенный фоновый экран, нажмите, чтобы закрыть</string>
+    <string name="card_zoom_hint">Mika работает в фоне · нажмите, чтобы закрыть</string>
+    <string name="card_continuing">Продолжить «%1$s»</string>
+    <string name="card_queued_ahead">Сначала завершите передачу управления в другой задаче, затем в этой</string>
+    <string name="card_hint_answer">Ответьте Mika…</string>
+    <string name="card_hint_continue">Продолжайте разговор…</string>
+    <plurals name="capsule_behind">
+        <item quantity="one">После этого вас ждёт ещё %1$d</item>
+        <item quantity="few">После этого вас ждут ещё %1$d</item>
+        <item quantity="many">После этого вас ждут ещё %1$d</item>
+        <item quantity="other">После этого вас ждут ещё %1$d</item>
+    </plurals>
+    <string name="capsule_hold">Ожидание</string>
+    <string name="capsule_handed_over">Вы за главного</string>
+    <string name="capsule_running">Работает</string>
+    <string name="capsule_done">Готово</string>
+    <string name="capsule_failed">Не получилось</string>
+    <string name="capsule_stopped">Остановлено</string>
+    <string name="capsule_stop">Остановить</string>
+    <string name="capsule_expand">Развернуть задачу</string>
+    <string name="capsule_talk">Поговорить с Mika</string>
+    <string name="capsule_swap_side">Переместить на другую сторону</string>
+    <string name="capsule_desc_needs">%1$s, нажмите, чтобы заняться</string>
+    <string name="capsule_desc_running">Mika работает: %1$s, нажмите, чтобы узнать подробности</string>
+    <string name="capsule_desc_other">Mika: %1$s, нажмите, чтобы узнать подробности</string>
+    <string name="capsule_then_tap_right">Когда закончите, нажмите справа</string>
+    <string name="capsule_need_of_total">Нужны вы: %1$d · всего %2$d</string>
+    <string name="capsule_of_total">%1$s · всего %2$d</string>
+    <string name="capsule_done_tap">Готово · нажмите, чтобы увидеть результат</string>
+    <string name="capsule_failed_tap">Не получилось · нажмите, чтобы узнать почему</string>
+    <string name="capsule_needs_you">Нужны вы: %1$s</string>
+    <string name="capsule_handle_it">посмотрите</string>
+    <string name="capsule_needs_ok">Нужно ваше согласие: %1$s</string>
+    <string name="capsule_asks">Mika спрашивает: %1$s</string>
+    <string name="capsule_hold_why">Ожидание: %1$s</string>
+    <string name="capsule_you_handle">Ваш ход</string>
+    <string name="capsule_thinking">Обдумывает следующий шаг</string>
+    <string name="capsule_continuing">Продолжает</string>
+    <string name="capsule_replay">Идёт по маршруту %1$d/%2$d</string>
+    <plurals name="capsule_batch">
+        <item quantity="one">%1$d шаг сразу</item>
+        <item quantity="few">%1$d шага сразу</item>
+        <item quantity="many">%1$d шагов сразу</item>
+        <item quantity="other">%1$d шага сразу</item>
+    </plurals>
+    <string name="and_more">" и ещё"</string>
+</resources>

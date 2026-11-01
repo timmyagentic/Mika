@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">远程</string>
+    <string name="relay_pair_title">配对远程网关</string>
+    <string name="relay_pair_sub">在网关网页生成配对码，再填写下方信息。</string>
+    <string name="relay_gateway">网关地址</string>
+    <string name="relay_code">配对码</string>
+    <string name="relay_code_hint">网关生成的一次性配对码</string>
+    <string name="relay_pair">配对网关</string>
+    <string name="relay_busy">请稍候…</string>
+    <string name="relay_enable">允许远程访问</string>
+    <string name="relay_disabled">已配对，远程访问未开启</string>
+    <string name="relay_online">网关已连接，等待 CLI / MCP 请求</string>
+    <string name="relay_connecting">正在连接远程网关…</string>
+    <string name="relay_offline">连接已断开，正在自动重连</string>
+    <string name="relay_unauthorized">配对已失效或被撤销，请重新配对网关</string>
+    <string name="relay_copy_address">复制 MCP 地址</string>
+    <string name="relay_client_help">将配置复制到电脑上的 MCP 客户端即可连接。</string>
+    <string name="relay_unpair">解除网关配对</string>
+    <string name="relay_unpair_body">断开此手机与网关的配对，需要网络连接。手机访问令牌保持不变。</string>
+    <string name="relay_failed">未能完成，请检查网关地址、网络和配对码。解除配对失败时，远程访问已关闭；请重试或在网关撤销这台手机。</string>
+    <string name="relay_notif_body">远程访问已开启，打开 Mika 可查看网关连接状态</string>
+    <string name="relay_incompatible">请将 Mika 与网关更新到匹配的版本</string>
+    <string name="relay_copy_gateway">复制网关地址</string>
+    <string name="relay_cli_help">将访问令牌保存到电脑文件，再运行上方连接命令。</string>
+    <string name="relay_intro">网关将原本通过 Wi-Fi / 局域网发送的 CLI 和 MCP 请求转发到手机，实现远程访问。使用前，需在自有公网服务器上部署网关。</string>
+    <string name="relay_device_access">允许经网关唤醒和解锁</string>
+    <string name="relay_device_access_sub">默认关闭。还需打开本页的「允许远程亮屏与解锁」；两项都开时，持有访问令牌的人可以经互联网唤醒并解锁这台手机。</string>
+</resources>

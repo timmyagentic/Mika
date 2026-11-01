@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_note">Tudo que envolve gastar dinheiro precisa da sua aprovação todas as vezes.</string>
+    <string name="confirm_pay">Pagar</string>
+    <string name="confirm_delete">Excluir</string>
+    <string name="confirm_order">Fazer pedido</string>
+    <string name="confirm_submit">Enviar</string>
+    <string name="confirm_other">Outra ação</string>
+    <string name="confirm_title">Precisa da sua aprovação: %1$s</string>
+    <string name="confirm_in_app">Em %1$s</string>
+    <string name="confirm_target">Para: %1$s</string>
+    <string name="confirm_content">Conteúdo: %1$s</string>
+</resources>

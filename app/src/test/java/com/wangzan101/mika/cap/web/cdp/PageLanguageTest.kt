@@ -20,6 +20,7 @@ class PageLanguageTest {
         // 文字体系不写
         assertEquals("sr-RS,sr", PageLanguage.acceptLanguage("sr-Latn-RS"))
         assertEquals("pt-BR,pt", PageLanguage.acceptLanguage("pt-BR"))
+        assertEquals("id-ID,id", PageLanguage.acceptLanguage("in-ID"))
         // 没有地区只写语言
         assertEquals("fr", PageLanguage.acceptLanguage("fr"))
     }

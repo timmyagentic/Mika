@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">遠端</string>
+    <string name="relay_pair_title">配對遠端閘道</string>
+    <string name="relay_pair_sub">在閘道網頁產生配對碼，再填寫下方資訊。</string>
+    <string name="relay_gateway">閘道位址</string>
+    <string name="relay_code">配對碼</string>
+    <string name="relay_code_hint">閘道產生的一次性配對碼</string>
+    <string name="relay_pair">配對閘道</string>
+    <string name="relay_busy">請稍候…</string>
+    <string name="relay_enable">允許遠端存取</string>
+    <string name="relay_disabled">已配對，遠端存取未開啟</string>
+    <string name="relay_online">閘道已連線，等待 CLI / MCP 請求</string>
+    <string name="relay_connecting">正在連線至遠端閘道…</string>
+    <string name="relay_offline">連線已中斷，正在自動重新連線</string>
+    <string name="relay_unauthorized">配對已失效或被撤銷，請重新配對閘道</string>
+    <string name="relay_copy_address">複製 MCP 位址</string>
+    <string name="relay_client_help">將設定複製到電腦上的 MCP 用戶端即可連線。</string>
+    <string name="relay_unpair">解除閘道配對</string>
+    <string name="relay_unpair_body">中斷此手機與閘道的配對，需要網路連線。手機存取權杖保持不變。</string>
+    <string name="relay_failed">未能完成，請檢查閘道位址、網路和配對碼。解除配對失敗時，遠端存取已關閉；請重試或在閘道撤銷這台手機。</string>
+    <string name="relay_notif_body">遠端存取已開啟，開啟 Mika 可查看閘道連線狀態</string>
+    <string name="relay_incompatible">請將 Mika 與閘道更新到相符的版本</string>
+    <string name="relay_copy_gateway">複製閘道位址</string>
+    <string name="relay_cli_help">將存取權杖儲存到電腦檔案，再執行上方連線指令。</string>
+    <string name="relay_intro">閘道將原本透過 Wi-Fi / 區域網路傳送的 CLI 和 MCP 請求轉送到手機，實現遠端存取。使用前，需在自有公網伺服器上部署閘道。</string>
+    <string name="relay_device_access">允許經閘道喚醒和解鎖</string>
+    <string name="relay_device_access_sub">預設關閉。還需開啟本頁的「允許遠端喚醒螢幕與解鎖」；兩項都開啟時，持有存取權杖的人可以經網際網路喚醒並解鎖這支手機。</string>
+</resources>

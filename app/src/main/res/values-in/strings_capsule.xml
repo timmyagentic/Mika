@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_approve_once">Setujui kali ini saja</string>
+    <string name="card_see_process">Kembali ke Mika untuk proses lengkapnya</string>
+    <string name="card_back_to_mika">Kembali ke Mika</string>
+    <string name="card_continue_last">Lanjutkan obrolan terakhir</string>
+    <string name="card_screen">Layar latar belakang, ketuk untuk memperbesar</string>
+    <string name="card_screen_label">Latar belakang</string>
+    <string name="card_zoomed">Layar latar belakang diperbesar, ketuk untuk menutup</string>
+    <string name="card_zoom_hint">Mika bekerja di latar belakang · ketuk untuk menutup</string>
+    <string name="card_continuing">Lanjutkan “%1$s”</string>
+    <string name="card_queued_ahead">Selesaikan pengambilalihan yang lain dulu, baru yang ini</string>
+    <string name="card_hint_answer">Jawab Mika…</string>
+    <string name="card_hint_continue">Lanjut ngobrol…</string>
+    <plurals name="capsule_behind">
+        <item quantity="other">Setelah ini, masih ada %1$d lagi yang menunggu Anda</item>
+    </plurals>
+    <string name="capsule_hold">Ditahan</string>
+    <string name="capsule_handed_over">Giliran Anda</string>
+    <string name="capsule_running">Bekerja</string>
+    <string name="capsule_done">Selesai</string>
+    <string name="capsule_failed">Tidak berhasil</string>
+    <string name="capsule_stopped">Dihentikan</string>
+    <string name="capsule_stop">Hentikan</string>
+    <string name="capsule_expand">Buka tugas ini</string>
+    <string name="capsule_talk">Bicara dengan Mika</string>
+    <string name="capsule_swap_side">Pindah ke sisi lain</string>
+    <string name="capsule_desc_needs">%1$s, ketuk untuk menangani</string>
+    <string name="capsule_desc_running">Mika sedang bekerja: %1$s, ketuk untuk melihat detail</string>
+    <string name="capsule_desc_other">Mika: %1$s, ketuk untuk melihat detail</string>
+    <string name="capsule_then_tap_right">Ketuk sisi kanan setelah selesai</string>
+    <string name="capsule_need_of_total">%1$d perlu Anda · total %2$d</string>
+    <string name="capsule_of_total">%1$s · total %2$d</string>
+    <string name="capsule_done_tap">Selesai · ketuk untuk melihat hasilnya</string>
+    <string name="capsule_failed_tap">Tidak berhasil · ketuk untuk melihat sebabnya</string>
+    <string name="capsule_needs_you">Perlu Anda: %1$s</string>
+    <string name="capsule_handle_it">silakan lihat</string>
+    <string name="capsule_needs_ok">Perlu persetujuan Anda: %1$s</string>
+    <string name="capsule_asks">Mika bertanya: %1$s</string>
+    <string name="capsule_hold_why">Ditahan: %1$s</string>
+    <string name="capsule_you_handle">Giliran Anda</string>
+    <string name="capsule_thinking">Memikirkan langkah berikutnya</string>
+    <string name="capsule_continuing">Melanjutkan</string>
+    <string name="capsule_replay">Mengikuti rute %1$d/%2$d</string>
+    <plurals name="capsule_batch">
+        <item quantity="other">%1$d langkah sekaligus</item>
+    </plurals>
+    <string name="and_more">" dan lainnya"</string>
+</resources>

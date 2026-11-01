@@ -49,6 +49,7 @@ const STRINGS = {
   handoff: ["接管", "On phone"],
   active: ["进行中", "Active"],
   starting: ["正在启动", "Starting"],
+  queued: ["排队中", "Queued"],
   running: ["进行中", "Running"],
   paused: ["已暂停", "Paused"],
   waiting_for_answer: ["等你回答", "Needs your answer"],
@@ -58,6 +59,7 @@ const STRINGS = {
   cancelled: ["已取消", "Cancelled"],
   msgStarting: ["任务已交给手机，正在等待启动。", "The phone accepted the task and is about to start."],
   msgRunning: ["Mika 正在执行任务。", "Mika is working on the task."],
+  msgQueued: ["排在前面的任务做完后自动开始。", "Starts by itself once the tasks ahead finish."],
   msgPaused: ["正在等待手机继续执行。", "Waiting for the phone to continue."],
   waitingCondition: ["等待条件", "Waiting for"],
   msgQuestion: ["Mika 正在等你回答。", "Mika is waiting for your answer."],
@@ -188,6 +190,7 @@ applyLanguage();
 
 const tones = {
   starting: "active",
+  queued: "active",
   running: "active",
   paused: "",
   waiting_for_answer: "attention",
@@ -334,6 +337,8 @@ function taskMessage(task) {
       return t("msgStarting");
     case "running":
       return task.progress || t("msgRunning");
+    case "queued":
+      return task.progress || t("msgQueued");
     case "paused":
       return task.progress || task.waiting_for || t("msgPaused");
     case "waiting_for_answer":

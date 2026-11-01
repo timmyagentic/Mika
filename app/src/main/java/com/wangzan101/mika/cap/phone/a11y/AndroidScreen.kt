@@ -638,6 +638,9 @@ class AndroidScreen(
 
     private fun ctrlKey(keyCode: Int): Boolean = runCatching { shell.injectCtrlKey(displayId, keyCode) }.getOrDefault(false)
 
+    /** 这块屏上弹着输入法(这时按返回,安卓先收起输入法)。 */
+    fun keyboardUp(): Boolean = hasDisplay && imeBox() != null
+
     /** 这块屏上输入法窗口的范围(0–999 的 [l,t,r,b]);没弹输入法为 null。弹着时它上面的字不算屏上的字。 */
     private fun imeBox(): List<Int>? {
         val w = windows().firstOrNull { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD } ?: return null

@@ -37,6 +37,8 @@ import com.wangzan101.mika.settings.FeatureFlags
 import com.wangzan101.mika.settings.Prerequisites
 import com.wangzan101.mika.settings.Problem
 import com.wangzan101.mika.settings.ProviderStore
+import com.wangzan101.mika.settings.NetProxyStore
+import com.wangzan101.mika.cap.web.WebProxy
 import com.wangzan101.mika.settings.SystemStatus
 import com.wangzan101.mika.settings.notificationOverview
 import com.wangzan101.mika.task.ParallelCapability
@@ -104,6 +106,7 @@ fun SettingsScreen(
     var keepScreenOn by remember { mutableStateOf(flags.keepScreenOn()) }
     var muteTarget by remember { mutableStateOf(flags.muteTarget()) }
     var operatingPace by remember { mutableStateOf(flags.operatingPace()) }
+    var selfConfig by remember { mutableStateOf(flags.selfConfig()) }
     var capsuleMode by remember { mutableStateOf(flags.capsuleMode()) }
     // 换语言时界面会重建,这里每次进来读一次即可
     val language = remember { AppLanguage.current(context) }
@@ -114,6 +117,15 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { routeCount = withContext(Dispatchers.IO) { runCatching { routeStore.count() }.getOrNull() } }
     val sandboxStatus by remember { SandboxState.get(context) }.status.collectAsState()
+    // 网络代理:只在这里改;读设置要解密、看浏览器支不支持要加载 WebView,都放到后台
+    val proxies = remember { NetProxyStore.get(context) }
+    var proxy by remember { mutableStateOf<String?>(null) }
+    var browserProxy by remember { mutableStateOf<WebProxy.Mode?>(null) }
+    var editingProxy by remember { mutableStateOf(false) }
+    LaunchedEffect(proxy) {
+        if (proxy == null) proxy = withContext(Dispatchers.IO) { proxies.get() }
+        browserProxy = withContext(Dispatchers.IO) { WebProxy.mode() }
+    }
     val mcp = remember { (context.applicationContext as com.wangzan101.mika.MikaApp).mcp }
     val mcpNetworkOn by mcp.settings.enabled.collectAsState()
     val mcpUsbOn by mcp.usb.enabled.collectAsState()
@@ -156,6 +168,7 @@ fun SettingsScreen(
             status = status, androidRelease = androidRelease,
             mainModel = roles.main?.let { id -> configs.firstOrNull { it.id == id } }?.let(ProviderConnection::displayName),
             onBack = onBack, onProblem = onProblem, onOpenModels = onOpenModels,
+            proxy = proxy, proxyNote = proxy?.let { NetProxyCopy.subtitle(it, browserProxy) }, onOpenProxy = { editingProxy = true },
             usageTokens = usageWeek, onOpenUsage = { page = SettingsPage.Usage },
             onOpenPhoneOps = { page = SettingsPage.PhoneOps },
             onOpenAppAccess = { page = SettingsPage.AppAccess },
@@ -185,6 +198,7 @@ fun SettingsScreen(
             muteTarget, onMuteTarget = { flags.setMuteTarget(it); muteTarget = it },
             parallel, onParallelMax = { flags.setParallelMax(it); parallelMax = it }, onBack = toHome,
             operatingPace = operatingPace, onOperatingPace = { flags.setOperatingPace(it); operatingPace = it },
+            selfConfig = selfConfig, onSelfConfig = { flags.setSelfConfig(it); selfConfig = it },
         )
         SettingsPage.Language -> LanguageScreen(language, onLanguage = { AppLanguage.set(context, it) }, onBack = toHome)
         SettingsPage.Capsule -> CapsuleScreen(capsuleMode, onMode = { flags.setCapsuleMode(it); capsuleMode = it }, onBack = toHome)
@@ -208,6 +222,18 @@ fun SettingsScreen(
         )
         SettingsPage.RunStats -> RunStatsScreen(remember { RunStore(context).metrics }, onBack = back)
     }
+
+    if (editingProxy) NetProxyDialog(
+        initial = proxy.orEmpty(),
+        onDismiss = { editingProxy = false },
+        onSave = { v ->
+            scope.launch {
+                withContext(Dispatchers.IO) { proxies.set(v) }
+                proxy = v.trim()
+                editingProxy = false
+            }
+        },
+    )
 
     explaining?.let { p ->
         val e = StatusCopy.explain(p, androidRelease)
@@ -240,6 +266,11 @@ fun SettingsContent(
     onBack: () -> Unit,
     onProblem: (Problem) -> Unit,
     onOpenModels: () -> Unit,
+    /** 网络代理(空串表示不用);为空(还没读出来)时不显示这一行。 */
+    proxy: String? = null,
+    /** 网络代理那一行下面的说明。 */
+    proxyNote: String? = null,
+    onOpenProxy: () -> Unit = {},
     /** 近 7 天用了多少 token;为空(还没统计出来)时不显示这一行。 */
     usageTokens: Long? = null,
     onOpenUsage: () -> Unit = {},
@@ -280,6 +311,13 @@ fun SettingsContent(
             ListRow(MikaIcons.Spark, stringResource(R.string.settings_model), first = true, onClick = onOpenModels) {
                 RowValue(mainModel ?: stringResource(R.string.settings_not_set))
                 RowChevron()
+            }
+            // 调模型的连接要不要走代理,和模型放在一起找得到;容器、更新、内置浏览器也按这一处
+            proxy?.let {
+                ListRow(MikaIcons.Link, NetProxyCopy.TITLE, proxyNote, onClick = onOpenProxy) {
+                    RowValue(NetProxyCopy.value(it))
+                    RowChevron()
+                }
             }
             usageTokens?.let {
                 ListRow(MikaIcons.Chart, UsageCopy.TITLE, onClick = onOpenUsage) {

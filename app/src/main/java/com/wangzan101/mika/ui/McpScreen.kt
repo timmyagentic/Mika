@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.wangzan101.mika.R
 import com.wangzan101.mika.core.mcp.McpUsb
 import com.wangzan101.mika.core.remote.RemoteActivity
+import com.wangzan101.mika.core.remote.RelayState
 import com.wangzan101.mika.mcp.McpRuntime
 import com.wangzan101.mika.mcp.McpServerState
 import com.wangzan101.mika.ui.components.ButtonKind
@@ -56,16 +57,18 @@ fun McpScreen(runtime: McpRuntime, onBack: () -> Unit) {
     val context = LocalContext.current
     val enabled by runtime.settings.enabled.collectAsState()
     val usbOn by runtime.usb.enabled.collectAsState()
+    val relayConfig by runtime.relaySettings.config.collectAsState()
+    val relayState by runtime.relayState.collectAsState()
     val usbCommand = remember { runtime.usbCommand() }
     val state by runtime.state.collectAsState()
     var addresses by remember { mutableStateOf<List<String>>(emptyList()) }
     var activity by remember { mutableStateOf(RemoteActivity()) }
     var token by remember { mutableStateOf<String?>(null) }
     var confirmRegenerate by remember { mutableStateOf(false) }
-    LaunchedEffect(enabled, usbOn) {
-        token = if (enabled) withContext(Dispatchers.IO) { runCatching { runtime.settings.token() }.getOrNull() } else null
+    LaunchedEffect(enabled, usbOn, relayConfig.enabled, relayConfig.paired) {
+        token = if (enabled || relayConfig.paired) withContext(Dispatchers.IO) { runCatching { runtime.settings.token() }.getOrNull() } else null
         if (!enabled) addresses = emptyList()
-        if (!enabled && !usbOn) { activity = RemoteActivity(); return@LaunchedEffect }
+        if (!enabled && !usbOn && !relayConfig.enabled) { activity = RemoteActivity(); return@LaunchedEffect }
         while (true) {
             if (enabled) addresses = withContext(Dispatchers.IO) { McpRuntime.addresses() }
             activity = runtime.activity
@@ -74,7 +77,7 @@ fun McpScreen(runtime: McpRuntime, onBack: () -> Unit) {
     }
     ComputerAccessPage(
         ComputerAccessUi(state, enabled, usbOn, (state as? McpServerState.Listening)?.port ?: runtime.settings.port,
-            activity, addresses, token, usbCommand),
+            activity, addresses, token, usbCommand, relayConfig.enabled, relayState),
         onBack, runtime::setUsbEnabled, runtime::setEnabled,
         onCopy = { copy(context, it) }, onRegenerate = { confirmRegenerate = true },
         deviceSettings = {
@@ -87,6 +90,7 @@ fun McpScreen(runtime: McpRuntime, onBack: () -> Unit) {
             }
             DeviceAccessSection(runtime.device.settings)
         },
+        relayGuide = { mcp -> RelaySection(runtime, mcp) { copy(context, it) } },
     )
     if (confirmRegenerate) AlertDialog(
         onDismissRequest = { confirmRegenerate = false },
@@ -107,6 +111,8 @@ internal data class ComputerAccessUi(
     val addresses: List<String>,
     val token: String?,
     val usbCommand: String,
+    val relayEnabled: Boolean = false,
+    val relayState: RelayState = RelayState.Off,
 )
 
 @Composable
@@ -118,22 +124,26 @@ internal fun ComputerAccessPage(
     onCopy: (String) -> Unit,
     onRegenerate: () -> Unit,
     deviceSettings: @Composable () -> Unit,
+    relayGuide: (@Composable (Boolean) -> Unit)? = null,
 ) {
     var client by remember { mutableStateOf(0) }
     var advanced by remember { mutableStateOf(false) }
-    var network by remember { mutableStateOf(false) }
+    var transport by remember { mutableStateOf(0) }
     PageScaffold(stringResource(R.string.mcp_title), onBack) {
         ConnectionStatus(ui)
         GroupLabel(stringResource(R.string.mcp_choose_client))
         SegmentedControl(listOf("CLI / Skill", "MCP"), client, { client = it },
             Modifier.padding(bottom = 12.dp), tags = listOf("computer-cli", "computer-mcp"))
         GroupLabel(stringResource(R.string.mcp_choose_transport))
-        SegmentedControl(listOf(stringResource(R.string.mcp_transport_usb), stringResource(R.string.mcp_transport_network)),
-            if (network) 1 else 0, { network = it == 1 }, Modifier.padding(bottom = 12.dp),
-            tags = listOf("computer-usb", "computer-network"))
+        val remoteChoice = relayGuide != null
+        SegmentedControl(listOf(stringResource(R.string.mcp_transport_usb), stringResource(R.string.mcp_transport_network)) +
+            if (remoteChoice) listOf(stringResource(R.string.relay_transport)) else emptyList(),
+            transport, { transport = it }, Modifier.padding(bottom = 12.dp),
+            tags = listOf("computer-usb", "computer-network") + if (remoteChoice) listOf("computer-remote") else emptyList())
         if (client == 0) CliInstallGuide(onCopy)
         when {
-            network -> NetworkGuide(ui, mcp = client == 1, onNetworkEnabled, onCopy)
+            transport == 2 -> relayGuide?.invoke(client == 1)
+            transport == 1 -> NetworkGuide(ui, mcp = client == 1, onNetworkEnabled, onCopy)
             client == 0 -> GuideStep(stringResource(R.string.mcp_cli_connect), stringResource(R.string.mcp_cli_connect_sub),
                 stringResource(R.string.mcp_copy_command), { onCopy("mika connect") }, command = "mika connect")
             else -> McpUsbGuide(ui, onCopy)
@@ -156,7 +166,7 @@ internal fun ComputerAccessPage(
                 }
             }
             FooterNote(stringResource(R.string.mcp_port_detail, ui.port))
-            if (ui.networkEnabled) {
+            if (ui.networkEnabled || ui.relayEnabled) {
                 GroupLabel(stringResource(R.string.mcp_token))
                 GroupCard {
                     ListRow(MikaIcons.Key, ui.token?.let { it.take(6) + "…" + it.takeLast(4) } ?: "…", first = true)
@@ -173,18 +183,25 @@ internal fun ComputerAccessPage(
 
 @Composable
 private fun ConnectionStatus(ui: ComputerAccessUi) {
-    val enabled = ui.networkEnabled || ui.usbEnabled
-    val received = enabled && ui.server is McpServerState.Listening && ui.activity.lastRequestAtMs != null
+    val enabled = ui.networkEnabled || ui.usbEnabled || ui.relayEnabled
+    val reachable = ui.server is McpServerState.Listening || ui.relayState == RelayState.Online
+    val received = enabled && reachable && ui.activity.lastRequestAtMs != null
+    val onlyRelay = ui.relayEnabled && !ui.networkEnabled && !ui.usbEnabled
+    val failure = (ui.server as? McpServerState.Failed)?.takeIf { !onlyRelay || ui.relayState == RelayState.Off }
     val title = when {
         !enabled -> stringResource(R.string.mcp_access_off)
-        ui.server is McpServerState.Failed -> stringResource(R.string.mcp_failed, ui.server.message)
-        ui.server is McpServerState.Off -> stringResource(R.string.mcp_starting)
+        failure != null -> stringResource(R.string.mcp_failed, failure.message)
+        onlyRelay && ui.relayState == RelayState.Incompatible -> stringResource(R.string.relay_incompatible)
+        onlyRelay && ui.relayState == RelayState.Unauthorized -> stringResource(R.string.relay_unauthorized)
+        onlyRelay && ui.relayState == RelayState.Offline -> stringResource(R.string.relay_offline)
+        onlyRelay && ui.relayState != RelayState.Online -> stringResource(R.string.relay_connecting)
+        ui.server is McpServerState.Off && !onlyRelay -> stringResource(R.string.mcp_starting)
         received -> stringResource(R.string.mcp_request_received)
         else -> stringResource(R.string.mcp_waiting)
     }
     val detail = if (received) stringResource(R.string.mcp_last_request, clock(ui.activity.lastRequestAtMs!!))
         else stringResource(R.string.mcp_follow_steps)
-    val tone = when { ui.server is McpServerState.Failed && enabled -> TileTone.Bad; received -> TileTone.Ok; else -> TileTone.Neutral }
+    val tone = when { failure != null && enabled -> TileTone.Bad; received -> TileTone.Ok; else -> TileTone.Neutral }
     GroupCard(Modifier.testTag("computer-status")) {
         ListRow(if (received) MikaIcons.Check else MikaIcons.Desktop, title, detail, first = true, tone = tone)
     }
@@ -273,7 +290,7 @@ private fun GuideStep(title: String, body: String, button: String, onClick: () -
 }
 
 @Composable
-private fun CommandText(text: String, modifier: Modifier = Modifier) {
+internal fun CommandText(text: String, modifier: Modifier = Modifier) {
     Text(text, modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 20.sp, color = MikaTheme.colors.ink)
 }

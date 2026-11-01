@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="metrics_model">モデルの思考</string>
+    <string name="metrics_observe">画面の読み取り</string>
+    <string name="metrics_act">操作</string>
+    <string name="metrics_other">その他(待機、再試行)</string>
+    <string name="metrics_title">実行の統計</string>
+    <string name="metrics_sub">最近の実行の所要時間、モデルとのやり取りの回数、トークン</string>
+    <string name="metrics_empty">実行の統計はまだありません。Mika に何かお願いすると、ここに記録されます。</string>
+    <string name="metrics_note">このスマホでの直近 %1$d 回の実行だけを集計しています。時間は Mika が作業を始めたときから数え、初回の反応は、何をしているかが最初に見えたときです。</string>
+    <string name="metrics_copy">JSON をコピー</string>
+    <string name="metrics_share">JSON を共有</string>
+    <string name="metrics_last_10">直近 10 回</string>
+    <plurals name="metrics_runs">
+        <item quantity="other">%1$d</item>
+    </plurals>
+    <string name="duration_h_m">%1$d 時間 %2$d 分</string>
+    <string name="metrics_total">合計 %1$s</string>
+    <plurals name="metrics_round_trips">
+        <item quantity="other">モデルとのやり取り %1$d 回</item>
+    </plurals>
+    <string name="metrics_first_feedback_at">初回の反応 %1$s</string>
+    <string name="metrics_retry_wait">うち再試行の待ち時間</string>
+    <string name="metrics_input_tokens">入力トークン</string>
+    <string name="metrics_output_tokens">出力トークン</string>
+    <string name="usage_cached">キャッシュヒット</string>
+    <string name="metrics_no_usage">使用量の報告なし</string>
+    <string name="metrics_all_calls">モデルへのすべてのリクエスト</string>
+    <plurals name="metrics_all_calls_value">
+        <item quantity="other">%1$d(補助的な呼び出しと再試行を含む)</item>
+    </plurals>
+    <string name="metrics_steps">ステップ</string>
+    <string name="metrics_observe_act">読み取り / 操作</string>
+    <string name="metrics_observe_act_value">%1$d / %2$d</string>
+    <string name="metrics_counted">集計対象</string>
+    <plurals name="metrics_n_runs">
+        <item quantity="other">%1$d 回の実行</item>
+    </plurals>
+    <string name="metrics_success_rate">成功率</string>
+    <string name="metrics_success_value">%1$s (%2$d/%3$d)</string>
+    <string name="metrics_median_time">所要時間の中央値</string>
+    <string name="metrics_median_feedback">初回の反応の中央値</string>
+    <string name="metrics_avg_round_trips">モデルとのやり取りの平均回数</string>
+    <string name="metrics_avg_round_trips_value">%1$s</string>
+    <string name="metrics_avg_tokens">平均トークン数</string>
+    <plurals name="metrics_copied">
+        <item quantity="other">%1$d 回分の実行の概要をコピーしました</item>
+    </plurals>
+    <string name="metrics_export_failed">エクスポートできませんでした。データが大きすぎる可能性があります。範囲を狭めてお試しください。</string>
+    <string name="metrics_where_time">時間の内訳を見る</string>
+    <string name="metrics_overview">概要</string>
+    <string name="metrics_time_split">時間の内訳</string>
+    <string name="metrics_export">エクスポート</string>
+    <plurals name="metrics_summary_of">
+        <item quantity="other">これら %1$d 回の実行の概要</item>
+    </plurals>
+    <string name="metrics_summary_sub">実行ごとに 1 件。ご自身での分析用です</string>
+    <plurals name="chat_steps_n">
+        <item quantity="other">%1$d ステップ</item>
+    </plurals>
+</resources>

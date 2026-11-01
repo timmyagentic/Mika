@@ -29,6 +29,7 @@ object SpeechOptions {
         val silent = Summary(tr(R.string.speech_system), tr(R.string.speech_system_silent), false)
         return when (choice) {
             SpeechChoice.Off -> Summary(tr(R.string.models_off), null, false)
+            is SpeechChoice.Doubao -> Summary(tr(R.string.speech_doubao_model), tr(R.string.speech_doubao_provider), false)
             SpeechChoice.Auto -> when {
                 system.usable -> systemSummary(system)
                 system.available -> silent

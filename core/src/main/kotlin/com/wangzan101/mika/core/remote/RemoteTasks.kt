@@ -46,6 +46,7 @@ interface RemoteTasks {
 object RemoteStatus {
     const val STARTING = "starting"
     const val RUNNING = "running"
+    const val QUEUED = "queued"
     const val PAUSED = "paused"
     const val WAITING_FOR_ANSWER = "waiting_for_answer"
     const val WAITING_ON_PHONE = "waiting_on_phone"
@@ -59,7 +60,11 @@ object RemoteStatus {
     fun of(state: TaskState?): String = when (state) {
         null, TaskState.Idle -> STARTING
         is TaskState.Running -> RUNNING
-        is TaskState.Held -> if (state.reason.needsYou) WAITING_ON_PHONE else PAUSED
+        is TaskState.Held -> when {
+            state.reason.needsYou -> WAITING_ON_PHONE
+            state.reason.queued -> QUEUED
+            else -> PAUSED
+        }
         is TaskState.WaitingInput -> WAITING_FOR_ANSWER
         is TaskState.WaitingConfirmation, is TaskState.WaitingTakeover -> WAITING_ON_PHONE
         is TaskState.Succeeded -> DONE

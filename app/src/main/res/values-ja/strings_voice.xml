@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat composer: hold to talk -->
+    <string name="voice_placeholder_idle">長押しで話す、タップで入力</string>
+    <string name="voice_placeholder_busy">長押しでタスクに話す、タップで入力</string>
+    <string name="voice_placeholder_answer">長押しで答える、タップで入力</string>
+    <string name="voice_listening">聞き取り中</string>
+    <string name="voice_steer_to">「%1$s」に伝える</string>
+    <string name="voice_engine_phone">スマホ</string>
+    <string name="voice_engine_phone_offline">スマホ · オフライン</string>
+    <string name="voice_say_now">どうぞ、聞いています…</string>
+    <string name="voice_recording">録音中です。指を離すとテキストに変換されます…</string>
+    <string name="voice_foot_live">指を離す · 言葉が入力欄に入り、編集できます</string>
+    <string name="voice_foot_convert">指を離す · テキストに変換して入力欄に入れます</string>
+    <string name="voice_left">残り %1$d 秒</string>
+    <string name="voice_slide_cancel">上にスライドしてキャンセル</string>
+    <string name="voice_release_cancel">指を離すとキャンセル</string>
+    <string name="voice_release_fill">指を離すと入力</string>
+    <string name="voice_release_convert">指を離すと変換</string>
+    <string name="voice_converting">変換中…</string>
+    <string name="voice_no_match">聞き取れませんでした。長押ししてもう一度話してください</string>
+    <string name="voice_busy">音声認識が混み合っています。しばらくしてからもう一度お試しください</string>
+    <string name="voice_network">ネットワークがないため、テキストに変換できませんでした</string>
+    <string name="voice_mic_unavailable">マイクを使えません。ほかのアプリが使っている可能性があります</string>
+    <string name="voice_hold_to_talk">長押しで話す</string>
+    <string name="voice_mic_blocked_title">まだマイクを使えません</string>
+    <string name="voice_mic_blocked_body">録音はすでに許可されていますが、Mika はまだ録音できません。クイック設定のマイクアクセスのスイッチがオンになっているか(Android 12 以降)、システムの権限マネージャーで Mika のマイクがオフになっていないかを確認してください。ほかのアプリがマイクを使っている可能性もあります。</string>
+    <string name="voice_provider_failed">テキストに変換できませんでした: %1$s</string>
+    <string name="voice_unavailable_title">音声入力の準備ができていません</string>
+    <string name="voice_unavailable_no_engine">このスマホには内蔵の音声認識がなく、音声文字変換のモデルも選ばれていません。「設定 › モデル › 音声文字変換」でプロバイダーの音声モデルを選ぶと使えます。</string>
+    <string name="voice_unavailable_system_gone">音声文字変換はスマホ内蔵の音声認識に設定されていますが、このスマホには今はありません。「設定 › モデル › 音声文字変換」で別のものを選んでください。</string>
+    <string name="voice_unavailable_system_silent">スマホ内蔵の音声認識が応答せず、言葉が届きませんでした。「設定 › モデル › 音声文字変換」でプロバイダーの音声モデルを選ぶと使えます。</string>
+    <string name="voice_unavailable_provider_gone">選んだ音声モデルのプロバイダーは削除されました。「設定 › モデル › 音声文字変換」で別のものを選んでください。</string>
+    <string name="voice_unavailable_off">音声文字変換がオフです。「設定 › モデル › 音声文字変換」で選んでください。</string>
+    <string name="voice_go_pick">選ぶ</string>
+    <string name="voice_permission_title">Mika にマイクが必要です</string>
+    <string name="voice_permission_body">長押しして話している間あなたの声を聞くために、Mika は録音が必要です。以前に拒否されたため、スマホは再度確認しません。システム設定の Mika の権限ページで、マイクをオンにしてください。</string>
+    <string name="voice_permission_open">設定を開く</string>
+    <!-- Floating capsule: long press to talk -->
+    <string name="capsule_voice_talk">話す</string>
+    <string name="capsule_voice_send">送信</string>
+    <string name="capsule_voice_answer_title">Mika に答える</string>
+    <string name="capsule_voice_continue_title">「%1$s」の続き</string>
+    <string name="capsule_voice_cancel">キャンセル</string>
+    <string name="capsule_voice_edit">編集</string>
+    <string name="capsule_voice_foot_send_up">指を離すと送信 · 上にドラッグでキャンセルか編集</string>
+    <string name="capsule_voice_foot_send_down">指を離すと送信 · 下にドラッグでキャンセルか編集</string>
+    <string name="capsule_voice_foot_convert_up">指を離すと変換して送信 · 上にドラッグでキャンセルか編集</string>
+    <string name="capsule_voice_foot_convert_down">指を離すと変換して送信 · 下にドラッグでキャンセルか編集</string>
+    <string name="capsule_voice_foot_edit">指を離す · 言葉が入力欄に入った状態でカードが開きます</string>
+    <string name="capsule_voice_foot_cancel">指を離す · これを破棄します</string>
+    <string name="capsule_voice_foot_a11y">終わったら、カプセルの操作から「送信」を選んでください</string>
+    <string name="capsule_voice_steered">タスクに伝えました: %1$s</string>
+    <string name="capsule_voice_answered">回答しました: %1$s</string>
+    <string name="capsule_voice_sent">送信しました: %1$s</string>
+    <string name="capsule_voice_need_mic">タップして Mika のマイクを許可</string>
+    <string name="capsule_voice_not_ready">音声入力の準備ができていません · タップ</string>
+    <string name="capsule_voice_open">Mika を開く</string>
+</resources>

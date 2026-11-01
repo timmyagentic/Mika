@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rec_a11y">Aktifkan aksesibilitas untuk saya</string>
+    <string name="rec_default_on">Aktif secara default</string>
+    <string name="rec_a11y_body">Mika memakai Aksesibilitas untuk membaca teks dan tombol di layar. Dengan ini aktif, Mika mengaktifkan layanan aksesibilitasnya sendiri di setelan sistem untuk Anda; layanan aksesibilitas lain yang Anda aktifkan tidak terpengaruh. Jika dinonaktifkan, Mika mematikan layanannya sendiri.</string>
+    <string name="rec_battery">Baterai tanpa batasan</string>
+    <string name="rec_battery_body">Dengan ini aktif, Mika menambahkan dirinya ke pengecualian optimalisasi baterai sistem, sehingga tidak dihentikan di latar belakang untuk menghemat daya dan kontrol ponsel lebih jarang terputus. Baterai mungkin sedikit lebih boros. Nonaktifkan untuk kembali ke default sistem.</string>
+    <string name="rec_boot">Pulihkan setelah dimulai ulang</string>
+    <string name="rec_boot_body">“Proses debug nirkabel” mati sendiri setelah dimulai ulang. Dengan ini aktif, Mika menyalakannya lagi saat mulai dan menyambung kembali. Ini memerlukan izin “Ubah setelan sistem”, yang hanya dipakai untuk mengaktifkan Proses debug nirkabel, dan hanya bekerja di Wi-Fi yang Anda percayai. Menonaktifkan ini atau melepas pemasangan akan mengembalikan izinnya.</string>
+    <string name="rec_auto_wireless">Aktifkan Proses debug nirkabel secara otomatis</string>
+    <string name="rec_auto_wireless_body">Setelah Wi-Fi terputus atau ponsel dimulai ulang, sistem mematikan “Proses debug nirkabel”. Kontrol ponsel biasanya tidak memerlukannya — hanya saat memulai ulang (misalnya setelah pembaruan Mika). Dengan ini aktif, pada saat itu dan selama terhubung ke Wi-Fi, Mika mengaktifkannya dan menyambung kembali, tetapi tidak pernah mematikannya untuk Anda. Ini memakai izin “Ubah setelan sistem” yang sama dengan “Pulihkan setelah dimulai ulang” dan hanya bekerja di Wi-Fi yang Anda izinkan. Nonaktifkan dan Mika berhenti melakukannya.</string>
+    <string name="rec_need_setup">Selesaikan dulu penyiapan kontrol ponsel</string>
+    <string name="rec_failed">Gagal menyelesaikan. Pastikan kontrol ponsel siap dan coba lagi.</string>
+    <string name="rec_working">Memproses…</string>
+    <string name="rec_restarted_at">Layanan aksesibilitas dimulai ulang otomatis pada %1$s.</string>
+    <string name="rec_not_allowed_here">Proses debug nirkabel belum diizinkan di Wi-Fi ini, jadi Mika tidak bisa mengaktifkannya. Aktifkan sendiri sekali dan centang “Selalu izinkan di jaringan ini” saat diminta; setelah itu Mika bisa mengaktifkannya sendiri.</string>
+    <string name="rec_refused">Ponsel ini tidak mengizinkan Mika mengaktifkan Proses debug nirkabel. Aktifkan sendiri saat diperlukan dan Mika akan menyambung.</string>
+    <string name="rec_gave_up">Mika sudah beberapa kali mengaktifkan Proses debug nirkabel tetapi kontrol ponsel tetap tidak mulai, jadi berhenti. Ganti Wi-Fi atau ketuk Coba lagi di Kontrol ponsel dan Mika akan mencoba lagi.</string>
+    <string name="rec_permission_missing">Saat mulai terakhir, izinnya hilang sehingga tidak bisa memulihkan. Matikan lalu aktifkan lagi sakelar ini.</string>
+    <string name="rec_setting_unavailable">Ponsel ini tidak mengizinkan Mika mengaktifkan Proses debug nirkabel saat mulai. Setelah dimulai ulang, aktifkan sendiri dan Mika akan menyambung.</string>
+    <string name="rec_not_recovered">Gagal menyambung kembali otomatis saat mulai terakhir. Pastikan Anda berada di Wi-Fi tepercaya dengan Proses debug nirkabel aktif, dan Mika akan menyambung.</string>
+    <string name="rec_needs_pairing">Hanya bekerja setelah memasangkan Proses debug nirkabel. Pembantu dimulai dengan perintah USB, jadi jalankan lagi perintahnya setelah ponsel dimulai ulang.</string>
+</resources>

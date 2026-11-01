@@ -18,6 +18,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import com.wangzan101.mika.core.net.NetProxy
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -61,6 +62,8 @@ class UpdateChecker(
     private val releaseApi: String = MikaLinks.LATEST_RELEASE_API,
     private val now: () -> Long = System::currentTimeMillis,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    /** 本机支持的 ABI(Build.SUPPORTED_ABIS),用来挑发布里合适的 APK;为空时取全架构包。 */
+    private val deviceAbis: List<String> = emptyList(),
 ) {
     private val _state = MutableStateFlow(UpdateState())
     val state: StateFlow<UpdateState> = _state.asStateFlow()
@@ -109,7 +112,7 @@ class UpdateChecker(
     }
 
     /** GitHub 上最新的发布;没查到为空。 */
-    internal fun fetchLatest(): ReleaseInfo? = runCatching { Releases.fromGitHub(get(releaseApi)) }.getOrNull()
+    internal fun fetchLatest(): ReleaseInfo? = runCatching { Releases.fromGitHub(get(releaseApi), deviceAbis) }.getOrNull()
 
     private fun get(url: String): String {
         val req = Request.Builder().url(url)
@@ -152,11 +155,10 @@ class UpdateChecker(
     }
 
     companion object {
-        /** 有的网络连 GitHub 时快时慢:超时放短,失败就换备用来源。 */
-        fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
+        /** 有的网络连 GitHub 时快时慢:超时放短,失败就换备用来源。走设置 › 网络代理。 */
+        fun defaultClient(): OkHttpClient = NetProxy.shared.client(OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+            .callTimeout(10, TimeUnit.SECONDS))
     }
 }

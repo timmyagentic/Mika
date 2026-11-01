@@ -9,7 +9,7 @@ import com.wangzan101.mika.core.workspace.GatedFile
 import com.wangzan101.mika.core.workspace.WorkspaceFileGate
 import com.wangzan101.mika.core.workspace.SandboxError
 import com.wangzan101.mika.core.workspace.SandboxPaths
-import com.wangzan101.mika.settings.ContainerProxyStore
+import com.wangzan101.mika.settings.NetProxyStore
 import com.wangzan101.mika.core.cap.sandbox.SandboxPort
 import com.wangzan101.mika.core.cap.sandbox.PhoneCommandHandler
 import com.wangzan101.mika.core.cap.sandbox.SandboxStatus
@@ -108,7 +108,7 @@ class AndroidSandbox internal constructor(
     private val startPreparing: () -> Job? = { null },
     /** 用户的联网设置;不给时按就绪状态里的。 */
     private val allowNetwork: (() -> Boolean)? = null,
-    /** 容器的网络代理(见 [ContainerProxyStore]);空串不用。只在允许联网的命令里给。 */
+    /** 网络代理(设置 › 网络代理,见 [NetProxyStore]);空串不用。只在允许联网的命令里给。 */
     private val proxy: () -> String = { "" },
     /** APK 内的桥客户端；已有运行环境也要随 APK 更新。 */
     private val clientScript: () -> ByteArray? = { null },
@@ -121,7 +121,7 @@ class AndroidSandbox internal constructor(
         skillFiles = { SkillsSync.bundled },
         startPreparing = { RuntimePreparer.ensure(context, retryFailed = true) },
         allowNetwork = { state.networkAllowed },
-        proxy = { ContainerProxyStore.get(context).get() },
+        proxy = { NetProxyStore.get(context).get() },
         clientScript = { context.assets.open("sandbox/mika").use { it.readBytes() } },
     )
 

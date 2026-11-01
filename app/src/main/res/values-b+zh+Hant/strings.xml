@@ -47,4 +47,26 @@
     <string name="model_reasoning_high">高</string>
     <string name="model_reasoning_xhigh">很高</string>
     <string name="model_reasoning_max">最高</string>
+    <string name="speech_doubao_provider">火山引擎 · 語音識別</string>
+    <string name="speech_doubao_model">豆包流式語音識別模型 2.0</string>
+    <string name="speech_doubao_note">火山引擎 · 單獨的語音憑據</string>
+    <string name="speech_doubao_missing">請在設定 › 模型 › 語音轉文字設定豆包語音憑據。</string>
+    <string name="speech_doubao_new">新版控制台</string>
+    <string name="speech_doubao_legacy">舊版控制台</string>
+    <string name="speech_doubao_enter_app">語音應用 App ID</string>
+    <string name="speech_doubao_enter_key">填寫語音服務憑據</string>
+    <string name="speech_doubao_duration">小時版</string>
+    <string name="speech_doubao_concurrent">並發版</string>
+    <string name="speech_doubao_privacy">儲存時不連網，也還沒驗證能不能用；按住說話時音訊傳到火山引擎，可能計費。憑據加密存在這支手機上。</string>
+    <string name="speech_doubao_save">儲存並使用</string>
+    <string name="speech_doubao_remove">刪除已儲存的憑據</string>
+    <string name="speech_doubao_save_failed">無法加密儲存語音憑據，請重試。</string>
+    <string name="speech_doubao_group">邊說邊轉的語音服務</string>
+    <string name="speech_doubao_configured">火山引擎 · %1$s</string>
+    <string name="speech_doubao_edit">設定</string>
+    <string name="speech_doubao_setup_hint">火山引擎的語音辨識，邊說邊出字。要先在火山引擎開通「語音辨識 2.0」；它的憑據和聊天模型的不通用。</string>
+    <string name="speech_doubao_credentials">憑據</string>
+    <string name="speech_doubao_plan">計費方式</string>
+    <string name="speech_doubao_duration_note">按辨識時長計費</string>
+    <string name="speech_doubao_concurrent_note">按同時連線數計費</string>
 </resources>

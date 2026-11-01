@@ -45,7 +45,7 @@ interface SpeechSession {
     /** 只给一个收集者;每个事件只送一次,[SpeechEvent.Final]/[SpeechEvent.Failed] 之后或 [cancel] 之后流就结束。 */
     val events: Flow<SpeechEvent>
 
-    /** 能边说边出字(系统 true,服务商 false)。 */
+    /** 能边说边出字(系统、原生流式 ASR 为 true,整段文件转写为 false)。 */
     val live: Boolean
 
     /** 松开:收尾并给 Final。 */

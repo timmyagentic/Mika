@@ -28,19 +28,25 @@ data class ReleaseInfo(
 }
 
 /**
- * 读 GitHub 发布页接口(releases/latest)的版本信息:tag_name、name、body、published_at、html_url、
- * assets 里第一个 .apk 的 browser_download_url。
+ * 读 GitHub 发布页接口(releases/latest)的版本信息:tag_name、name、body、published_at、html_url,
+ * 以及 assets 里适合本机的 APK 的 browser_download_url(见 [pickApk])。
  */
 object Releases {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun fromGitHub(text: String): ReleaseInfo {
+    /**
+     * 发布里除了全架构的 `Mika-v<版本>.apk`,还可能有只带某个架构原生库的包,名字以 `-<后缀>.apk` 结尾。
+     * 键是 Android 的 ABI 名,值是附件名后缀。
+     */
+    private val ABI_APK_SUFFIX = mapOf("arm64-v8a" to "arm64")
+
+    /** [deviceAbis] 是本机支持的 ABI,按偏好排序(Build.SUPPORTED_ABIS);为空时只取全架构包。 */
+    fun fromGitHub(text: String, deviceAbis: List<String> = emptyList()): ReleaseInfo {
         val o = json.parseToJsonElement(text).jsonObject
         val tag = o.str("tag_name") ?: error("no tag_name")
         val body = o.str("body").orEmpty()
         val apk = o["assets"]?.let { a ->
-            runCatching { a.jsonArray }.getOrNull()?.map { it.jsonObject }
-                ?.firstOrNull { it.str("name")?.endsWith(".apk", ignoreCase = true) == true }
+            runCatching { a.jsonArray }.getOrNull()?.map { it.jsonObject }?.let { pickApk(it, deviceAbis) }
         }
         val version = AppVersion.normalize(tag)
         return ReleaseInfo(
@@ -53,6 +59,18 @@ object Releases {
             apkSize = apk?.strOrNumber("size")?.toLongOrNull(),
             apkDigest = apk?.str("digest"),
         )
+    }
+
+    /**
+     * 本机支持某个架构、发布里又有这个架构的专用包时取专用包(更小);否则取全架构包。
+     * 只有别的架构的专用包时不取(装不上),这时打开发布页。
+     */
+    private fun pickApk(assets: List<JsonObject>, deviceAbis: List<String>): JsonObject? {
+        val apks = assets.filter { it.str("name")?.endsWith(".apk", ignoreCase = true) == true }
+        fun named(suffix: String) = apks.firstOrNull { it.str("name")!!.endsWith("-$suffix.apk", ignoreCase = true) }
+        val forDevice = deviceAbis.firstNotNullOfOrNull { abi -> ABI_APK_SUFFIX[abi]?.let(::named) }
+        val universal = apks.firstOrNull { a -> ABI_APK_SUFFIX.values.none { a.str("name")!!.endsWith("-$it.apk", ignoreCase = true) } }
+        return forDevice ?: universal
     }
 
     /** 存盘用:记下最近一次查到的版本,下次打开 App 时红点还在。 */

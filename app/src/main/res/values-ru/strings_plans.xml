@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trigger_reminder">Напоминание от Mika</string>
+    <string name="trigger_not_started_body">Не удалось запустить задачу по расписанию. Проверьте её на странице «Задачи по расписанию» и запустите снова.</string>
+    <string name="trigger_start_failed">Не удалось запустить</string>
+    <string name="trigger_not_started">Задача по расписанию не запустилась</string>
+    <string name="trigger_interrupted_body">Задача по расписанию была прервана, и её результат подтвердить нельзя. Сначала проверьте, что произошло на самом деле; Mika не будет повторять её автоматически.</string>
+    <string name="trigger_unconfirmed">Нужно проверить результат задачи по расписанию</string>
+    <string name="trigger_alarm_title">Для задач по расписанию нужно разрешение «Будильники и напоминания»</string>
+    <string name="trigger_alarm_body">Без него задачи по расписанию могут запускаться с опозданием или не запускаться вовсе. Нажмите здесь, чтобы включить его.</string>
+    <string name="op_failed">Что-то пошло не так</string>
+    <string name="plans_alarm_body">Без этого разрешения задачи по расписанию могут запускаться с опозданием или не запускаться вовсе. Включить его нужно только один раз.</string>
+    <string name="plans_running_n">Активных: %1$d</string>
+    <string name="plans_stopped_n">Выключенных: %1$d</string>
+    <string name="plans_empty">Задач по расписанию пока нет\nСкажите Mika в чате, когда вам напомнить или когда что-то для вас сделать.</string>
+    <string name="plans_none_running">Нет активных задач по расписанию</string>
+    <string name="plans_none_stopped">Нет выключенных задач по расписанию</string>
+    <string name="plans_footer">Задачу можно создать и фразой вроде «каждый день в 8…» или «сообщи, когда цена упадёт» в чате; результаты вернутся в этот чат. На запуск по времени может влиять экономия заряда; выключение или удаление затрагивает только будущие запуски.</string>
+    <string name="plans_open_chat">Открыть чат</string>
+    <string name="plans_run_now">Запустить сейчас</string>
+    <string name="plans_edit_time">Изменить время</string>
+    <string name="plans_edit_title">Изменить время следующего запуска</string>
+    <string name="plans_edit_label">Местное время: гггг-ММ-дд ЧЧ:мм</string>
+    <string name="plans_need_future">Введите корректное время в будущем</string>
+    <string name="plans_delete_title">Удалить эту задачу по расписанию?</string>
+    <string name="plans_done">Выполнено</string>
+    <string name="plans_checked">Проверено</string>
+    <string name="plans_check_failed">Проверка не удалась</string>
+    <string name="plans_result_pending">Нужно проверить результат</string>
+    <string name="plans_every_day">Каждый день</string>
+    <plurals name="plans_every_minutes">
+        <item quantity="one">Каждую %1$d минуту</item>
+        <item quantity="few">Каждые %1$d минуты</item>
+        <item quantity="many">Каждые %1$d минут</item>
+        <item quantity="other">Каждые %1$d минуты</item>
+    </plurals>
+    <string name="plans_once">Один раз</string>
+    <string name="plans_next">%1$s · следующий запуск: %2$s</string>
+    <string name="plans_condition">Запускается, только если: %1$s · %2$s</string>
+    <string name="plans_last">Последний раз: %1$s · %2$s</string>
+    <string name="plans_never_run">Ещё не запускалась</string>
+    <string name="plans_delivered">Доставлено</string>
+    <string name="plans_unchanged">Условие не изменилось</string>
+    <string name="plans_running_now">Выполняется</string>
+    <string name="trigger_deleted">Задача по расписанию удалена</string>
+    <string name="trigger_busy">Эта задача ещё выполняется</string>
+</resources>

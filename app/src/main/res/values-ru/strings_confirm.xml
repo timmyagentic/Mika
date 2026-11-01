@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_note">Любые траты денег каждый раз требуют вашего согласия.</string>
+    <string name="confirm_pay">Оплатить</string>
+    <string name="confirm_delete">Удалить</string>
+    <string name="confirm_order">Оформить заказ</string>
+    <string name="confirm_submit">Отправить</string>
+    <string name="confirm_other">Другое действие</string>
+    <string name="confirm_title">Нужно ваше согласие: %1$s</string>
+    <string name="confirm_in_app">В приложении «%1$s»</string>
+    <string name="confirm_target">Кому: %1$s</string>
+    <string name="confirm_content">Содержимое: %1$s</string>
+</resources>

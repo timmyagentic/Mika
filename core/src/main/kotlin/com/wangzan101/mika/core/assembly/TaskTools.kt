@@ -20,6 +20,7 @@ import com.wangzan101.mika.core.cap.mcp.McpConnection
 import com.wangzan101.mika.core.general.GeneralGroup
 import com.wangzan101.mika.core.knowledge.GuideCatalog
 import com.wangzan101.mika.core.memory.MemoryStore
+import com.wangzan101.mika.core.record.RunRecords
 import com.wangzan101.mika.core.memory.ProfileStore
 import com.wangzan101.mika.core.memory.UserUtterances
 import com.wangzan101.mika.core.skills.PersonalSkills
@@ -109,9 +110,13 @@ fun toolDispatcher(
     userScreens: UserScreenSource? = null,
     /** 用户的个人技能;和 [skills]、[utterances] 都给了才提供 skill_save(用户要求时写下或改一份个人技能)。 */
     personalSkills: PersonalSkills? = null,
+    /** 改 Mika 自己设置的白名单入口;为空时不提供 settings_list、settings_set(见 [SelfConfig])。 */
+    selfConfig: com.wangzan101.mika.core.settings.SelfConfig? = null,
+    /** 存下的运行记录;给了、而这个对话之前有记过运行的轮次时提供 history_read(查之前几轮读到的东西)。 */
+    runRecords: RunRecords? = null,
 ): ToolDispatcher {
     val config = ToolConfig(visionEnabled, skills, recordFrames, vision, inlineScreen, adaptiveVision, memory, profile, utterances, conversationId,
-        imageOps, scheduleTrigger, scheduleAdmin, runSpec, childHost, userScreens, personalSkills)
+        imageOps, scheduleTrigger, scheduleAdmin, runSpec, childHost, userScreens, personalSkills, selfConfig, runRecords)
     val providers: List<CapabilityProvider> = listOf(
         object : CapabilityProvider {
             override val id = PHONE

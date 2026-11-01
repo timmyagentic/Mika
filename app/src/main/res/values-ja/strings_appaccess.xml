@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appaccess_title">アプリのアクセス</string>
+    <string name="appaccess_row_sub">アプリごとに操作と画面共有をブロック</string>
+    <string name="appaccess_intro">標準のスマホ操作ツールで Mika が読み取り・操作してよいアプリを選びます。シェルコマンド、サンドボックス、パソコンへのアクセス(MCP)は、この設定の対象外です。</string>
+    <string name="appaccess_privacy">分類すると、アプリ名とパッケージ名が AI モデルに送信されます。「アプリ一覧を更新」は、事前に確認が出ます。</string>
+    <string name="appaccess_unavailable">アプリのアクセス設定を読み取れないため、標準のスマホ操作を停止しています。リセットすると、保存した権限と分類が消去されます。</string>
+    <string name="appaccess_reset">アプリのアクセスをリセット</string>
+    <string name="appaccess_search">名前またはパッケージを検索</string>
+    <string name="appaccess_refreshing">分類中…</string>
+    <string name="appaccess_refresh">アプリ一覧を更新</string>
+    <string name="appaccess_recommend">ブロック推奨</string>
+    <string name="appaccess_recommend_count">ブロック推奨 · %1$d</string>
+    <string name="appaccess_allow_all">すべて許可</string>
+    <string name="appaccess_risk_note">自動操作により、これらのアプリではアカウントが制限されることがあります。不要なものはブロックしてください。</string>
+    <string name="appaccess_blocked">ブロック中</string>
+    <string name="appaccess_allowed">許可</string>
+    <string name="appaccess_revoke_share">%1$s の画面共有を取り消す</string>
+
+    <string name="appaccess_send_title">アプリ一覧を AI に送信しますか？</string>
+    <string name="appaccess_send_body">更新すると、インストール済みアプリを読み取り、その名前とパッケージ名を設定した AI モデルに送って、リスクの分類を判定します。アプリの中身は送信しません。</string>
+    <string name="appaccess_send_confirm">続けて分類する</string>
+    <string name="appaccess_cancel">キャンセル</string>
+
+    <string name="appaccess_recommend_title">ブロック推奨: 金融系アプリ</string>
+    <string name="appaccess_recommend_body">これらのアプリは金融または決済に分類されていて、Mika はまだ操作できます。1 つずつ、またはまとめてブロックできます。</string>
+    <string name="appaccess_recommend_empty">ブロックするものはありません。</string>
+    <string name="appaccess_block">ブロック</string>
+    <string name="appaccess_block_all">すべてブロック</string>
+
+    <string name="appaccess_edit_category">分類を変更</string>
+    <string name="appaccess_category_manual">手動で設定</string>
+
+    <string name="appaccess_error_save">保存できませんでした</string>
+    <string name="appaccess_error_no_model">使えるモデルがありません。アプリ一覧は更新されましたが、分類できません。</string>
+    <string name="appaccess_error_refresh">更新に失敗しました</string>
+    <string name="appaccess_error_load">アプリ一覧を読み取れませんでした</string>
+
+    <string name="appaccess_category_finance">金融</string>
+    <string name="appaccess_category_social">ソーシャル</string>
+    <string name="appaccess_category_game">ゲーム</string>
+    <string name="appaccess_category_shopping">ショッピング</string>
+    <string name="appaccess_category_productivity">仕事効率化</string>
+    <string name="appaccess_category_media">メディア</string>
+    <string name="appaccess_category_other">その他</string>
+    <string name="appaccess_category_unknown">未分類</string>
+
+    <string name="appaccess_share_title">%1$s の画面を共有</string>
+    <string name="appaccess_share_body">このアプリはブロックされています。画面共有を使うと、あなたの意思でこのアプリを共有できます。自動での読み取りと操作はブロックされたままです。</string>
+    <string name="appaccess_share_allow">画面共有だけを許可</string>
+    <string name="appaccess_share_unblock">ブロックを解除</string>
+    <string name="appaccess_share_cancel">共有をやめる</string>
+    <string name="appaccess_share_expired">画面共有の権限の期限が切れました。もう一度スクリーンショットを撮ってください。</string>
+</resources>

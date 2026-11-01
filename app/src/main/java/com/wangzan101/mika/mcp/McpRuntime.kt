@@ -8,6 +8,13 @@ import com.wangzan101.mika.BuildConfig
 import com.wangzan101.mika.core.remote.RemoteAccess
 import com.wangzan101.mika.core.remote.RemoteActivity
 import com.wangzan101.mika.core.remote.RemoteHost
+import com.wangzan101.mika.core.remote.RemoteEndpoints
+import com.wangzan101.mika.core.remote.RelayClient
+import com.wangzan101.mika.core.remote.RelayGateway
+import com.wangzan101.mika.settings.RelaySettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.wangzan101.mika.core.mcp.McpUsb
 import com.wangzan101.mika.core.shell.HelperHandoff
 import com.wangzan101.mika.device.AndroidDeviceAccess
@@ -29,22 +36,58 @@ sealed interface McpServerState {
 }
 
 /**
- * 电脑连接(MCP)的开关与服务:整个进程一份。两种方式:局域网([settings],用户在设置里打开,默认关)
- * 和 USB([usb],电脑用 adb 打开,只听回环),怎么合起来见 [McpModes]。有一种开着就起 [McpService]
- * (前台服务,让进程在后台也活着),服务在的时候才监听端口;都关了就停服务、关端口。任务经 [tasks] 交给任务服务。
+ * 电脑连接(MCP)的开关与服务:整个进程一份。局域网([settings])和 USB([usb])的监听范围见 [McpModes],
+ * 远程网关([relaySettings])使用独立出站通道。有一种开着就起 [McpService] 前台服务,
+ * 由各自开关决定本地监听和出站连接;都关了就停止。三种方式的任务共用 [tasks] 和同一协议入口。
  */
 class McpRuntime(
     private val context: Context, val settings: McpSettings, val usb: McpUsbSettings, private val tasks: RemoteTasks,
     val device: AndroidDeviceAccess,
+    val relaySettings: RelaySettings,
     private val history: com.wangzan101.mika.core.remote.RemoteHistory? = null,
 ) {
     private val _state = MutableStateFlow<McpServerState>(McpServerState.Off)
     val state: StateFlow<McpServerState> = _state.asStateFlow()
     @Volatile private var host: RemoteHost? = null
     private var hostListen = McpModes.Listen.Off
+    private val endpoints = RemoteEndpoints(tasks, BuildConfig.VERSION_NAME, device = device.access, history = history)
+    private val relayAccess = RemoteAccess(token = { if (relaySettings.config.value.enabled) settings.token() else null })
+    // 经网关来的请求要另开「允许经网关唤醒和解锁」才看得到屏幕能力;手机上的远程亮屏与解锁许可照样要开。
+    private val relay = RelayClient(CoroutineScope(SupervisorJob() + Dispatchers.IO), { req ->
+        relayAccess.handle(req) { endpoints.handle(it, deviceAccess = relaySettings.config.value.deviceAccess, historyAccess = false) }
+    })
+    private val relayNetwork = RelayNetwork(context, relay::networkChanged)
+    val relayState get() = relay.state
+    private val active get() = listen() != McpModes.Listen.Off || relaySettings.config.value.enabled
 
     /** 最近连过的客户端和最后一次请求;没在监听时为空。 */
-    val activity: RemoteActivity get() = host?.activity?.value ?: RemoteActivity()
+    val activity: RemoteActivity get() = if (active) endpoints.activity.value else RemoteActivity()
+
+    /** 配对只保存凭据,必须用户另行开启远程访问。 */
+    suspend fun pairRelay(gateway: String, code: String) {
+        check(!relaySettings.config.value.paired) { "Unpair the previous gateway first" }
+        val remote = RelayGateway(RelayGateway.parse(gateway), RelayGateway.http())
+        val paired = remote.pair(code)
+        try { relaySettings.save(paired) }
+        catch (e: Exception) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { runCatching { remote.unpair(paired.deviceToken) } }
+            throw e
+        }
+    }
+
+    fun setRelayDeviceAccess(on: Boolean) = relaySettings.setDeviceAccess(on)
+
+    fun setRelayEnabled(on: Boolean) {
+        if (!on) { relayNetwork.stop(); relay.stop() }
+        try { relaySettings.setEnabled(on) } finally { if (!on) apply() }
+        if (on) apply()
+    }
+
+    suspend fun unpairRelay() {
+        setRelayEnabled(false)
+        relaySettings.pairing()?.let { RelayGateway(RelayGateway.parse(it.gateway), RelayGateway.http()).unpair(it.deviceToken) }
+        relaySettings.clear()
+    }
 
     fun listen(): McpModes.Listen = McpModes.listen(settings.enabled.value, usb.enabled.value)
 
@@ -62,7 +105,7 @@ class McpRuntime(
 
     /** 开关变了:还有一种开着就让服务按新的开关重新监听,都关了就停服务。 */
     private fun apply() {
-        if (listen() != McpModes.Listen.Off) ensureRunning() else {
+        if (active) ensureRunning() else {
             context.stopService(Intent(context, McpService::class.java))
             _state.value = McpServerState.Off
         }
@@ -73,7 +116,7 @@ class McpRuntime(
      * 等下次打开 Mika 的界面再起。
      */
     fun ensureRunning() {
-        if (listen() == McpModes.Listen.Off) return
+        if (!active) return
         runCatching { context.startForegroundService(Intent(context, McpService::class.java)) }
             .onFailure { e ->
                 Log.w(TAG, "could not start computer access service", e)
@@ -82,24 +125,30 @@ class McpRuntime(
     }
 
     /**
-     * 由 [McpService] 调:按两个开关监听。已经按同样的方式在听就不动;方式变了(局域网开了或关了)就换一个监听。
-     * USB 开着时监听起来就写连接信息给电脑,没开起来就删掉。都关着、或开不起来返回 false。
+     * 由 [McpService] 调:同步本地监听和远程通道。监听范围没变时复用服务,USB 开着时发布连接信息。
+     * 本地监听和远程通道均未启用或未能启动时返回 false。
      */
     @Synchronized internal fun sync(): Boolean {
         val want = listen()
-        if (host != null && hostListen != want) stopServer()
-        if (want == McpModes.Listen.Off) return false
-        val ok = host != null || startServer(want)
+        if (host != null && hostListen != want) stopListener()
+        if (want == McpModes.Listen.Off) _state.value = McpServerState.Off
+        val ok = want != McpModes.Listen.Off && (host != null || startServer(want))
         if (ok && usb.enabled.value) runCatching { usb.publish(host!!.boundPort) }.onFailure { Log.w(TAG, "cannot write USB connection info", it) }
         else usb.unpublish()
-        return ok
+        val remoteOn = relaySettings.config.value.enabled
+        if (remoteOn) {
+            val pairing = relaySettings.pairing()
+            if (pairing != null) { relayNetwork.start(); relay.start(pairing) }
+            else { relayNetwork.stop(); relay.stop(); relaySettings.setEnabled(false) }
+        } else { relayNetwork.stop(); relay.stop() }
+        return ok || remoteOn && relaySettings.config.value.enabled
     }
 
     private fun startServer(want: McpModes.Listen): Boolean {
         val network = want == McpModes.Listen.PrivateNetworks
         val h = RemoteHost(tasks, { if (settings.enabled.value) settings.token() else null }, settings.port, allowAllInterfaces = network,
             serverVersion = BuildConfig.VERSION_NAME, onError = { Log.w(TAG, "computer access server error", it) },
-            loopbackToken = usb::token, device = device.access, history = history)
+            loopbackToken = usb::token, device = device.access, endpoints = endpoints)
         return try {
             h.start()
             host = h
@@ -114,6 +163,12 @@ class McpRuntime(
     }
 
     @Synchronized internal fun stopServer() {
+        relayNetwork.stop()
+        relay.stop()
+        stopListener()
+    }
+
+    private fun stopListener() {
         host?.stop()
         host = null
         hostListen = McpModes.Listen.Off

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selfcheck_title">호환성 자가 점검</string>
+    <string name="selfcheck_row_sub">이 휴대전화에서 되는 기능을 확인하고 알려 주세요</string>
+    <string name="selfcheck_intro">1분 정도 걸려요. 다른 앱을 건드리지 않고, 설정을 바꾸지 않으며, 네트워크도 쓰지 않아요. 점검하는 동안 이 페이지에 머물러 주세요.</string>
+    <string name="selfcheck_start">시작</string>
+    <string name="selfcheck_again">다시 실행</string>
+    <string name="selfcheck_cancel">취소</string>
+    <string name="selfcheck_task_running">작업이 실행 중이에요. 끝난 뒤에 자가 점검을 시작하세요.</string>
+    <string name="selfcheck_checks">점검 항목</string>
+    <string name="selfcheck_report">보고서</string>
+    <string name="selfcheck_copy">보고서 복사</string>
+    <string name="selfcheck_github">GitHub에 보고</string>
+    <string name="selfcheck_copied">보고서를 복사했어요</string>
+    <string name="selfcheck_github_copied">보고서를 복사했어요. 열리는 페이지의 “Self-check report”에 붙여넣으세요.</string>
+    <string name="selfcheck_report_note">보고서에는 휴대전화 모델, 시스템 버전, 항목별 점검 결과만 들어 있고 계정, 앱 목록, 사용자 내용은 없어요. 올리기 전에 읽어 볼 수 있어요.</string>
+
+    <string name="selfcheck_check_device">기기</string>
+    <string name="selfcheck_check_permissions">권한</string>
+    <string name="selfcheck_check_helper">내장 도우미</string>
+    <string name="selfcheck_check_display">가상 디스플레이</string>
+    <string name="selfcheck_check_launch">앱 열기</string>
+    <string name="selfcheck_check_reading">화면 읽기</string>
+    <string name="selfcheck_check_actions">탭 및 입력</string>
+    <string name="selfcheck_check_alive">계속 실행</string>
+    <string name="selfcheck_check_main">내 화면 방해 없음</string>
+    <string name="selfcheck_check_browser">내장 브라우저</string>
+    <string name="selfcheck_check_sandbox">샌드박스</string>
+    <string name="selfcheck_check_copies">앱 복제본</string>
+
+    <string name="selfcheck_status_pending">대기 중</string>
+    <string name="selfcheck_status_running">점검 중</string>
+    <string name="selfcheck_status_pass">통과</string>
+    <string name="selfcheck_status_partial">일부 통과</string>
+    <string name="selfcheck_status_fail">실패</string>
+    <string name="selfcheck_status_skipped">건너뜀</string>
+
+    <string name="selfcheck_line_pending">아직 시작 안 함</string>
+    <string name="selfcheck_line_running">점검 중…</string>
+    <string name="selfcheck_line_pass">정상 작동</string>
+    <string name="selfcheck_line_needs">건너뜀: 먼저 “%1$s” 항목이 통과해야 해요</string>
+    <string name="selfcheck_line_other">통과하지 못했어요. 자세한 내용은 보고서를 확인하세요.</string>
+
+    <string name="selfcheck_advice_too_old">이 시스템은 Android 12보다 낮아서 휴대전화 제어를 쓸 수 없어요. 채팅, 웹, 샌드박스는 계속 쓸 수 있어요.</string>
+    <string name="selfcheck_advice_no_wireless">이 시스템에는 무선 디버깅이 없어요. 대신 컴퓨터에서 USB로 휴대전화 제어를 시작할 수 있어요.</string>
+    <string name="selfcheck_advice_phone_unavailable">이 환경에서는 휴대전화의 앱을 조작할 수 없어요(개발자 옵션과 무선 디버깅이 없음). 채팅, 웹, 파일, 계산은 평소처럼 쓸 수 있어요.</string>
+    <string name="selfcheck_advice_a11y_off">접근성이 꺼져 있어요. 설정 › 휴대전화 제어에서 Mika의 접근성을 켜세요.</string>
+    <string name="selfcheck_advice_a11y_restart">접근성이 켜져 있지만 실행 중이 아니에요. 시스템 설정에서 Mika의 접근성을 껐다가 다시 켜세요.</string>
+    <string name="selfcheck_advice_notifications">알림이 차단되어 있어서 작업 진행 상황이나 “확인 필요” 알림을 볼 수 없어요.</string>
+    <string name="selfcheck_advice_battery">배터리 사용이 제한되어 있어서 Mika가 백그라운드에서 종료될 수 있어요. 복구 및 수리에서 제한을 풀 수 있어요.</string>
+    <string name="selfcheck_advice_setup">내장 도우미가 실행 중이 아니에요. 설정 › 휴대전화 제어에서 설정을 마친 뒤 다시 실행하세요.</string>
+    <string name="selfcheck_advice_display">Mika의 가상 디스플레이를 만들지 못했어요. 도우미를 다시 연결하고 시도하세요. 그래도 안 되면 알려 주세요.</string>
+    <string name="selfcheck_advice_focus">Mika의 가상 디스플레이에는 자체 포커스가 없어서, Mika가 작업하는 동안 내 화면의 입력 포커스가 잠깐 사라질 수 있어요. 모든 기능은 그대로 동작해요.</string>
+    <string name="selfcheck_advice_launch">Mika의 가상 디스플레이에서 페이지가 열리지 않았어요. 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_on_main">시스템 설정이 Mika의 가상 디스플레이가 아니라 내 화면에서 열렸어요. 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_settings_in_use">시스템 설정이 내 화면에 열려 있어서 이 단계에서 열지 못했어요. 닫고 다시 실행하세요.</string>
+    <string name="selfcheck_advice_read">페이지의 컨트롤을 읽지 못했어요. Mika의 접근성을 껐다가 다시 켠 뒤 다시 실행하세요.</string>
+    <string name="selfcheck_advice_blank">가상 디스플레이 화면이 완전히 검거나 비어 있어요. 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_action">일부 동작이 적용되지 않았어요(보고서 참고). 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_frames">가상 디스플레이가 잠시 후 갱신을 멈춰서 작업이 멈출 수 있어요. 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_main">점검 중에 내 화면이 바뀌었어요. 이 페이지에 계속 머물렀다면 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_no_webview">이 시스템에는 쓸 수 있는 WebView가 없어서 내장 브라우저가 동작하지 않아요. 시스템 WebView 구성 요소를 설치하거나 업데이트하세요.</string>
+    <string name="selfcheck_advice_web">내장 브라우저가 로컬 테스트 페이지를 읽거나 탭하지 못했어요. 이 문제를 알려 주세요.</string>
+    <string name="selfcheck_advice_sandbox_unsupported">샌드박스는 64비트 ARM 휴대전화에서만 쓸 수 있어요.</string>
+    <string name="selfcheck_advice_sandbox_not_prepared">샌드박스가 아직 준비되지 않았어요. 작업이 처음 사용할 때 준비돼요. 그 뒤에 다시 실행하세요.</string>
+    <string name="selfcheck_advice_sandbox_failed">샌드박스 명령이 기대한 결과를 내지 못했어요. 파일 및 컴퓨팅 환경에서 환경을 초기화하고 다시 시도할 수 있어요.</string>
+    <string name="selfcheck_advice_timeout">이 점검에 시간이 너무 오래 걸렸어요. 다시 실행하세요. 계속 시간이 초과되면 알려 주세요.</string>
+    <string name="selfcheck_advice_error">이 점검 중 오류가 발생했어요. 알려 주세요.</string>
+    <string name="selfcheck_advice_out_of_time">이 점검 전에 자가 점검 시간이 다 됐어요.</string>
+    <string name="selfcheck_advice_cancelled">취소됨.</string>
+
+    <string name="selfcheck_target_title">Mika 자가 점검 페이지</string>
+    <string name="selfcheck_target_note">Mika의 자체 테스트 페이지예요. 호환성 자가 점검은 여기서만 탭하고 입력하며, 다른 앱은 건드리지 않아요.</string>
+    <string name="selfcheck_target_taps">탭 횟수: %1$d</string>
+    <string name="selfcheck_target_button">눌러 보세요</string>
+    <string name="selfcheck_target_input">여기에 입력</string>
+    <string name="selfcheck_target_tick">체크 %1$d</string>
+    <string name="selfcheck_target_row">행 %1$d</string>
+</resources>

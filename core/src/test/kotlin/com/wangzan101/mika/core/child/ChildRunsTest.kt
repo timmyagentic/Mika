@@ -64,4 +64,45 @@ class ChildRunsTest {
         assertEquals(ChildPhase.Unknown, runner.spawn(spec, null).phase)
         assertEquals(ChildPhase.Unknown, store.get("c")?.phase)
     }
+
+    private fun spawnWith(args: String, text: String = "x".repeat(20_000)): Pair<RunSpec, kotlinx.serialization.json.JsonObject> = runBlocking {
+        var seen: RunSpec? = null
+        val host = ChildRunHost { spec, _ -> seen = spec; ChildResult(spec.id, ChildPhase.Completed, text) }
+        val tools = toolDispatcher(FakeScreen(), runSpec = RunSpec(RunId("parent"), "goal", "thread"), childHost = host)
+        val r = tools.execute(Part.ToolCall("s", "spawn_agent", args), ActionPass())
+        seen!! to r.content
+    }
+
+    private fun resultLength(content: kotlinx.serialization.json.JsonObject) =
+        (content["result"] as kotlinx.serialization.json.JsonPrimitive).content.removePrefix("<untrusted>\n").removeSuffix("\n</untrusted>").length
+
+    @Test fun defaultBudgetsStayAsBefore() {
+        val (spec, content) = spawnWith("""{"goal":"查一条"}""")
+        assertEquals(15, spec.stepBudget)
+        assertTrue(spec.readOnly)
+        assertEquals(setOf("web", "sandbox"), spec.capabilities)
+        assertEquals(4000, resultLength(content))
+        assertEquals("true", content["truncated"].toString())
+    }
+
+    @Test fun modelChosenBudgetsAreClampedToTheCaps() {
+        val (spec, content) = spawnWith("""{"goal":"查三家","maxSteps":30,"maxResultChars":6000}""")
+        assertEquals(30, spec.stepBudget)
+        assertEquals(6000, resultLength(content))
+        val (high, highContent) = spawnWith("""{"goal":"查三家","maxSteps":500,"maxResultChars":100000}""")
+        assertEquals(40, high.stepBudget)
+        assertEquals(8000, resultLength(highContent))
+        val (low, lowContent) = spawnWith("""{"goal":"查三家","maxSteps":0,"maxResultChars":10}""")
+        assertEquals(1, low.stepBudget)
+        assertEquals(500, resultLength(lowContent))
+        val (_, short) = spawnWith("""{"goal":"查三家"}""", text = "短结论")
+        assertEquals(null, short["truncated"])
+    }
+
+    @Test fun nonIntegerBudgetIsRejected() = runBlocking {
+        val tools = toolDispatcher(FakeScreen(), runSpec = RunSpec(RunId("parent"), "goal", "thread"),
+            childHost = ChildRunHost { _, _ -> error("must not spawn") })
+        val r = tools.execute(Part.ToolCall("s", "spawn_agent", """{"goal":"g","maxSteps":2.5}"""), ActionPass())
+        assertEquals("invalid_arguments", r.content["error"].toString().trim('"'))
+    }
 }

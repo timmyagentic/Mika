@@ -43,6 +43,7 @@
 
     <string name="selfcheck_advice_too_old">系统低于安卓 12,手机操作用不了;聊天、网页和沙箱照常能用。</string>
     <string name="selfcheck_advice_no_wireless">系统里没有无线调试,可以改用电脑经 USB 启动手机操作。</string>
+    <string name="selfcheck_advice_phone_unavailable">这个环境不能操作手机里的 App(没有开发者选项和无线调试);聊天、网页、文件和计算照常可用。</string>
     <string name="selfcheck_advice_a11y_off">无障碍没开:在设置 › 手机操作里打开 Mika 的无障碍。</string>
     <string name="selfcheck_advice_a11y_restart">无障碍开着却没在运行:在系统设置里把 Mika 的无障碍关掉再打开。</string>
     <string name="selfcheck_advice_notifications">通知没允许,看不到任务进度和「需要你」的提醒。</string>

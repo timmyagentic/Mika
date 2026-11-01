@@ -56,6 +56,7 @@ object ChatCopy {
         null -> null
         ExchangeStatus.Working -> (if (place.isNullOrBlank()) tr(R.string.chat_working) else tr(R.string.chat_working_on, place)) to Tone.Accent
         ExchangeStatus.WaitingUnlock -> tr(R.string.chat_wait_unlock) to Tone.Warn
+        is ExchangeStatus.Queued -> tr(R.string.chat_queued) to Tone.Accent
         is ExchangeStatus.NeedsTakeover, is ExchangeStatus.NeedsInput,
         is ExchangeStatus.NeedsConfirmation, is ExchangeStatus.Paused -> tr(R.string.chat_waiting_for_you) to Tone.Warn
         else -> null

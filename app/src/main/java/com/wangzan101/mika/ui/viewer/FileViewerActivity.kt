@@ -15,6 +15,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.animationsOff
+import com.wangzan101.mika.ui.theme.systemBarsFor
 
 /**
  * App 里的文件查看页:网页、Markdown、PDF、图片和文本类文件在这里直接看,不用另找 App。
@@ -34,7 +35,9 @@ class FileViewerActivity : ComponentActivity() {
         val name = intent.getStringExtra(EXTRA_NAME) ?: uri.lastPathSegment.orEmpty()
         val kind = FileViewer.kindOf(this, uri, name)
         setContent {
-            MikaTheme(reduceMotion = animationsOff(this)) {
+            val dark = com.wangzan101.mika.ui.theme.appearanceDark()
+            androidx.compose.runtime.LaunchedEffect(dark) { systemBarsFor(dark) }
+            MikaTheme(dark = dark, reduceMotion = animationsOff(this)) {
                 FileViewerScreen(uri, name, kind, onBack = ::finish)
             }
         }

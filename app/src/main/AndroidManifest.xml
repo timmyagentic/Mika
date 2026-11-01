@@ -69,6 +69,10 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
+        <!-- 引导页先看系统里打不打得开开发者选项页:打不开(有的运行环境不带安卓的系统设置)就一开始说明手机操作用不了 -->
+        <intent>
+            <action android:name="android.settings.APPLICATION_DEVELOPMENT_SETTINGS" />
+        </intent>
         <!-- 账号认证器所在的包:没有桌面图标的系统账号登录服务也要看得见,它的登录页冒到主屏上时留给用户处理 -->
         <intent>
             <action android:name="android.accounts.AccountAuthenticator" />
@@ -167,7 +171,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the endpoint the user turned on (local network, or loopback for a computer on USB) open so the user's own computer can hand tasks to the app" />
+                android:value="Keeps user-enabled computer access available through a private-network or USB endpoint, or an outbound connection to the user's remote gateway, so authorized clients can hand tasks to the app" />
         </service>
 
         <!-- 用 ChatGPT 登录期间:用户在浏览器里登录时撑住进程,本机回调才有人接;登录一结束就停 -->
@@ -208,6 +212,17 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/attach_files" />
+        </provider>
+
+        <!-- 走网络代理时 Mika 自己下的更新安装包:只读交给系统安装器,不对外导出,安装时临时授权 -->
+        <provider
+            android:name=".about.UpdateFilesProvider"
+            android:authorities="${applicationId}.updatefiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_files" />
         </provider>
 
         <!-- 配对通知输入框填的配对码 -->

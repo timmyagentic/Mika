@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_access_group">원격 깨우기 및 잠금 해제</string>
+    <string name="device_access_title">원격 깨우기 및 잠금 해제 허용</string>
+    <string name="device_access_sub">MCP 토큰이 있는 컴퓨터가 이 휴대전화를 깨우고 잠금을 해제할 수 있어요.</string>
+    <string name="device_access_credential">화면 잠금 정보</string>
+    <string name="device_access_no_credential">설정 안 됨 · 밀기 또는 화면 잠금 없음만 가능</string>
+    <string name="device_access_pin_saved">PIN 저장됨 · 눌러서 바꾸기</string>
+    <string name="device_access_password_saved">비밀번호 저장됨 · 눌러서 바꾸기</string>
+    <string name="device_access_blocked">잠금 해제 일시 중지됨 · 이 휴대전화에서 잠금 정보를 다시 확인하고 저장하세요</string>
+    <string name="device_access_clear">저장된 잠금 정보 삭제</string>
+    <string name="device_access_foot">기본적으로 꺼져 있어요. 잠금 정보는 이 휴대전화에 암호화되어 저장되며 모델이나 컴퓨터로 전송되지 않아요. 잠금 정보가 한 번이라도 틀리면 이후 시도가 중지돼요. 재부팅한 뒤에는 먼저 직접 한 번 잠금을 해제해 주세요. 휴대전화 제어를 먼저 설정해야 해요.</string>
+    <string name="device_access_pin">PIN</string>
+    <string name="device_access_password">비밀번호</string>
+    <string name="device_access_value">잠금 정보</string>
+    <string name="device_access_value_hint">현재 화면 잠금을 입력하세요</string>
+    <string name="device_access_repeat">확인</string>
+    <string name="device_access_repeat_hint">한 번 더 입력하세요</string>
+    <string name="device_access_save">잠금 정보 저장</string>
+    <string name="device_access_pin_hint">현재 쓰는 4~16자리 PIN을 입력하세요. 실패한 뒤 다시 저장하면 한 번 더 시도할 수 있어요.</string>
+    <string name="device_access_password_hint">현재 쓰는 4~64자 비밀번호를 입력하세요. 영문, 숫자, 공백, 일반 ASCII 기호만 쓸 수 있어요. 그 밖의 문자와 패턴 잠금은 지원하지 않아요.</string>
+    <string name="device_access_save_failed">저장하지 못했어요. 휴대전화 저장 공간을 확인하고 다시 시도하세요.</string>
+</resources>

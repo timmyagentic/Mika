@@ -30,7 +30,8 @@ class McpService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         TaskService.ensureChannels(this)
-        McpModes.apply(intent?.action, runtime.settings, runtime.usb)
+        val applied = runCatching { McpModes.apply(intent?.action, runtime.settings, runtime.usb, runtime.relaySettings) }
+            .onFailure { Log.w("MikaMcp", "could not update computer access settings", it) }.isSuccess
         // startForegroundService 之后必须尽快进前台,哪怕马上就要退出;系统不让进前台时就此退出,不让进程崩
         val foreground = runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -39,7 +40,9 @@ class McpService : Service() {
                 startForeground(NOTIFICATION_ID, notification())
             }
         }.onFailure { Log.w("MikaMcp", "computer access service could not enter the foreground", it) }.isSuccess
-        if (!foreground || !runtime.sync()) {
+        val ready = foreground && applied && runCatching { runtime.sync() }
+            .onFailure { Log.w("MikaMcp", "could not start computer access", it) }.getOrDefault(false)
+        if (!ready) {
             runtime.stopServer()
             runtime.usb.unpublish()
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -57,6 +60,7 @@ class McpService : Service() {
     private fun notification(): Notification {
         val port = runtime.settings.port
         val body = when {
+            runtime.relaySettings.config.value.enabled -> R.string.relay_notif_body
             runtime.settings.enabled.value && runtime.usb.enabled.value -> R.string.mcp_notif_body_both
             runtime.usb.enabled.value -> R.string.mcp_notif_body_usb
             else -> R.string.mcp_notif_body

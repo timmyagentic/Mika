@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appaccess_title">앱 접근</string>
+    <string name="appaccess_row_sub">앱별로 앱과 화면 공유 차단</string>
+    <string name="appaccess_intro">Mika가 기본 휴대전화 도구로 읽고 조작할 수 있는 앱을 고르세요. 셸 명령, 샌드박스, 컴퓨터 접속(MCP)은 이 설정의 제한을 받지 않아요.</string>
+    <string name="appaccess_privacy">분류할 때 앱 이름과 패키지 이름이 AI 모델로 전송돼요. “앱 목록 새로고침”은 먼저 물어봐요.</string>
+    <string name="appaccess_unavailable">앱 접근 설정을 읽을 수 없어서 기본 휴대전화 접근이 일시 중지됐어요. 초기화하면 저장된 권한과 분류가 지워져요.</string>
+    <string name="appaccess_reset">앱 접근 초기화</string>
+    <string name="appaccess_search">이름 또는 패키지 검색</string>
+    <string name="appaccess_refreshing">분류 중…</string>
+    <string name="appaccess_refresh">앱 목록 새로고침</string>
+    <string name="appaccess_recommend">차단 권장</string>
+    <string name="appaccess_recommend_count">차단 권장 · %1$d</string>
+    <string name="appaccess_allow_all">모두 허용</string>
+    <string name="appaccess_risk_note">이런 앱을 자동으로 조작하면 계정이 제한될 수 있어요. 필요 없는 앱은 차단하세요.</string>
+    <string name="appaccess_blocked">차단됨</string>
+    <string name="appaccess_allowed">허용됨</string>
+    <string name="appaccess_revoke_share">%1$s 화면 공유 취소</string>
+
+    <string name="appaccess_send_title">앱 목록을 AI에 보낼까요?</string>
+    <string name="appaccess_send_body">새로고침하면 설치된 앱을 읽고, 위험 분류를 판단하도록 설정한 AI 모델에 앱 이름과 패키지 이름을 보내요. 앱 안의 내용은 보내지 않아요.</string>
+    <string name="appaccess_send_confirm">계속하고 분류하기</string>
+    <string name="appaccess_cancel">취소</string>
+
+    <string name="appaccess_recommend_title">차단 권장: 금융 앱</string>
+    <string name="appaccess_recommend_body">이 앱들은 금융 또는 결제 앱으로 분류되었고 Mika가 아직 조작할 수 있어요. 하나씩 또는 한꺼번에 차단하세요.</string>
+    <string name="appaccess_recommend_empty">차단할 앱이 없어요.</string>
+    <string name="appaccess_block">차단</string>
+    <string name="appaccess_block_all">모두 차단</string>
+
+    <string name="appaccess_edit_category">분류 변경</string>
+    <string name="appaccess_category_manual">직접 설정함</string>
+
+    <string name="appaccess_error_save">저장하지 못했어요</string>
+    <string name="appaccess_error_no_model">사용할 수 있는 모델이 없어요. 앱 목록은 새로고침했지만 분류할 수 없어요.</string>
+    <string name="appaccess_error_refresh">새로고침에 실패했어요</string>
+    <string name="appaccess_error_load">앱 목록을 읽지 못했어요</string>
+
+    <string name="appaccess_category_finance">금융</string>
+    <string name="appaccess_category_social">소셜</string>
+    <string name="appaccess_category_game">게임</string>
+    <string name="appaccess_category_shopping">쇼핑</string>
+    <string name="appaccess_category_productivity">생산성</string>
+    <string name="appaccess_category_media">미디어</string>
+    <string name="appaccess_category_other">기타</string>
+    <string name="appaccess_category_unknown">미분류</string>
+
+    <string name="appaccess_share_title">%1$s 화면 공유</string>
+    <string name="appaccess_share_body">이 앱은 차단되어 있어요. 화면 공유를 사용하면 직접 골라서 공유할 수 있고, 자동 읽기와 조작은 계속 차단돼요.</string>
+    <string name="appaccess_share_allow">화면 공유만 허용</string>
+    <string name="appaccess_share_unblock">차단 해제</string>
+    <string name="appaccess_share_cancel">공유 취소</string>
+    <string name="appaccess_share_expired">화면 공유 권한이 만료됐어요. 스크린샷을 다시 찍으세요.</string>
+</resources>

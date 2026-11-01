@@ -38,6 +38,7 @@ import com.wangzan101.mika.core.selfcheck.DeviceFacts
 import com.wangzan101.mika.core.selfcheck.SelfCheck
 import com.wangzan101.mika.core.selfcheck.SelfCheckPort
 import com.wangzan101.mika.core.shell.BuiltinShellStatus
+import com.wangzan101.mika.core.shell.PhoneSetupFlow
 import com.wangzan101.mika.core.uistate.ActionResult
 import com.wangzan101.mika.core.uistate.ScreenSnapshot
 import com.wangzan101.mika.core.uistate.UiElement
@@ -85,11 +86,16 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
     override suspend fun facts(): DeviceFacts = withContext(Dispatchers.IO) {
         val mem = ActivityManager.MemoryInfo().also { app.getSystemService(ActivityManager::class.java).getMemoryInfo(it) }
         val m = metrics()
+        val st = status()
+        val devPageMissing = DeveloperSettings.developerOptionsPageMissing(app.packageManager)
+        val wirelessMissing = DeveloperSettings.wirelessDebuggingMissing(app.contentResolver)
         DeviceFacts(
             Build.MANUFACTURER, Build.MODEL, Build.VERSION.RELEASE, Build.VERSION.SDK_INT, Build.SUPPORTED_ABIS.toList(),
             mem.totalMem, m.widthPixels, m.heightPixels,
-            wirelessDebugging = !DeveloperSettings.wirelessDebuggingMissing(app.contentResolver),
+            wirelessDebugging = !wirelessMissing,
             appVersion = BuildConfig.VERSION_NAME, appBuild = BuildConfig.GIT_HASH,
+            developerOptionsPage = !devPageMissing,
+            phoneControlUnavailable = PhoneSetupFlow.unavailable(devPageMissing, wirelessMissing, st.builtinShell, st.helperRestart),
         )
     }
 
@@ -283,13 +289,14 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
             mark("scroll", poll { s.peek().rows().let { it.isNotEmpty() && it.first() != rowsBefore.first() } })
         } else mark("scroll", false)
 
-        // 返回:自检页离开 Mika 屏的最上面(输入法弹着时第一下先收起输入法)
-        var gone = false
-        repeat(BACK_TRIES) {
-            if (gone) return@repeat
-            s.back()
-            gone = poll { withContext(Dispatchers.IO) { !isTestPageOnTop(sh, d.displayId) } }
-        }
+        // 返回:自检页离开 Mika 屏的最上面。刚打完字输入法多半还弹着,那几下是收起输入法(安卓本来如此),不算在次数里
+        val gone = BackPresses.until(
+            tries = BACK_TRIES,
+            maxPresses = BACK_MAX_PRESSES,
+            keyboardUp = { withContext(Dispatchers.IO) { s.keyboardUp() } },
+            press = { s.back() },
+            left = { poll { withContext(Dispatchers.IO) { !isTestPageOnTop(sh, d.displayId) } } },
+        )
         mark("back", gone)
         sampleMain(sh, "actions")
 
@@ -306,7 +313,7 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
         val fresh = s.snapshot()
         val f = fresh.find(INPUT) ?: return false
         s.typeText(f.ref, fresh.snapshotId, text)
-        return poll { s.peek().find(INPUT)?.name?.contains(text) == true }
+        return poll { s.peek().find(INPUT)?.name?.let { SelfCheckText.contains(it, text) } == true }
     }
 
     // ---------- 8 一直在动 ----------
@@ -377,12 +384,12 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
         val nav = w.screen.navigate(WEB_PAGE, newTab = false)
         if (!nav.loaded) return CheckOutcome.fail("local page did not load (${nav.netError ?: "not loaded"})", Advice.WebFailed)
         val read = w.screen.readPage(MAX_CHARS, 0, scrollLazy = false).text
-        if (WEB_MARKER !in read) return CheckOutcome.fail("page loaded but its text was not read", Advice.WebFailed)
+        if (!SelfCheckText.contains(read, WEB_MARKER)) return CheckOutcome.fail("page loaded but its text was not read", Advice.WebFailed)
         val snap = w.screen.snapshot()
         val button = snap.elements.firstOrNull { it.resourceId == WEB_BUTTON }
             ?: return CheckOutcome.fail("text read; button not found", Advice.WebFailed)
         w.screen.tapRef(button.ref, snap.snapshotId)
-        val clicked = poll { "Clicked 1" in w.screen.readPage(MAX_CHARS, 0, scrollLazy = false).text }
+        val clicked = poll { SelfCheckText.contains(w.screen.readPage(MAX_CHARS, 0, scrollLazy = false).text, WEB_CLICKED) }
         return if (clicked) CheckOutcome.pass("local page loaded, text read, button tap verified")
         else CheckOutcome.fail("text read; button tap did not change the page", Advice.WebFailed)
     }
@@ -504,15 +511,15 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
 
     /**
      * 自检页上的一个控件:先按资源 id(读屏给的是短名,也认完整写法的结尾),再按页面上的文字(有字的控件读屏时不带资源 id)。
-     * 文字和自检页一样按 App 语言取。
+     * 文字和自检页一样按 App 语言取;比的时候不分大小写、不计较空白(见 [SelfCheckText])。
      */
     private fun ScreenSnapshot.find(key: String): UiElement? =
         elements.firstOrNull { e -> e.resourceId?.let { it == key || it.endsWith("/$key") } == true }
             ?: elements.firstOrNull { e ->
                 when (key) {
-                    TITLE -> e.name == tr(R.string.selfcheck_target_title)
+                    TITLE -> SelfCheckText.same(e.name, tr(R.string.selfcheck_target_title))
                     COUNT -> tapsText.matches(e.name)
-                    BUTTON -> e.clickable && e.name == tr(R.string.selfcheck_target_button)
+                    BUTTON -> e.clickable && SelfCheckText.same(e.name, tr(R.string.selfcheck_target_button))
                     INPUT -> e.editable
                     TICK -> tickText.matches(e.name)
                     LIST -> e.scrollable
@@ -544,21 +551,12 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
         app.packageManager.getApplicationInfo(pkg, 0).flags and ApplicationInfo.FLAG_SYSTEM != 0
     }.getOrDefault(false)
 
-    /** 带一个数字的文字(「点了 %d 次」「计时 %d」「第 %d 行」):按 App 语言拆成数字前后两段,用来认控件。 */
-    private class Numbered(res: Int) {
-        private val parts = tr(res, SENTINEL).split(SENTINEL.toString())
+    /** 带一个数字的文字(「点了 %d 次」「计时 %d」「第 %d 行」):按 App 语言取,用来认控件。 */
+    private fun numbered(res: Int) = SelfCheckText.Numbered(tr(res, SENTINEL), SENTINEL.toString())
 
-        fun matches(s: String): Boolean {
-            if (parts.size != 2) return false
-            val (head, tail) = parts
-            if (s.length <= head.length + tail.length || !s.startsWith(head) || !s.endsWith(tail)) return false
-            return s.substring(head.length, s.length - tail.length).all(Char::isDigit)
-        }
-    }
-
-    private val tapsText by lazy { Numbered(R.string.selfcheck_target_taps) }
-    private val tickText by lazy { Numbered(R.string.selfcheck_target_tick) }
-    private val rowText by lazy { Numbered(R.string.selfcheck_target_row) }
+    private val tapsText by lazy { numbered(R.string.selfcheck_target_taps) }
+    private val tickText by lazy { numbered(R.string.selfcheck_target_tick) }
+    private val rowText by lazy { numbered(R.string.selfcheck_target_row) }
 
     private fun UiElement.number(): Int? = Regex("\\d+").findAll(name).lastOrNull()?.value?.toIntOrNull()
 
@@ -579,6 +577,8 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
         const val FRAME_TRIES = 20
         const val BLANK_SPREAD = 8
         const val BACK_TRIES = 2
+        /** 连收起输入法在内最多按这么多下。 */
+        const val BACK_MAX_PRESSES = 5
         const val ALIVE_MS = 15_000L
         const val ALIVE_STEP_MS = 500L
         /** 这么久画面一点没变就算停了(页面上的数字每 250 毫秒跳一次)。 */
@@ -606,5 +606,6 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
         const val WEB_PAGE = "https://appassets.androidplatform.net/assets/selfcheck/page.html"
         const val WEB_MARKER = "SELFCHECK-READ-OK"
         const val WEB_BUTTON = "#selfcheck-button"
+        const val WEB_CLICKED = "Clicked 1"
     }
 }

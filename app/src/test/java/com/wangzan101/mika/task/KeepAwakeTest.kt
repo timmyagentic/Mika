@@ -6,6 +6,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -104,5 +105,12 @@ class KeepAwakeTest {
         assertTrue(lock.held)
         b.close()
         assertFalse(lock.held)
+    }
+
+    /** 屏幕只保持开着,不锁在全亮:用户不操作时由系统照常调暗。 */
+    @Suppress("DEPRECATION")
+    @Test
+    fun screenLockLetsTheSystemDim() {
+        assertEquals(android.os.PowerManager.SCREEN_DIM_WAKE_LOCK, ScreenWakeLock.LEVEL)
     }
 }

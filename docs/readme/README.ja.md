@@ -1,4 +1,4 @@
-<!-- translated-from: README.md @ e407f162fc39 -->
+<!-- translated-from: README.md @ 960f4051ce73 -->
 <div align="center">
 
 <img src="../media/logo.png" alt="Mika" width="88" />
@@ -72,7 +72,7 @@
 ## 3 ステップで始める
 
 1. **インストール**：[Releases](https://github.com/wangzan101/Mika/releases/latest) から APK をダウンロード。
-2. **モデルをつなぐ**：Settings › Model でプロバイダーを選んで API キーを入力するか、アカウントでログイン（[モデルとログイン](../models.en.md)）。
+2. **モデルをつなぐ**：設定 › モデル でプロバイダーを選んで API キーを入力するか、アカウントでログイン（[モデルとログイン](../models.en.md)）。
 3. **スマホのアプリを操作させたいとき**：設定の「Set up phone control」ウィザードに沿って、ワイヤレスデバッグを一度だけペアリング（[セットアップガイド](../setup-guide.en.md)）。チャット、ウェブ、ファイル処理だけならこの手順は不要です。
 
 あとは話しかけるだけ：「明日の朝 9:40 と 10:00 にアラームをセットして」「毎朝 8 時に天気を見て、雨のときだけ教えて」。
@@ -121,7 +121,7 @@ API キーなしで、ChatGPT（Plus / Pro）、xAI / Grok、OpenRouter のア�
 | スマホのアプリ操作 | Android 12 以降。**Android 14 以降を推奨**（バックグラウンド画面が独自のフォーカスを持つので、メイン画面での入力を邪魔しません） |
 | Linux サンドボックス | arm64 端末 |
 
-自分のスマホで動くか不安なら、Settings › Recovery & repair › **Compatibility self-check** を実行してください。1 分ほどで 12 項目を確認でき、結果はワンタップで[私たちに送れます](https://github.com/wangzan101/Mika/issues/new?template=device-report.yml)。
+自分のスマホで動くか不安なら、設定 › 復旧と修復 › **互換性セルフチェック** を実行してください。1 分ほどで 12 項目を確認でき、結果はワンタップで[私たちに送れます](https://github.com/wangzan101/Mika/issues/new?template=device-report.yml)。
 
 ## プライバシーと安全
 
@@ -140,9 +140,9 @@ API キーなしで、ChatGPT（Plus / Pro）、xAI / Grok、OpenRouter のア�
 
 **自分のパソコンで動かしているモデルは使える？** 使えます。プロバイダーで「Custom」を選び、ローカルネットワーク上のアドレスを入力してください。
 
-**アプリは日本語に対応している？** 画面の表示言語は今のところ英語、簡体字中国語、繁体字中国語で、システムの言語に合わせて切り替わります（Settings › Language でも変更可）。日本語の表示はまだありませんが、Mika には日本語で話しかけて大丈夫です。内蔵のアプリ・サイト知識は中国語で書かれていますが、モデルは問題なく読めます。
+**アプリは日本語に対応している？** はい。画面は日本語のほか英語、簡体字中国語、繁体字中国語、韓国語、スペイン語、ポルトガル語、ロシア語、インドネシア語に対応し、システムの言語に合わせて切り替わります（設定 › 言語 でも変更可）。Mika には日本語で話しかけて大丈夫です。内蔵のアプリ・サイト知識は中国語で書かれていますが、モデルは問題なく読めます。
 
-**アップデートはどこから？** このリポジトリの [Releases](https://github.com/wangzan101/Mika/releases) だけで公開しています。アプリの「About › Check for updates」からもそのまま更新できます。
+**アップデートはどこから？** このリポジトリの [Releases](https://github.com/wangzan101/Mika/releases) だけで公開しています。アプリの「Mika について › アップデートを確認」からもそのまま更新できます。
 
 ほかの質問と回答は [FAQ](../faq.en.md) にあります。
 
@@ -151,17 +151,17 @@ API キーなしで、ChatGPT（Plus / Pro）、xAI / Grok、OpenRouter のア�
 ## コミュニティと貢献
 
 - **ドキュメント**：すべてのドキュメントとおすすめの読む順番は[ドキュメント一覧](../README.en.md)へ
-- **コミュニティ**：[X のグループチャット](https://x.com/i/chat/group_join/g2116500883139862983/xP74Qyff3X)に参加できます。WeChat で作者に連絡するには、アプリの About › Contact the author にある QR コードを読み取ってください（友達申請に「Mika」と書いてください）
+- **コミュニティ**：[X のグループチャット](https://x.com/i/chat/group_join/g2116926829198246025/48B52j5svL)に参加できます。WeChat で作者に連絡するには、アプリの 「Mika について › 作者に連絡」 にある QR コードを読み取ってください（友達申請に「Mika」と書いてください）
 - **作者をフォロー**：X [@wangzan101](https://x.com/wangzan101)
-- **問題を報告**：[Issue を作成](https://github.com/wangzan101/Mika/issues/new/choose)。アプリの About › Send feedback から診断情報を添えられます
+- **問題を報告**：[Issue を作成](https://github.com/wangzan101/Mika/issues/new/choose)。アプリの 「Mika について › フィードバックを送信」 から診断情報を添えられます
 - **貢献する**：アプリやサイトの使い方の知識を書き足す（プレーンテキストで、コードは不要）、またはコードで貢献。[コントリビューションガイド](../../.github/CONTRIBUTING.md)をご覧ください
 
 ## Star History
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-0434" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-0434" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-1623" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-1623" width="600" />
   </picture>
 </a>
 

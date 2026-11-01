@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">원격</string>
+    <string name="relay_pair_title">원격 게이트웨이 페어링</string>
+    <string name="relay_pair_sub">게이트웨이 웹페이지에서 페어링 코드를 만든 다음, 아래에 주소와 코드를 입력하세요.</string>
+    <string name="relay_gateway">게이트웨이</string>
+    <string name="relay_code">페어링 코드</string>
+    <string name="relay_code_hint">게이트웨이에서 받은 1회용 코드</string>
+    <string name="relay_pair">게이트웨이 페어링</string>
+    <string name="relay_busy">잠시만 기다려 주세요…</string>
+    <string name="relay_enable">원격 접속 허용</string>
+    <string name="relay_disabled">페어링됨. 원격 접속이 꺼져 있어요</string>
+    <string name="relay_online">게이트웨이에 연결됨. CLI / MCP 요청을 기다리는 중</string>
+    <string name="relay_connecting">원격 게이트웨이에 연결하는 중…</string>
+    <string name="relay_offline">연결이 끊겼어요. 자동으로 다시 연결해요</string>
+    <string name="relay_unauthorized">페어링이 만료되었거나 취소되었어요. 게이트웨이를 다시 페어링하세요</string>
+    <string name="relay_copy_address">MCP 주소 복사</string>
+    <string name="relay_client_help">컴퓨터의 MCP 클라이언트에 이 설정을 복사하면 연결돼요.</string>
+    <string name="relay_unpair">게이트웨이 페어링 해제</string>
+    <string name="relay_unpair_body">이 휴대전화와 게이트웨이의 연결을 끊어요. 인터넷 연결이 필요해요. 휴대전화 액세스 토큰은 그대로 유지돼요.</string>
+    <string name="relay_failed">완료하지 못했어요. 게이트웨이 주소, 인터넷 연결, 페어링 코드를 확인하세요. 페어링 해제에 실패했다면 접속은 꺼진 상태예요. 다시 시도하거나 게이트웨이에서 이 휴대전화를 취소하세요.</string>
+    <string name="relay_notif_body">원격 접속이 켜져 있어요. Mika를 열어 게이트웨이 연결을 확인하세요.</string>
+    <string name="relay_incompatible">Mika와 게이트웨이를 서로 맞는 버전으로 업데이트하세요</string>
+    <string name="relay_copy_gateway">게이트웨이 주소 복사</string>
+    <string name="relay_cli_help">액세스 토큰을 컴퓨터의 파일로 저장한 다음, 위의 연결 명령을 실행하세요.</string>
+    <string name="relay_intro">게이트웨이는 보통 Wi-Fi / LAN으로 보내는 CLI와 MCP 요청을 원격으로 휴대전화에 전달해요. 페어링하기 전에 직접 운영하는 공개 서버에 배포하세요.</string>
+    <string name="relay_device_access">게이트웨이를 통한 깨우기 및 잠금 해제 허용</string>
+    <string name="relay_device_access_sub">기본적으로 꺼져 있어요. 이 페이지의 “원격 깨우기 및 잠금 해제 허용”도 켜야 해요. 둘 다 켜면 액세스 토큰이 있는 누구나 인터넷으로 이 휴대전화를 깨우고 잠금을 해제할 수 있어요.</string>
+</resources>

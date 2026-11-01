@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trigger_reminder">Pengingat Mika</string>
+    <string name="trigger_not_started_body">Tugas terjadwal gagal dimulai. Periksa di halaman Tugas terjadwal dan jalankan lagi.</string>
+    <string name="trigger_start_failed">Gagal dimulai</string>
+    <string name="trigger_not_started">Tugas terjadwal tidak dimulai</string>
+    <string name="trigger_interrupted_body">Tugas terjadwal terhenti dan hasilnya tidak bisa dipastikan. Periksa dulu apa yang sebenarnya terjadi; Mika tidak akan mengulanginya otomatis.</string>
+    <string name="trigger_unconfirmed">Hasil tugas terjadwal perlu diperiksa</string>
+    <string name="trigger_alarm_title">Tugas terjadwal memerlukan izin “Alarm &amp; pengingat”</string>
+    <string name="trigger_alarm_body">Tanpanya, tugas terjadwal bisa terlambat atau tidak berjalan sama sekali. Ketuk di sini untuk mengaktifkannya.</string>
+    <string name="op_failed">Terjadi kesalahan</string>
+    <string name="plans_alarm_body">Tanpa izin ini, tugas terjadwal bisa terlambat atau tidak berjalan sama sekali. Anda hanya perlu mengaktifkannya sekali.</string>
+    <string name="plans_running_n">Aktif %1$d</string>
+    <string name="plans_stopped_n">Nonaktif %1$d</string>
+    <string name="plans_empty">Belum ada tugas terjadwal\nBilang ke Mika di obrolan kapan harus mengingatkan Anda, atau kapan mengerjakan sesuatu untuk Anda.</string>
+    <string name="plans_none_running">Tidak ada tugas terjadwal yang aktif</string>
+    <string name="plans_none_stopped">Tidak ada tugas terjadwal yang dinonaktifkan</string>
+    <string name="plans_footer">Anda juga bisa membuatnya dengan mengatakan “setiap hari pukul 8…” atau “kabari saya kalau harganya turun” di obrolan; hasilnya kembali ke obrolan itu. Eksekusi terjadwal bisa terpengaruh penghemat baterai; menonaktifkan atau menghapus hanya memengaruhi eksekusi berikutnya.</string>
+    <string name="plans_open_chat">Buka obrolan</string>
+    <string name="plans_run_now">Jalankan sekarang</string>
+    <string name="plans_edit_time">Ubah waktu</string>
+    <string name="plans_edit_title">Ubah waktu eksekusi berikutnya</string>
+    <string name="plans_edit_label">Waktu setempat: yyyy-MM-dd HH:mm</string>
+    <string name="plans_need_future">Masukkan waktu yang valid di masa depan</string>
+    <string name="plans_delete_title">Hapus tugas terjadwal ini?</string>
+    <string name="plans_done">Selesai</string>
+    <string name="plans_checked">Sudah diperiksa</string>
+    <string name="plans_check_failed">Pemeriksaan gagal</string>
+    <string name="plans_result_pending">Hasil perlu diperiksa</string>
+    <string name="plans_every_day">Setiap hari</string>
+    <plurals name="plans_every_minutes">
+        <item quantity="other">Setiap %1$d menit</item>
+    </plurals>
+    <string name="plans_once">Sekali</string>
+    <string name="plans_next">%1$s · berikutnya %2$s</string>
+    <string name="plans_condition">Hanya berjalan jika: %1$s · %2$s</string>
+    <string name="plans_last">Terakhir %1$s · %2$s</string>
+    <string name="plans_never_run">Belum pernah berjalan</string>
+    <string name="plans_delivered">Terkirim</string>
+    <string name="plans_unchanged">Kondisi tidak berubah</string>
+    <string name="plans_running_now">Berjalan</string>
+    <string name="trigger_deleted">Tugas terjadwal sudah dihapus</string>
+    <string name="trigger_busy">Tugas ini masih berjalan</string>
+</resources>

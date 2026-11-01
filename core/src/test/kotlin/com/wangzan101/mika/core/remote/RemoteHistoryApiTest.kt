@@ -9,6 +9,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import java.net.InetAddress
 
 class RemoteHistoryApiTest {
     private var allowed = false
@@ -73,5 +74,21 @@ class RemoteHistoryApiTest {
         val result = get("/history/conversations")
         assertEquals(403, result.first)
         assertFalse(result.second.containsKey("offset"))
+    }
+
+    @Test fun relayRequestsDoNotInheritLocalHistoryPermission() {
+        allowed = true
+        val endpoints = RemoteEndpoints(FakeRemoteTasks(), "test", history = source)
+        fun request(path: String) = HttpRequest("GET", path, emptyMap(), byteArrayOf(), InetAddress.getLoopbackAddress())
+        for (deviceAccess in listOf(true, false)) {
+            val local = endpoints.handle(request("/api/v1"), deviceAccess = deviceAccess)
+            assertTrue(Json.parseToJsonElement(local.body.decodeToString()).jsonObject.getValue("history_enabled").jsonPrimitive.boolean)
+            val relay = endpoints.handle(request("/api/v1"), deviceAccess = deviceAccess, historyAccess = false)
+            val info = Json.parseToJsonElement(relay.body.decodeToString()).jsonObject
+            assertFalse(info.getValue("capabilities").jsonArray.any { it.jsonPrimitive.content == "history" })
+            assertFalse(info.containsKey("history_enabled"))
+            assertEquals(404, endpoints.handle(request("/api/v1/history/conversations"), deviceAccess = deviceAccess, historyAccess = false).status)
+        }
+        assertEquals(0, reads)
     }
 }

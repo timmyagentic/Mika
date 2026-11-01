@@ -1,5 +1,6 @@
 package com.wangzan101.mika.cap.sandbox
 
+import com.wangzan101.mika.core.net.LocalHosts
 import com.wangzan101.mika.core.workspace.SandboxPaths
 import java.io.File
 import java.io.InputStream
@@ -16,8 +17,8 @@ object ProcRunner {
     const val OUTPUT_LIMIT = 1 shl 20
     const val READ_CHUNK = 64 * 1024
     const val PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-    /** 走代理时本机地址照旧直连。 */
-    const val NO_PROXY = "localhost,127.0.0.1,::1"
+    /** 走代理时本机、局域网地址照旧直连(和 Mika 自己的连接同一套,见 [LocalHosts])。 */
+    const val NO_PROXY = LocalHosts.NO_PROXY
 
     /**
      * [cwd]:`/workspace` 下的相对路径,空串为 `/workspace`;[standIns]:`files/sandbox/proc/` 里的替身文件名,
@@ -40,7 +41,7 @@ object ProcRunner {
     /** 环境先清空,只给这些;桥没开时不给 MIKA_BRIDGE / MIKA_TOKEN。 */
     fun env(
         dirs: SandboxDirs, bridgeName: String?, token: String?, conversationId: String,
-        /** 容器的网络代理;空串表示不用(见 ContainerProxyStore)。不允许联网时调用方给空串。 */
+        /** 容器的网络代理;空串表示不用(见 NetProxyStore)。不允许联网时调用方给空串。 */
         proxy: String = "",
     ): Map<String, String> = buildMap {
         put("PROOT_LOADER", dirs.lib("libproot_loader.so").path)

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_note">お金がかかる操作は、そのつど確認します。</string>
+    <string name="confirm_pay">支払う</string>
+    <string name="confirm_delete">削除</string>
+    <string name="confirm_order">注文する</string>
+    <string name="confirm_submit">送信</string>
+    <string name="confirm_other">その他の操作</string>
+    <string name="confirm_title">許可が必要: %1$s</string>
+    <string name="confirm_in_app">%1$s で</string>
+    <string name="confirm_target">宛先: %1$s</string>
+    <string name="confirm_content">内容: %1$s</string>
+</resources>

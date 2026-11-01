@@ -7,8 +7,12 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Environment
+import androidx.core.content.FileProvider
+import com.wangzan101.mika.core.net.NetProxy
+import okhttp3.OkHttpClient
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 enum class DownloadPhase { Idle, Downloading, Paused, Ready, Failed }
 
@@ -23,19 +27,23 @@ data class ApkDownloadState(
 /**
  * 系统负责后台下载;只保存任务编号,进程重启后仍能查询、取消或安装。方法在 IO 线程调用。
  * 文件放在本应用的外部专属目录(别的 App 读写不到),同一时间只留一个;换版本、删除、装好后都清掉。
+ * 设了网络代理(设置 › 网络代理)时系统下载服务不走它,改由 Mika 自己经代理在进程里下([ProxiedApkDownload])。
  */
-class ApkUpdater(private val context: Context) {
+class ApkUpdater(private val context: Context, private val net: NetProxy = NetProxy.shared) {
     private val manager = context.getSystemService(DownloadManager::class.java)
     private val prefs = context.getSharedPreferences("apk-update", Context.MODE_PRIVATE)
     private val directory: File get() = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
         ?: error("external files unavailable"), "updates")
     private val file: File? get() = prefs.getString("file", null)?.let { File(directory, it) }
+    /** 这一份是 Mika 自己经代理下的(不是系统下载服务)。 */
+    private val viaApp: Boolean get() = prefs.getBoolean("viaApp", false)
 
     fun state(release: ReleaseInfo): ApkDownloadState =
         if (prefs.getString("url", null) != release.apkUrl) ApkDownloadState() else recorded()
 
     /** 记下的那个下载任务现在的状态;系统里查不到这个任务算失败。 */
     private fun recorded(): ApkDownloadState {
+        if (viaApp) return file?.let(proxied::state) ?: ApkDownloadState(DownloadPhase.Failed)
         val id = prefs.getLong("id", -1)
         manager.query(DownloadManager.Query().setFilterById(id))?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -64,6 +72,11 @@ class ApkUpdater(private val context: Context) {
         folder.listFiles()?.forEach { it.delete() }
         // remove 的后台清理可能晚于下一次下载,不能复用旧任务的文件名。
         val target = File(folder, "update-${UUID.randomUUID()}.apk")
+        if (net.proxyFor(Uri.parse(url).host.orEmpty()) != null) {
+            check(prefs.edit().putBoolean("viaApp", true).putString("url", url).putString("file", target.name).commit()) { "could not save download" }
+            proxied.start(url, target)
+            return
+        }
         val request = DownloadManager.Request(Uri.parse(url))
             .setTitle("Mika ${release.version}")
             .setMimeType("application/vnd.android.package-archive")
@@ -78,6 +91,7 @@ class ApkUpdater(private val context: Context) {
     }
 
     fun cancel() {
+        if (viaApp) proxied.cancel()
         val id = prefs.getLong("id", -1)
         if (id != -1L) manager.remove(id)
         val target = file
@@ -114,7 +128,8 @@ class ApkUpdater(private val context: Context) {
             cancel()
             throw e
         }
-        val uri = manager.getUriForDownloadedFile(prefs.getLong("id", -1)) ?: error("missing APK")
+        val uri = if (viaApp) FileProvider.getUriForFile(context, "${context.packageName}.updatefiles", target)
+            else manager.getUriForDownloadedFile(prefs.getLong("id", -1)) ?: error("missing APK")
         return Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
@@ -139,6 +154,11 @@ class ApkUpdater(private val context: Context) {
     }
 
     private companion object {
+        /** 经代理在进程里下的那一份,进程里只有一个。 */
+        val proxied by lazy {
+            ProxiedApkDownload(NetProxy.shared.client(OkHttpClient.Builder().readTimeout(60, TimeUnit.SECONDS)))
+        }
+
         @Suppress("DEPRECATION")
         const val SIGNING_FLAGS = PackageManager.GET_SIGNING_CERTIFICATES or PackageManager.GET_SIGNATURES
     }

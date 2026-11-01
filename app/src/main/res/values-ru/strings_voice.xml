@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat composer: hold to talk -->
+    <string name="voice_placeholder_idle">Удерживайте, чтобы говорить, нажмите, чтобы печатать</string>
+    <string name="voice_placeholder_busy">Удерживайте, чтобы говорить задаче, нажмите, чтобы печатать</string>
+    <string name="voice_placeholder_answer">Удерживайте, чтобы ответить голосом, нажмите, чтобы печатать</string>
+    <string name="voice_listening">Слушаю</string>
+    <string name="voice_steer_to">Сообщение для «%1$s»</string>
+    <string name="voice_engine_phone">Телефон</string>
+    <string name="voice_engine_phone_offline">Телефон · офлайн</string>
+    <string name="voice_say_now">Говорите, я слушаю…</string>
+    <string name="voice_recording">Идёт запись. Отпустите, и она превратится в текст…</string>
+    <string name="voice_foot_live">Отпустите · слова попадут в поле, их можно будет изменить</string>
+    <string name="voice_foot_convert">Отпустите · запись превратится в текст и попадёт в поле</string>
+    <string name="voice_left">Осталось %1$d с</string>
+    <string name="voice_slide_cancel">Проведите вверх, чтобы отменить</string>
+    <string name="voice_release_cancel">Отпустите, чтобы отменить</string>
+    <string name="voice_release_fill">Отпустите, чтобы вставить</string>
+    <string name="voice_release_convert">Отпустите, чтобы преобразовать</string>
+    <string name="voice_converting">Преобразование…</string>
+    <string name="voice_no_match">Не расслышала. Удерживайте и повторите</string>
+    <string name="voice_busy">Распознавание речи занято. Попробуйте через минуту</string>
+    <string name="voice_network">Нет сети, превратить в текст не удалось</string>
+    <string name="voice_mic_unavailable">Микрофон недоступен. Возможно, его использует другое приложение</string>
+    <string name="voice_hold_to_talk">Удерживайте, чтобы говорить</string>
+    <string name="voice_mic_blocked_title">Микрофон по-прежнему недоступен</string>
+    <string name="voice_mic_blocked_body">Запись уже разрешена, но Mika всё равно не может записывать. Проверьте, что переключатель доступа к микрофону в быстрых настройках включён (Android 12 и новее) и что микрофон для Mika не отключён в системном менеджере разрешений. Также микрофон может использовать другое приложение.</string>
+    <string name="voice_provider_failed">Не удалось превратить в текст: %1$s</string>
+    <string name="voice_unavailable_title">Голосовой ввод не готов</string>
+    <string name="voice_unavailable_no_engine">На этом телефоне нет встроенного распознавания речи, и модель для преобразования речи в текст не выбрана. Выберите речевую модель провайдера в разделе «Настройки» › «Модели» › «Распознавание речи», и всё заработает.</string>
+    <string name="voice_unavailable_system_gone">Для распознавания речи выбрано встроенное средство телефона, но сейчас на этом телефоне его нет. Выберите другое в разделе «Настройки» › «Модели» › «Распознавание речи».</string>
+    <string name="voice_unavailable_system_silent">Встроенное распознавание речи телефона не ответило, и слова не поступили. Выберите речевую модель провайдера в разделе «Настройки» › «Модели» › «Распознавание речи», и всё заработает.</string>
+    <string name="voice_unavailable_provider_gone">Провайдер выбранной речевой модели удалён. Выберите другую в разделе «Настройки» › «Модели» › «Распознавание речи».</string>
+    <string name="voice_unavailable_off">Распознавание речи выключено. Выберите вариант в разделе «Настройки» › «Модели» › «Распознавание речи».</string>
+    <string name="voice_go_pick">Выбрать</string>
+    <string name="voice_permission_title">Mika нужен микрофон</string>
+    <string name="voice_permission_body">Чтобы слышать вас, пока вы удерживаете кнопку, Mika должна записывать звук. Раньше доступ был отклонён, поэтому телефон больше не спросит. Включите микрофон на странице разрешений Mika в системных настройках.</string>
+    <string name="voice_permission_open">Открыть настройки</string>
+    <!-- Floating capsule: long press to talk -->
+    <string name="capsule_voice_talk">Говорить</string>
+    <string name="capsule_voice_send">Отправить</string>
+    <string name="capsule_voice_answer_title">Ответ Mika</string>
+    <string name="capsule_voice_continue_title">Продолжаем «%1$s»</string>
+    <string name="capsule_voice_cancel">Отмена</string>
+    <string name="capsule_voice_edit">Изменить</string>
+    <string name="capsule_voice_foot_send_up">Отпустите, чтобы отправить · потяните вверх, чтобы отменить или изменить</string>
+    <string name="capsule_voice_foot_send_down">Отпустите, чтобы отправить · потяните вниз, чтобы отменить или изменить</string>
+    <string name="capsule_voice_foot_convert_up">Отпустите, чтобы преобразовать и отправить · потяните вверх, чтобы отменить или изменить</string>
+    <string name="capsule_voice_foot_convert_down">Отпустите, чтобы преобразовать и отправить · потяните вниз, чтобы отменить или изменить</string>
+    <string name="capsule_voice_foot_edit">Отпустите · откроется карточка со словами в поле</string>
+    <string name="capsule_voice_foot_cancel">Отпустите · запись будет отброшена</string>
+    <string name="capsule_voice_foot_a11y">Когда закончите, выберите «Отправить» в действиях капсулы</string>
+    <string name="capsule_voice_steered">Сказано задаче: %1$s</string>
+    <string name="capsule_voice_answered">Ответ: %1$s</string>
+    <string name="capsule_voice_sent">Отправлено: %1$s</string>
+    <string name="capsule_voice_need_mic">Нажмите, чтобы разрешить микрофон для Mika</string>
+    <string name="capsule_voice_not_ready">Голосовой ввод не готов · нажмите</string>
+    <string name="capsule_voice_open">Открыть Mika</string>
+</resources>

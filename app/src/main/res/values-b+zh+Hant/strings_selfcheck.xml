@@ -43,6 +43,7 @@
 
     <string name="selfcheck_advice_too_old">系統低於 Android 12,手機操作無法使用;聊天、網頁和沙箱照常能用。</string>
     <string name="selfcheck_advice_no_wireless">系統裡沒有無線偵錯,可以改用電腦經 USB 啟動手機操作。</string>
+    <string name="selfcheck_advice_phone_unavailable">這個環境不能操作手機裡的 App(沒有開發人員選項和無線偵錯);聊天、網頁、檔案和計算照常可用。</string>
     <string name="selfcheck_advice_a11y_off">無障礙沒開:在設定 › 手機操作裡開啟 Mika 的無障礙。</string>
     <string name="selfcheck_advice_a11y_restart">無障礙開著卻沒在運作:在系統設定裡把 Mika 的無障礙關掉再開啟。</string>
     <string name="selfcheck_advice_notifications">通知沒允許,看不到任務進度和「需要你」的提醒。</string>

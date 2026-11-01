@@ -8,8 +8,11 @@ import com.wangzan101.mika.core.record.Redactor
 import com.wangzan101.mika.core.record.RunMetrics
 import com.wangzan101.mika.core.record.RunMetricsStore
 import com.wangzan101.mika.core.record.RunEvent
+import com.wangzan101.mika.core.record.RunRecords
 import com.wangzan101.mika.core.record.RunSink
 import com.wangzan101.mika.core.record.RunSummary
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -69,6 +72,17 @@ class RunStore internal constructor(
     /** 新的在前。 */
     fun list(): List<RunSummary> = runDirs().reversed().mapNotNull { d ->
         runCatching { RunEvent.json.decodeFromString(RunSummary.serializer(), File(d, RUN_JSON).readText()) }.getOrNull()
+    }
+
+    /** 一次运行的概要;记录已被清掉或读不出为 null。 */
+    fun summary(runId: String): RunSummary? = dirOf(runId)?.let { d ->
+        runCatching { RunEvent.json.decodeFromString(RunSummary.serializer(), File(d, RUN_JSON).readText()) }.getOrNull()
+    }
+
+    /** 只读地交给核心(查这个对话之前几轮的记录,见 history_read);在 IO 线程上读。 */
+    fun reader(): RunRecords = object : RunRecords {
+        override suspend fun summary(runId: String) = withContext(Dispatchers.IO) { this@RunStore.summary(runId) }
+        override suspend fun events(runId: String) = withContext(Dispatchers.IO) { this@RunStore.events(runId) }
     }
 
     fun events(runId: String): List<RunEvent> {

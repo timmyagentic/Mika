@@ -104,6 +104,8 @@ class SelfCheckTargetActivity : Activity() {
         column.addView(Button(this).apply {
             id = R.id.selfcheck_button
             text = tr(R.string.selfcheck_target_button)
+            // 按钮默认按主题显示成全大写,读屏读到的也就变了样:照写的样子显示
+            isAllCaps = false
             setOnClickListener {
                 taps++
                 count.text = tr(R.string.selfcheck_target_taps, taps)

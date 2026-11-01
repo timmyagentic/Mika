@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">リモート</string>
+    <string name="relay_pair_title">リモートゲートウェイをペア設定</string>
+    <string name="relay_pair_sub">ゲートウェイのウェブページでペア設定コードを作成し、そのアドレスとコードを下に入力してください。</string>
+    <string name="relay_gateway">ゲートウェイ</string>
+    <string name="relay_code">ペア設定コード</string>
+    <string name="relay_code_hint">ゲートウェイで発行したワンタイムコード</string>
+    <string name="relay_pair">ゲートウェイをペア設定</string>
+    <string name="relay_busy">お待ちください…</string>
+    <string name="relay_enable">リモートアクセスを許可</string>
+    <string name="relay_disabled">ペア設定済み。リモートアクセスはオフです</string>
+    <string name="relay_online">ゲートウェイに接続済み。CLI / MCP のリクエストを待っています</string>
+    <string name="relay_connecting">リモートゲートウェイに接続しています…</string>
+    <string name="relay_offline">接続が切れました。自動で再接続します</string>
+    <string name="relay_unauthorized">ペア設定の期限が切れたか、取り消されました。ゲートウェイをもう一度ペア設定してください</string>
+    <string name="relay_copy_address">MCP アドレスをコピー</string>
+    <string name="relay_client_help">接続するには、パソコンの MCP クライアントに設定をコピーしてください。</string>
+    <string name="relay_unpair">ゲートウェイのペア設定を解除</string>
+    <string name="relay_unpair_body">このスマホをゲートウェイから切断します。インターネット接続が必要です。スマホのアクセストークンは変わりません。</string>
+    <string name="relay_failed">完了できませんでした。ゲートウェイのアドレス、インターネット接続、ペア設定コードを確認してください。ペア設定の解除に失敗した場合、アクセスはオフになっています。もう一度試すか、ゲートウェイでこのスマホを取り消してください。</string>
+    <string name="relay_notif_body">リモートアクセスは有効です。Mika を開いて、ゲートウェイの接続を確認できます。</string>
+    <string name="relay_incompatible">Mika とゲートウェイを、対応するバージョンにアップデートしてください</string>
+    <string name="relay_copy_gateway">ゲートウェイのアドレスをコピー</string>
+    <string name="relay_cli_help">アクセストークンをパソコン上のファイルに保存してから、上の接続コマンドを実行してください。</string>
+    <string name="relay_intro">ゲートウェイは、通常 Wi-Fi / LAN で送られる CLI と MCP のリクエストを、リモートアクセス用にスマホへ転送します。ペア設定の前に、ご自身の公開サーバーに設置してください。</string>
+    <string name="relay_device_access">ゲートウェイ経由のスリープ解除とロック解除を許可</string>
+    <string name="relay_device_access_sub">デフォルトではオフです。このページの「リモートでのスリープ解除とロック解除を許可」もオンにする必要があります。両方オンにすると、アクセストークンを持つ人なら誰でも、インターネット経由でこのスマホのスリープ解除とロック解除ができます。</string>
+</resources>

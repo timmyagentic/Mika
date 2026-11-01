@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.agent
 
+import com.wangzan101.mika.core.net.ProxyFailure
 import com.wangzan101.mika.core.guard.GuardVerdict
 import com.wangzan101.mika.core.model.ModelError
 import com.wangzan101.mika.core.tool.Outcome
@@ -70,6 +71,11 @@ internal fun userReason(e: ModelError): String = when (e) {
     is ModelError.ContentRefused -> "模型拒绝处理该内容,请调整任务描述或换一个模型。"
     is ModelError.RateLimited -> "模型服务限流,重试后仍然请求太频繁。请稍后再试,或检查账户的调用频率限制。"
     is ModelError.Network -> "连接模型服务失败,重试后仍然不通。请检查网络和 Base URL。"
+    is ModelError.Proxy -> when (e.failure) {
+        ProxyFailure.Unreachable ->
+            "连不上网络代理,或代理没有转发这个请求,重试后仍然不通。请检查代理是否开着、设置 › 网络代理 里的地址和端口是否正确;不需要代理时把它清空。"
+        ProxyFailure.AuthFailed -> "网络代理拒绝了账号或密码(HTTP 407)。请在设置 › 网络代理 里检查代理地址中的用户名和密码。"
+    }
     is ModelError.Server -> "模型服务出错(HTTP ${e.status}),请稍后再试。"
     is ModelError.StreamCut ->
         "模型的回复还没传完,连接就在上游被断开了,重试后仍然如此。常见原因是网络不稳,或中转服务、网关的空闲超时太短(模型长时间思考时容易碰上)。请稍后再试。"

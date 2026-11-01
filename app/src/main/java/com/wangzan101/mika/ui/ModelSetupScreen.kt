@@ -143,6 +143,7 @@ fun ModelSetupScreen(
                 refresh = { vm.refresh(provider.id) }, changeKey = { vm.changeKey(provider.id, it) },
                 remove = { vm.removeProvider(provider.id); openProvider = null; allModels = false },
                 use = { r, model -> vm.pick(r, provider.id, model) },
+                setVision = { model, sees -> vm.setModelVision(provider.id, model, sees) },
                 showAll = { allModels = true },
                 retest = { vm.retest(provider.id) },
                 // ChatGPT 照旧直接去浏览器登录;xAI、OpenRouter 先打开说明面板
@@ -653,19 +654,20 @@ object ModelSetupCopy {
 
     fun failed(reason: String) = tr(R.string.model_failed, reason)
 
-    /** 模型的能力标签:(文字, 是否强调色)。接口没给、按预设推断的标「未确认」。只作参考,不拦选择。 */
+    /** 模型的能力标签:(文字, 是否强调色)。接口没给、用户也没说、按预设推断的标「未确认」。只作参考,不拦选择。 */
     fun tags(o: ModelOption, forVision: Boolean = false): List<Pair<String, Boolean>> = buildList {
         val caps = o.capabilities
+        val visionKnown = o.visionKnown || o.visionByUser != null
         if (o.typed) add(tr(R.string.cap_typed) to false)
         if (forVision) {
-            add((if (o.visionKnown) tr(R.string.cap_vision) else tr(R.string.cap_vision_unconfirmed)) to false)
+            add((if (visionKnown) tr(R.string.cap_vision) else tr(R.string.cap_vision_unconfirmed)) to false)
         } else {
             when {
                 !caps.toolCalls -> add(tr(R.string.cap_no_tools) to false)
                 o.toolCallsKnown -> add(tr(R.string.cap_tools) to true)
                 else -> add(tr(R.string.cap_tools_unconfirmed) to false)
             }
-            if (caps.vision && o.visionKnown) add(tr(R.string.cap_vision) to false)
+            if (caps.vision && visionKnown) add(tr(R.string.cap_vision) to false)
         }
         if (caps.reasoning) add(tr(R.string.cap_reasoning) to false)
         if (o.contextKnown) add(ModelOptions.contextLabel(caps.contextTokens) to false)

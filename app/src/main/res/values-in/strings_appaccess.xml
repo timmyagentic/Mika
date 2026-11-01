@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appaccess_title">Akses aplikasi</string>
+    <string name="appaccess_row_sub">Blokir aplikasi dan berbagi layar per aplikasi</string>
+    <string name="appaccess_intro">Pilih aplikasi mana yang boleh dibaca dan dioperasikan Mika dengan alat ponsel standar. Perintah shell, sandbox, dan akses komputer (MCP) tidak dibatasi oleh pengaturan ini.</string>
+    <string name="appaccess_privacy">Pengategorian mengirim nama aplikasi dan nama paket ke model AI; “Segarkan daftar aplikasi” akan menanyakan Anda dulu.</string>
+    <string name="appaccess_unavailable">Pengaturan akses aplikasi tidak bisa dibaca, jadi akses ponsel standar dijeda. Reset akan menghapus izin dan kategori yang tersimpan.</string>
+    <string name="appaccess_reset">Reset akses aplikasi</string>
+    <string name="appaccess_search">Cari nama atau paket</string>
+    <string name="appaccess_refreshing">Mengategorikan…</string>
+    <string name="appaccess_refresh">Segarkan daftar aplikasi</string>
+    <string name="appaccess_recommend">Disarankan diblokir</string>
+    <string name="appaccess_recommend_count">Disarankan diblokir · %1$d</string>
+    <string name="appaccess_allow_all">Izinkan semua</string>
+    <string name="appaccess_risk_note">Pengoperasian otomatis bisa menyebabkan pembatasan akun pada aplikasi ini; blokir yang tidak Anda perlukan.</string>
+    <string name="appaccess_blocked">Diblokir</string>
+    <string name="appaccess_allowed">Diizinkan</string>
+    <string name="appaccess_revoke_share">Cabut berbagi layar untuk %1$s</string>
+
+    <string name="appaccess_send_title">Kirim daftar aplikasi ke AI?</string>
+    <string name="appaccess_send_body">Penyegaran akan membaca aplikasi yang terpasang dan mengirim nama serta nama paketnya ke model AI yang Anda atur, untuk menentukan kategori risiko. Isi di dalam aplikasi tidak dikirim.</string>
+    <string name="appaccess_send_confirm">Lanjutkan dan kategorikan</string>
+    <string name="appaccess_cancel">Batal</string>
+
+    <string name="appaccess_recommend_title">Disarankan diblokir: aplikasi keuangan</string>
+    <string name="appaccess_recommend_body">Aplikasi ini tergolong keuangan atau pembayaran, dan Mika masih bisa mengoperasikannya. Blokir satu per satu, atau sekaligus.</string>
+    <string name="appaccess_recommend_empty">Tidak ada yang perlu diblokir.</string>
+    <string name="appaccess_block">Blokir</string>
+    <string name="appaccess_block_all">Blokir semua</string>
+
+    <string name="appaccess_edit_category">Ubah kategori</string>
+    <string name="appaccess_category_manual">Diatur oleh Anda</string>
+
+    <string name="appaccess_error_save">Gagal menyimpan</string>
+    <string name="appaccess_error_no_model">Tidak ada model yang tersedia. Daftar aplikasi sudah disegarkan tetapi tidak bisa dikategorikan.</string>
+    <string name="appaccess_error_refresh">Gagal menyegarkan</string>
+    <string name="appaccess_error_load">Gagal membaca daftar aplikasi</string>
+
+    <string name="appaccess_category_finance">Keuangan</string>
+    <string name="appaccess_category_social">Sosial</string>
+    <string name="appaccess_category_game">Game</string>
+    <string name="appaccess_category_shopping">Belanja</string>
+    <string name="appaccess_category_productivity">Produktivitas</string>
+    <string name="appaccess_category_media">Media</string>
+    <string name="appaccess_category_other">Lainnya</string>
+    <string name="appaccess_category_unknown">Belum dikategorikan</string>
+
+    <string name="appaccess_share_title">Bagikan layar %1$s</string>
+    <string name="appaccess_share_body">Aplikasi ini diblokir. Berbagi layar memungkinkan Anda membagikannya dengan sengaja; pembacaan dan pengoperasian otomatis tetap diblokir.</string>
+    <string name="appaccess_share_allow">Izinkan berbagi layar saja</string>
+    <string name="appaccess_share_unblock">Hapus dari daftar blokir</string>
+    <string name="appaccess_share_cancel">Batalkan berbagi</string>
+    <string name="appaccess_share_expired">Izin berbagi layar sudah kedaluwarsa. Ambil tangkapan layar baru.</string>
+</resources>

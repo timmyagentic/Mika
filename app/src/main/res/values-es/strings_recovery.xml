@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rec_a11y">Activar la accesibilidad por mí</string>
+    <string name="rec_default_on">Activado por defecto</string>
+    <string name="rec_a11y_body">Mika usa Accesibilidad para leer el texto y los botones de la pantalla. Con esto activado, Mika enciende su propio servicio de accesibilidad en los ajustes del sistema por ti; los demás servicios de accesibilidad que tengas activados no se ven afectados. Si lo desactivas, Mika apaga su propio servicio.</string>
+    <string name="rec_battery">Batería sin restricciones</string>
+    <string name="rec_battery_body">Con esto activado, Mika se añade a las excepciones de optimización de batería del sistema, así no se detiene en segundo plano para ahorrar energía y el control del teléfono se corta menos. Puede gastar algo más de batería. Desactívalo para volver al comportamiento predeterminado del sistema.</string>
+    <string name="rec_boot">Restaurar tras reiniciar</string>
+    <string name="rec_boot_body">La “Depuración inalámbrica” se desactiva sola tras un reinicio. Con esto activado, Mika la vuelve a activar al arrancar y se reconecta. Necesita el permiso “Modificar los ajustes del sistema”, que se usa solo para activar la Depuración inalámbrica, y funciona únicamente en redes Wi-Fi de confianza. Si lo desactivas o desvinculas, el permiso se devuelve.</string>
+    <string name="rec_auto_wireless">Activar la Depuración inalámbrica automáticamente</string>
+    <string name="rec_auto_wireless_body">Cuando se corta el Wi-Fi o se reinicia el teléfono, el sistema desactiva la “Depuración inalámbrica”. Normalmente el control del teléfono no la necesita, solo al reiniciarse (por ejemplo, tras actualizar Mika). Con esto activado, en esos momentos y mientras haya Wi-Fi, Mika la activa y se reconecta, pero nunca la desactiva por ti. Usa el mismo permiso “Modificar los ajustes del sistema” que “Restaurar tras reiniciar” y solo funciona en redes Wi-Fi que hayas permitido. Si lo desactivas, Mika deja de hacerlo.</string>
+    <string name="rec_need_setup">Primero termina de configurar el control del teléfono</string>
+    <string name="rec_failed">No se pudo completar. Comprueba que el control del teléfono esté listo e inténtalo de nuevo.</string>
+    <string name="rec_working">Trabajando…</string>
+    <string name="rec_restarted_at">El servicio de accesibilidad se reinició automáticamente a las %1$s.</string>
+    <string name="rec_not_allowed_here">La Depuración inalámbrica aún no está permitida en este Wi-Fi, así que Mika no puede activarla. Actívala tú una vez y marca “Permitir siempre en esta red” cuando se te pida; después Mika podrá activarla sola.</string>
+    <string name="rec_refused">Este teléfono no deja que Mika active la Depuración inalámbrica. Actívala tú cuando haga falta y Mika se conectará.</string>
+    <string name="rec_gave_up">Mika activó la Depuración inalámbrica varias veces, pero el control del teléfono seguía sin arrancar, así que lo dejó. Cambia de Wi-Fi o toca Reintentar en Control del teléfono y Mika lo intentará de nuevo.</string>
+    <string name="rec_permission_missing">En el último arranque ya no estaba el permiso, así que no se pudo restaurar. Desactiva este interruptor y vuelve a activarlo.</string>
+    <string name="rec_setting_unavailable">Este teléfono no deja que Mika active la Depuración inalámbrica al arrancar. Tras reiniciar, actívala tú y Mika se conectará.</string>
+    <string name="rec_not_recovered">No se pudo reconectar automáticamente en el último arranque. Comprueba que estás en un Wi-Fi de confianza y con la Depuración inalámbrica activada, y Mika se conectará.</string>
+    <string name="rec_needs_pairing">Solo funciona después de vincular la Depuración inalámbrica. El asistente se inició con el comando USB, así que vuelve a ejecutar el comando tras reiniciar el teléfono.</string>
+</resources>

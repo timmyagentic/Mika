@@ -3,13 +3,14 @@ package com.wangzan101.mika.ui
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.core.model.ListFailure
+import com.wangzan101.mika.core.net.ProxyFailure
 import com.wangzan101.mika.core.model.Capabilities
 import com.wangzan101.mika.core.model.ListedModel
 import com.wangzan101.mika.core.model.ModelEndpoint
 import com.wangzan101.mika.core.model.ModelError
 import com.wangzan101.mika.core.model.ModelListResult
 import com.wangzan101.mika.core.model.ModelRole
-import com.wangzan101.mika.settings.LocalHosts
+import com.wangzan101.mika.core.net.LocalHosts
 import com.wangzan101.mika.settings.ModelOption
 import com.wangzan101.mika.settings.ModelOptions
 import com.wangzan101.mika.settings.Provider
@@ -707,6 +708,8 @@ class ModelSetupViewModel(
                     tr(R.string.model_probe_failed, model, e.message.orEmpty()),
                     tr(R.string.model_reason_server, "HTTP ${e.status}"), serverSide = true,
                 )
+                // 代理那一段的问题:说是代理,不说成模型或服务商不行
+                is ModelError.Proxy -> ProbeOutcome.Failed(tr(R.string.model_probe_failed, model, proxyReason(e)))
                 else -> ProbeOutcome.Failed(tr(R.string.model_probe_failed, model, e.message.orEmpty()))
             }
         }
@@ -896,6 +899,11 @@ class ModelSetupViewModel(
         return saved
     }
 
+    fun setModelVision(providerId: String, model: String, sees: Boolean) {
+        store.setModelVision(providerId, model, sees)
+        sync()
+    }
+
     /** 把 [providerId] 下的 [model] 用作 [role](选择页和「用作」面板都走这里):没有配置的当场建一条。 */
     fun pick(role: ModelRole, providerId: String, model: String) {
         val m = model.trim()
@@ -1001,8 +1009,13 @@ class ModelSetupViewModel(
     private fun speechFailure(model: String, p: Provider, e: ModelError): String = when (e) {
         is ModelError.ModelNotAvailable -> tr(R.string.model_probe_not_available, model, e.detail.ifEmpty { e.message.orEmpty() })
         is ModelError.ModelNotFound -> tr(R.string.model_probe_not_found, model, ModelSetupCopy.modelExample(ProviderPresets.forHost(p.baseUrl)?.kind ?: p.kind))
+        is ModelError.Proxy -> tr(R.string.speech_pick_failed, proxyReason(e))
         else -> tr(R.string.speech_pick_failed, e.message.orEmpty())
     }
+
+    private fun proxyReason(e: ModelError.Proxy): String = tr(
+        if (e.failure == ProxyFailure.AuthFailed) R.string.net_proxy_auth_failed else R.string.net_proxy_unreachable,
+    )
 
     /** 选择页打开时,上次试转的结果作废。 */
     fun clearSpeechProbe() { _speechProbe.value = emptyMap() }

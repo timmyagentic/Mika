@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trigger_reminder">Lembrete do Mika</string>
+    <string name="trigger_not_started_body">Uma tarefa agendada não pôde ser iniciada. Verifique na página de Tarefas agendadas e execute de novo.</string>
+    <string name="trigger_start_failed">Falha ao iniciar</string>
+    <string name="trigger_not_started">A tarefa agendada não foi iniciada</string>
+    <string name="trigger_interrupted_body">Uma tarefa agendada foi interrompida e não é possível confirmar o resultado. Verifique primeiro o que realmente aconteceu; o Mika não vai repeti-la automaticamente.</string>
+    <string name="trigger_unconfirmed">O resultado da tarefa agendada precisa ser verificado</string>
+    <string name="trigger_alarm_title">As tarefas agendadas precisam da permissão “Alarmes e lembretes”</string>
+    <string name="trigger_alarm_body">Sem ela, as tarefas agendadas podem atrasar ou não rodar. Toque aqui para ativá-la.</string>
+    <string name="op_failed">Algo deu errado</string>
+    <string name="plans_alarm_body">Sem esta permissão, as tarefas agendadas podem atrasar ou não rodar. Você só precisa ativá-la uma vez.</string>
+    <string name="plans_running_n">Ativas %1$d</string>
+    <string name="plans_stopped_n">Desativadas %1$d</string>
+    <string name="plans_empty">Nenhuma tarefa agendada ainda\nDiga ao Mika em uma conversa quando lembrar você ou quando fazer algo por você.</string>
+    <string name="plans_none_running">Nenhuma tarefa agendada ativa</string>
+    <string name="plans_none_stopped">Nenhuma tarefa agendada desativada</string>
+    <string name="plans_footer">Você também pode criar uma dizendo “todo dia às 8…” ou “me avise quando o preço cair” em uma conversa; os resultados voltam para essa conversa. A economia de bateria pode afetar as execuções programadas; desativar ou excluir só afeta as próximas execuções.</string>
+    <string name="plans_open_chat">Abrir conversa</string>
+    <string name="plans_run_now">Executar agora</string>
+    <string name="plans_edit_time">Alterar horário</string>
+    <string name="plans_edit_title">Alterar horário da próxima execução</string>
+    <string name="plans_edit_label">Hora local: yyyy-MM-dd HH:mm</string>
+    <string name="plans_need_future">Digite um horário válido no futuro</string>
+    <string name="plans_delete_title">Excluir esta tarefa agendada?</string>
+    <string name="plans_done">Concluída</string>
+    <string name="plans_checked">Verificada</string>
+    <string name="plans_check_failed">Falha na verificação</string>
+    <string name="plans_result_pending">O resultado precisa ser verificado</string>
+    <string name="plans_every_day">Todo dia</string>
+    <plurals name="plans_every_minutes">
+        <item quantity="one">A cada %1$d minuto</item>
+        <item quantity="many">A cada %1$d minutos</item>
+        <item quantity="other">A cada %1$d minutos</item>
+    </plurals>
+    <string name="plans_once">Uma vez</string>
+    <string name="plans_next">%1$s · próxima %2$s</string>
+    <string name="plans_condition">Só executa se: %1$s · %2$s</string>
+    <string name="plans_last">Última %1$s · %2$s</string>
+    <string name="plans_never_run">Ainda não foi executada</string>
+    <string name="plans_delivered">Entregue</string>
+    <string name="plans_unchanged">Condição inalterada</string>
+    <string name="plans_running_now">Em execução</string>
+    <string name="trigger_deleted">A tarefa agendada foi excluída</string>
+    <string name="trigger_busy">Esta tarefa ainda está em execução</string>
+</resources>

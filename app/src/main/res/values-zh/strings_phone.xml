@@ -5,6 +5,8 @@
     <string name="phone_later">稍后再说</string>
     <string name="phone_bar_title">手机操作</string>
     <string name="phone_skip_note">也可以先跳过,只用上网、文件和聊天;第一次要操作 App 时会再提醒。</string>
+    <string name="phone_unavailable">这个环境不能操作手机里的 App;聊天、网页、文件和计算照常可用。</string>
+    <string name="phone_unavailable_reason">操作手机 App 要用到安卓的「开发者选项」和「无线调试」,这里两样都没有。</string>
     <string name="phone_step_dev">打开开发者选项</string>
     <string name="phone_step_dev_body">打开手机设置里的「关于手机」,连续点「版本号」7 次,看到「你已处于开发者模式」的提示就好。有的手机「版本号」在「软件信息」里面。</string>
     <string name="phone_step_dev_action">打开关于手机</string>

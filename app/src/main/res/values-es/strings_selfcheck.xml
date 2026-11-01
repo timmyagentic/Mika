@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selfcheck_title">Autocomprobación de compatibilidad</string>
+    <string name="selfcheck_row_sub">Mira qué funciona en este teléfono e infórmalo</string>
+    <string name="selfcheck_intro">Dura aproximadamente 1 minuto. No toca tus otras apps, no cambia ajustes y no usa la red. Quédate en esta página mientras se ejecuta.</string>
+    <string name="selfcheck_start">Iniciar</string>
+    <string name="selfcheck_again">Ejecutar de nuevo</string>
+    <string name="selfcheck_cancel">Cancelar</string>
+    <string name="selfcheck_task_running">Hay una tarea en curso. Inicia la autocomprobación cuando termine.</string>
+    <string name="selfcheck_checks">Comprobaciones</string>
+    <string name="selfcheck_report">Informe</string>
+    <string name="selfcheck_copy">Copiar informe</string>
+    <string name="selfcheck_github">Informar en GitHub</string>
+    <string name="selfcheck_copied">Informe copiado</string>
+    <string name="selfcheck_github_copied">Informe copiado. Pégalo en “Informe de autocomprobación” en la página que se abre.</string>
+    <string name="selfcheck_report_note">El informe solo incluye el modelo del teléfono, la versión del sistema y el resultado de cada comprobación, sin cuentas, listas de apps ni tu contenido. Puedes leerlo antes de publicarlo.</string>
+
+    <string name="selfcheck_check_device">Dispositivo</string>
+    <string name="selfcheck_check_permissions">Permisos</string>
+    <string name="selfcheck_check_helper">Asistente integrado</string>
+    <string name="selfcheck_check_display">Pantalla virtual</string>
+    <string name="selfcheck_check_launch">Abrir apps</string>
+    <string name="selfcheck_check_reading">Leer la pantalla</string>
+    <string name="selfcheck_check_actions">Toques y escritura</string>
+    <string name="selfcheck_check_alive">Sigue en ejecución</string>
+    <string name="selfcheck_check_main">Tu pantalla sin molestias</string>
+    <string name="selfcheck_check_browser">Navegador integrado</string>
+    <string name="selfcheck_check_sandbox">Sandbox</string>
+    <string name="selfcheck_check_copies">Copias de apps</string>
+
+    <string name="selfcheck_status_pending">En espera</string>
+    <string name="selfcheck_status_running">Comprobando</string>
+    <string name="selfcheck_status_pass">Correcto</string>
+    <string name="selfcheck_status_partial">Parcial</string>
+    <string name="selfcheck_status_fail">Fallido</string>
+    <string name="selfcheck_status_skipped">Omitido</string>
+
+    <string name="selfcheck_line_pending">Aún no ha empezado</string>
+    <string name="selfcheck_line_running">Comprobando…</string>
+    <string name="selfcheck_line_pass">Funciona</string>
+    <string name="selfcheck_line_needs">Omitido: primero tiene que pasar “%1$s”</string>
+    <string name="selfcheck_line_other">No pasó. Consulta el informe para ver los detalles.</string>
+
+    <string name="selfcheck_advice_too_old">Este sistema es anterior a Android 12, así que el control del teléfono no está disponible. El chat, la web y el sandbox siguen funcionando.</string>
+    <string name="selfcheck_advice_no_wireless">Este sistema no tiene Depuración inalámbrica. Puedes iniciar el control del teléfono desde un ordenador por USB.</string>
+    <string name="selfcheck_advice_phone_unavailable">Este entorno no puede usar las apps de tu teléfono (no hay Opciones de desarrollador ni Depuración inalámbrica); el chat, la web, los archivos y los cálculos funcionan como siempre.</string>
+    <string name="selfcheck_advice_a11y_off">La accesibilidad está desactivada. Activa la accesibilidad de Mika en Ajustes › Control del teléfono.</string>
+    <string name="selfcheck_advice_a11y_restart">La accesibilidad está activada pero no se está ejecutando. Desactiva y vuelve a activar la accesibilidad de Mika en los ajustes del sistema.</string>
+    <string name="selfcheck_advice_notifications">Las notificaciones están bloqueadas, así que no verás el progreso de las tareas ni los avisos de “te necesita”.</string>
+    <string name="selfcheck_advice_battery">El uso de batería está restringido, así que Mika puede detenerse en segundo plano. Puedes quitar la restricción en Recuperación y reparación.</string>
+    <string name="selfcheck_advice_setup">El asistente integrado no se está ejecutando. Termina la configuración en Ajustes › Control del teléfono y vuelve a ejecutar esto.</string>
+    <string name="selfcheck_advice_display">No se pudo crear la pantalla virtual de Mika. Vuelve a conectar el asistente e inténtalo de nuevo; si sigue fallando, infórmalo.</string>
+    <string name="selfcheck_advice_focus">La pantalla virtual de Mika no tiene foco propio, así que tu pantalla puede perder brevemente el foco de entrada mientras Mika trabaja. Todo sigue funcionando.</string>
+    <string name="selfcheck_advice_launch">Una página no se abrió en la pantalla virtual de Mika. Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_on_main">Los Ajustes del sistema se abrieron en tu pantalla en lugar de en la pantalla virtual de Mika. Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_settings_in_use">Los Ajustes del sistema están abiertos en tu pantalla, así que este paso no los abrió. Ciérralos y vuelve a ejecutar esto.</string>
+    <string name="selfcheck_advice_read">No se pudieron leer los controles de la página. Desactiva y vuelve a activar la accesibilidad de Mika y ejecuta esto de nuevo.</string>
+    <string name="selfcheck_advice_blank">La imagen de la pantalla virtual es toda negra o está vacía. Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_action">Algunas acciones no surtieron efecto (consulta el informe). Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_frames">La pantalla virtual deja de actualizarse pasado un rato, así que las tareas pueden quedarse atascadas. Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_main">Tu pantalla cambió durante la comprobación. Si te quedaste en esta página, infórmalo, por favor.</string>
+    <string name="selfcheck_advice_no_webview">No hay ningún WebView utilizable en este sistema, así que el navegador integrado no puede funcionar. Instala o actualiza el componente WebView del sistema.</string>
+    <string name="selfcheck_advice_web">El navegador integrado no pudo leer ni tocar la página de prueba local. Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_sandbox_unsupported">El sandbox solo está disponible en teléfonos ARM de 64 bits.</string>
+    <string name="selfcheck_advice_sandbox_not_prepared">El sandbox aún no está preparado. Se prepara la primera vez que una tarea lo usa; entonces vuelve a ejecutar esto.</string>
+    <string name="selfcheck_advice_sandbox_failed">Los comandos del sandbox no dieron el resultado esperado. Puedes restablecer el entorno en Archivos y entorno de cómputo e intentarlo de nuevo.</string>
+    <string name="selfcheck_advice_timeout">Esta comprobación tardó demasiado. Ejecútala de nuevo; si sigue agotando el tiempo, infórmalo.</string>
+    <string name="selfcheck_advice_error">Esta comprobación encontró un error. Infórmalo, por favor.</string>
+    <string name="selfcheck_advice_out_of_time">La autocomprobación se quedó sin tiempo antes de esta comprobación.</string>
+    <string name="selfcheck_advice_cancelled">Cancelada.</string>
+
+    <string name="selfcheck_target_title">Página de autocomprobación de Mika</string>
+    <string name="selfcheck_target_note">Esta es la página de pruebas de Mika. La autocomprobación de compatibilidad toca y escribe aquí; no toca tus otras apps.</string>
+    <string name="selfcheck_target_taps">Toques: %1$d</string>
+    <string name="selfcheck_target_button">Tócame</string>
+    <string name="selfcheck_target_input">Escribe aquí</string>
+    <string name="selfcheck_target_tick">Marca %1$d</string>
+    <string name="selfcheck_target_row">Fila %1$d</string>
+</resources>

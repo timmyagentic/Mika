@@ -1,0 +1,36 @@
+<resources>
+    <string name="trace_switch">Rekam jejak terperinci</string>
+    <string name="trace_switch_detail">Untuk eksekusi baru. Teks permintaan mungkin berisi informasi pribadi. Menonaktifkan ini langsung menghentikan perekaman.</string>
+    <string name="trace_storage_limit">Batas penyimpanan jejak</string>
+    <string name="trace_storage_hint">Jejak lama yang sudah selesai dihapus saat ruang dibutuhkan.</string>
+    <string name="trace_storage_value">%1$d MiB</string>
+    <string name="trace_title">Jejak terperinci</string>
+    <string name="trace_partial">Catatan sebagian</string>
+    <string name="trace_recorded">Direkam di perangkat ini</string>
+    <string name="trace_unknown">Tidak dilaporkan</string>
+    <string name="trace_ok">OK</string>
+    <string name="trace_error">Galat</string>
+    <string name="trace_cancelled">Dibatalkan</string>
+    <string name="trace_attempt">Langkah %1$d · Percobaan %2$d · %3$s</string>
+    <string name="trace_tool">Langkah %1$d · %2$s</string>
+    <string name="trace_counts">Masukan %1$s · Cache %2$s · Non-cache %3$s · Keluaran %4$s</string>
+    <string name="trace_largest">Masukan non-cache terbanyak</string>
+    <string name="trace_diff">Perbedaan pertama: %1$s</string>
+    <string name="trace_no_body">Isi permintaan tidak direkam</string>
+    <string name="trace_attach">Sertakan teks yang disamarkan</string>
+    <string name="trace_attach_hint">Hanya ZIP lokal. Tinjau teks permintaan di atas sebelum menyimpan.</string>
+    <string name="trace_save">Simpan jejak ini</string>
+    <string name="trace_saved">Jejak disimpan</string>
+    <string name="trace_failed">Ekspor jejak gagal</string>
+    <string name="trace_send">Kirim lewat OTLP/HTTP</string>
+    <string name="trace_network_hint">Hanya kirim metadata jejak ini.</string>
+    <string name="trace_endpoint">Endpoint jejak</string>
+    <string name="trace_endpoint_hint">Gunakan HTTPS untuk alamat publik. HTTP diizinkan di localhost dan jaringan lokal.</string>
+    <string name="trace_header_name">Nama header autentikasi</string>
+    <string name="trace_header_value">Nilai header autentikasi (opsional)</string>
+    <string name="trace_sent">Jejak diterima</string>
+    <string name="trace_sent_warning">Jejak diterima dengan peringatan dari penerima</string>
+    <string name="trace_rejected">Penerima menolak %1$d span</string>
+    <string name="trace_http_error">Penerima mengembalikan HTTP %1$d</string>
+    <string name="trace_send_failed">Gagal mengirim jejak</string>
+</resources>

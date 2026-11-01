@@ -2,6 +2,7 @@ package com.wangzan101.mika.cap.phone.setup
 
 import android.content.ContentResolver
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -36,6 +37,13 @@ object DeveloperSettings {
      */
     fun wirelessDebuggingMissing(cr: ContentResolver): Boolean =
         runCatching { Settings.Global.getString(cr, ADB_WIFI_ENABLED) == null }.getOrDefault(false)
+
+    /**
+     * 系统里打不开「开发者选项」页:跳过去的 Intent 没有页面接(有的运行环境不带安卓的系统设置)。
+     * 问不到(系统不让问)不下结论,按有算。
+     */
+    fun developerOptionsPageMissing(pm: PackageManager): Boolean =
+        runCatching { pm.resolveActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS), 0) == null }.getOrDefault(false)
 
     /**
      * 把无线调试开关写成打开(要有修改系统设置的授权)。写入被拒(抛异常或返回 false)返回 false;

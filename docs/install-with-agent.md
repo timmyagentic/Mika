@@ -71,11 +71,11 @@ adb shell getprop ro.product.cpu.abi
 
 ## 第 2 步：下载最新的 APK
 
-从 GitHub 接口取最新版本，选名字形如 `Mika-v*.apk` 的那个文件，用它的 `browser_download_url` 下载：
+从 GitHub 接口取最新版本，选名字形如 `Mika-v0.1.N.apk` 的全架构包，用它的 `browser_download_url` 下载：
 
 ```
 URL=$(curl -fsSL https://api.github.com/repos/wangzan101/Mika/releases/latest \
-  | grep -o '"browser_download_url": *"[^"]*/Mika-v[^"]*\.apk"' \
+  | grep -o '"browser_download_url": *"[^"]*/Mika-v[0-9.]*\.apk"' \
   | sed 's/.*"\(https[^"]*\)"/\1/' | head -n 1)
 echo "$URL"
 curl -fL -o Mika.apk "$URL"
@@ -83,7 +83,9 @@ curl -fL -o Mika.apk "$URL"
 
 成功：`$URL` 形如 `https://github.com/wangzan101/Mika/releases/download/v0.1.N/Mika-v0.1.N.apk`，`curl` 没有报错，当前目录下有下载完的 `Mika.apk`。
 
-电脑上有 jq 的话，用它解析 JSON 更稳；做法一样，取 `assets` 里名字匹配 `Mika-v*.apk` 的那一项。
+电脑上有 jq 的话，用它解析 JSON 更稳；做法一样，取 `assets` 里名字匹配 `Mika-v0.1.N.apk` 的那一项。
+
+第 1.4 步是 `arm64-v8a` 时，也可以改下名字以 `-arm64.apk` 结尾的那个包（把上面的 `[0-9.]*\.apk` 换成 `[0-9.]*-arm64\.apk`）：只带这一种架构的原生库，体积更小，功能一样。
 
 连不上 GitHub：请用户在浏览器里打开 [Releases](https://github.com/wangzan101/Mika/releases/latest)，手动下载 APK，告诉你文件存在哪，再从第 3 步继续。
 

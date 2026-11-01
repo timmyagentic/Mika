@@ -17,6 +17,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import com.wangzan101.mika.settings.FeatureFlags
+import com.wangzan101.mika.settings.ThemeMode
 
 /** 动效:时长和曲线。系统关了动画时([MikaTheme.reduceMotion])直接到位。 */
 object MikaMotion {
@@ -43,9 +52,37 @@ object MikaTheme {
         @Composable @ReadOnlyComposable get() = LocalReduceMotion.current
 }
 
-/** 深浅色跟随系统;同时把 Material 组件(弹窗、输入框、底部面板)的颜色对上。 */
+/**
+ * 设置里的外观:跟随系统时看系统,一直浅色/深色时照设置。设置一改(设置页或任务里改的)当场换,不重建界面,
+ * 所以页面、输入、滚动位置都不丢。
+ */
 @Composable
-fun MikaTheme(dark: Boolean = isSystemInDarkTheme(), reduceMotion: Boolean = false, content: @Composable () -> Unit) {
+fun appearanceDark(): Boolean {
+    val context = LocalContext.current
+    val flags = remember(context) { FeatureFlags.get(context) }
+    val mode by remember(flags) { flags.themeModeChanges() }.collectAsState(flags.themeMode())
+    return when (mode) {
+        ThemeMode.System -> isSystemInDarkTheme()
+        ThemeMode.Light -> false
+        ThemeMode.Dark -> true
+    }
+}
+
+/** 状态栏、导航栏的图标深浅跟界面一致:界面强制浅色而系统是深色时,图标也得是深色的才看得见。 */
+fun ComponentActivity.systemBarsFor(dark: Boolean) {
+    val transparent = android.graphics.Color.TRANSPARENT
+    // 旧系统上导航栏不能全透明,垫一层半透明的底;取值与 enableEdgeToEdge 默认的一致
+    val lightScrim = android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+    val darkScrim = android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+    enableEdgeToEdge(
+        statusBarStyle = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent),
+        navigationBarStyle = if (dark) SystemBarStyle.dark(darkScrim) else SystemBarStyle.light(lightScrim, darkScrim),
+    )
+}
+
+/** 深浅色按设置里的外观([appearanceDark]);同时把 Material 组件(弹窗、输入框、底部面板)的颜色对上。 */
+@Composable
+fun MikaTheme(dark: Boolean = appearanceDark(), reduceMotion: Boolean = false, content: @Composable () -> Unit) {
     val colors = if (dark) DarkColors else LightColors
     val scheme = if (dark) DarkScheme else LightScheme
     CompositionLocalProvider(LocalMikaColors provides colors, LocalReduceMotion provides reduceMotion) {

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="selfcheck_title">Pemeriksaan kompatibilitas</string>
+    <string name="selfcheck_row_sub">Lihat apa yang berfungsi di ponsel ini dan laporkan</string>
+    <string name="selfcheck_intro">Sekitar 1 menit. Tidak menyentuh aplikasi lain Anda, tidak mengubah pengaturan, dan tidak memakai jaringan. Harap tetap di halaman ini selama berjalan.</string>
+    <string name="selfcheck_start">Mulai</string>
+    <string name="selfcheck_again">Jalankan lagi</string>
+    <string name="selfcheck_cancel">Batal</string>
+    <string name="selfcheck_task_running">Ada tugas yang sedang berjalan. Mulai pemeriksaan setelah selesai.</string>
+    <string name="selfcheck_checks">Pemeriksaan</string>
+    <string name="selfcheck_report">Laporan</string>
+    <string name="selfcheck_copy">Salin laporan</string>
+    <string name="selfcheck_github">Laporkan di GitHub</string>
+    <string name="selfcheck_copied">Laporan disalin</string>
+    <string name="selfcheck_github_copied">Laporan disalin. Tempelkan ke “Self-check report” di halaman yang terbuka.</string>
+    <string name="selfcheck_report_note">Laporan hanya berisi model ponsel, versi sistem, dan hasil setiap pemeriksaan, tanpa akun, daftar aplikasi, atau konten Anda. Anda bisa membacanya sebelum memposting.</string>
+
+    <string name="selfcheck_check_device">Perangkat</string>
+    <string name="selfcheck_check_permissions">Izin</string>
+    <string name="selfcheck_check_helper">Pembantu bawaan</string>
+    <string name="selfcheck_check_display">Layar virtual</string>
+    <string name="selfcheck_check_launch">Membuka aplikasi</string>
+    <string name="selfcheck_check_reading">Membaca layar</string>
+    <string name="selfcheck_check_actions">Ketukan dan pengetikan</string>
+    <string name="selfcheck_check_alive">Tetap berjalan</string>
+    <string name="selfcheck_check_main">Layar Anda tidak terganggu</string>
+    <string name="selfcheck_check_browser">Browser bawaan</string>
+    <string name="selfcheck_check_sandbox">Sandbox</string>
+    <string name="selfcheck_check_copies">Salinan aplikasi</string>
+
+    <string name="selfcheck_status_pending">Menunggu</string>
+    <string name="selfcheck_status_running">Memeriksa</string>
+    <string name="selfcheck_status_pass">Lulus</string>
+    <string name="selfcheck_status_partial">Sebagian</string>
+    <string name="selfcheck_status_fail">Gagal</string>
+    <string name="selfcheck_status_skipped">Dilewati</string>
+
+    <string name="selfcheck_line_pending">Belum dimulai</string>
+    <string name="selfcheck_line_running">Memeriksa…</string>
+    <string name="selfcheck_line_pass">Berfungsi</string>
+    <string name="selfcheck_line_needs">Dilewati: “%1$s” harus lulus dulu</string>
+    <string name="selfcheck_line_other">Tidak lulus. Lihat laporan untuk detailnya.</string>
+
+    <string name="selfcheck_advice_too_old">Sistem ini lebih lama dari Android 12, jadi kontrol ponsel tidak tersedia. Obrolan, web, dan sandbox tetap berfungsi.</string>
+    <string name="selfcheck_advice_no_wireless">Sistem ini tidak punya Proses debug nirkabel. Anda bisa memulai kontrol ponsel dari komputer lewat USB.</string>
+    <string name="selfcheck_advice_phone_unavailable">Lingkungan ini tidak bisa mengoperasikan aplikasi di ponsel Anda (tidak ada Opsi developer maupun Proses debug nirkabel); obrolan, web, berkas, dan perhitungan tetap bisa dipakai seperti biasa.</string>
+    <string name="selfcheck_advice_a11y_off">Aksesibilitas nonaktif. Aktifkan aksesibilitas Mika di Pengaturan › Kontrol ponsel.</string>
+    <string name="selfcheck_advice_a11y_restart">Aksesibilitas aktif tetapi tidak berjalan. Matikan lalu aktifkan lagi aksesibilitas Mika di setelan sistem.</string>
+    <string name="selfcheck_advice_notifications">Notifikasi diblokir, jadi Anda tidak akan melihat kemajuan tugas atau peringatan “perlu Anda”.</string>
+    <string name="selfcheck_advice_battery">Penggunaan baterai dibatasi, jadi Mika mungkin dihentikan di latar belakang. Anda bisa melonggarkannya di Pemulihan &amp; perbaikan.</string>
+    <string name="selfcheck_advice_setup">Pembantu bawaan tidak berjalan. Selesaikan penyiapan di Pengaturan › Kontrol ponsel, lalu jalankan ini lagi.</string>
+    <string name="selfcheck_advice_display">Layar virtual Mika gagal dibuat. Sambungkan ulang pembantu dan coba lagi; jika masih gagal, mohon laporkan.</string>
+    <string name="selfcheck_advice_focus">Layar virtual Mika tidak punya fokus sendiri, jadi layar Anda mungkin sesaat kehilangan fokus input saat Mika bekerja. Semuanya tetap berfungsi.</string>
+    <string name="selfcheck_advice_launch">Sebuah halaman tidak terbuka di layar virtual Mika. Mohon laporkan.</string>
+    <string name="selfcheck_advice_on_main">Pengaturan sistem terbuka di layar Anda, bukan di layar virtual Mika. Mohon laporkan.</string>
+    <string name="selfcheck_advice_settings_in_use">Pengaturan sistem terbuka di layar Anda, jadi langkah ini tidak membukanya. Tutup lalu jalankan lagi.</string>
+    <string name="selfcheck_advice_read">Kontrol di halaman tidak bisa dibaca. Matikan lalu aktifkan lagi aksesibilitas Mika, kemudian jalankan lagi.</string>
+    <string name="selfcheck_advice_blank">Gambar layar virtual hitam seluruhnya atau kosong. Mohon laporkan.</string>
+    <string name="selfcheck_advice_action">Beberapa tindakan tidak berefek (lihat laporan). Mohon laporkan.</string>
+    <string name="selfcheck_advice_frames">Layar virtual berhenti diperbarui setelah beberapa saat, jadi tugas bisa tersangkut. Mohon laporkan.</string>
+    <string name="selfcheck_advice_main">Layar Anda berubah selama pemeriksaan. Jika Anda tetap di halaman ini, mohon laporkan.</string>
+    <string name="selfcheck_advice_no_webview">Tidak ada WebView yang bisa dipakai di sistem ini, jadi browser bawaan tidak bisa bekerja. Instal atau perbarui komponen WebView sistem.</string>
+    <string name="selfcheck_advice_web">Browser bawaan tidak bisa membaca atau mengetuk halaman uji lokal. Mohon laporkan.</string>
+    <string name="selfcheck_advice_sandbox_unsupported">Sandbox hanya tersedia di ponsel ARM 64-bit.</string>
+    <string name="selfcheck_advice_sandbox_not_prepared">Sandbox belum disiapkan. Ia siap saat pertama kali dipakai tugas; lalu jalankan lagi.</string>
+    <string name="selfcheck_advice_sandbox_failed">Perintah sandbox tidak memberi hasil yang diharapkan. Anda bisa mereset lingkungan di Berkas &amp; lingkungan komputasi dan mencoba lagi.</string>
+    <string name="selfcheck_advice_timeout">Pemeriksaan ini terlalu lama. Jalankan lagi; jika terus kehabisan waktu, mohon laporkan.</string>
+    <string name="selfcheck_advice_error">Pemeriksaan ini mengalami galat. Mohon laporkan.</string>
+    <string name="selfcheck_advice_out_of_time">Waktu pemeriksaan habis sebelum pemeriksaan ini.</string>
+    <string name="selfcheck_advice_cancelled">Dibatalkan.</string>
+
+    <string name="selfcheck_target_title">Halaman pemeriksaan Mika</string>
+    <string name="selfcheck_target_note">Ini halaman uji milik Mika sendiri. Pemeriksaan kompatibilitas mengetuk dan mengetik di sini; tidak menyentuh aplikasi lain Anda.</string>
+    <string name="selfcheck_target_taps">Ketukan: %1$d</string>
+    <string name="selfcheck_target_button">Ketuk saya</string>
+    <string name="selfcheck_target_input">Ketik di sini</string>
+    <string name="selfcheck_target_tick">Centang %1$d</string>
+    <string name="selfcheck_target_row">Baris %1$d</string>
+</resources>

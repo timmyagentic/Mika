@@ -19,22 +19,22 @@ class RemoteCliContractTest {
         val server = MiniHttpServer(RemoteHost.bindAddress(false, 0), { req -> paths += req.path; host.handle(req) })
         val directory = Files.createTempDirectory("mika-cli-contract").toFile()
         val token = File(directory, "token").apply { writeText("contract-test-token") }
+        val errors = File(directory, "stderr")
         val script = File("../tools/mika/scripts/mika_cli.py").canonicalPath
         server.start()
         try {
             fun cli(vararg args: String, exit: Int = 0): JsonObject {
                 val process = ProcessBuilder(listOf(System.getProperty("mika.python", "python3"), script,
                     "--url", "http://127.0.0.1:${server.port}", "--token-file", token.absolutePath, "--json") + args)
-                    .directory(directory).start()
+                    // stderr 是给人看的进度,stdout 只有 JSON:分开读,口令两边都不许出现
+                    .directory(directory).redirectError(errors).start()
                 if (!process.waitFor(10, TimeUnit.SECONDS)) {
                     process.destroyForcibly()
                     fail("CLI did not finish within its test budget")
                 }
                 val output = process.inputStream.bufferedReader().readText()
-                // Connect reports progress on stderr; the machine-readable contract is stdout alone.
-                val progress = process.errorStream.bufferedReader().readText()
-                assertFalse(output.contains("contract-test-token"))
-                assertFalse(progress.contains("contract-test-token"))
+                val progress = errors.readText()
+                assertFalse(output.contains("contract-test-token") || progress.contains("contract-test-token"))
                 assertEquals(output + progress, exit, process.exitValue())
                 return Json.parseToJsonElement(output).jsonObject
             }

@@ -42,6 +42,11 @@ class VoiceInput(
         }
         val tag = language ?: SystemSpeech.speechTag(AppLanguage.current(context))
         return when (spec) {
+            is SpeechEngineSpec.Doubao -> {
+                val credentials = settings.doubaoCredentials()
+                    ?: return FailedSession(SpeechFailure.Unavailable(SpeechEngineSpec.Why.DoubaoNotConfigured))
+                DoubaoSpeech(PcmRecorder(streaming = true), { DoubaoTransport().connect(credentials, spec.resourceId) })
+            }
             is SpeechEngineSpec.System -> SystemSpeechSession(
                 context, spec.onDevice, tag,
                 onNoResponse = settings::noteSystemSilent, onAnswered = settings::noteSystemAnswered,

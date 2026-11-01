@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="metrics_model">모델 추론</string>
+    <string name="metrics_observe">화면 읽기</string>
+    <string name="metrics_act">동작</string>
+    <string name="metrics_other">기타 (대기, 재시도)</string>
+    <string name="metrics_title">실행 통계</string>
+    <string name="metrics_sub">최근 실행의 시간, 모델 왕복 횟수, 토큰</string>
+    <string name="metrics_empty">아직 실행 통계가 없어요. Mika에게 일을 시키면 여기에 기록돼요.</string>
+    <string name="metrics_note">이 휴대전화의 최근 %1$d회 실행만 집계해요. 시간은 Mika가 작업을 시작한 때부터 재고, 첫 반응은 작업하는 모습이 처음 보인 시점이에요.</string>
+    <string name="metrics_copy">JSON 복사</string>
+    <string name="metrics_share">JSON 공유</string>
+    <string name="metrics_last_10">최근 10회</string>
+    <plurals name="metrics_runs">
+        <item quantity="other">%1$d</item>
+    </plurals>
+    <string name="duration_h_m">%1$d시간 %2$d분</string>
+    <string name="metrics_total">총 %1$s</string>
+    <plurals name="metrics_round_trips">
+        <item quantity="other">모델 왕복 %1$d회</item>
+    </plurals>
+    <string name="metrics_first_feedback_at">첫 반응 %1$s</string>
+    <string name="metrics_retry_wait">이 중 재시도 대기</string>
+    <string name="metrics_input_tokens">입력 토큰</string>
+    <string name="metrics_output_tokens">출력 토큰</string>
+    <string name="usage_cached">캐시 적중</string>
+    <string name="metrics_no_usage">보고된 사용량 없음</string>
+    <string name="metrics_all_calls">모든 모델 요청</string>
+    <plurals name="metrics_all_calls_value">
+        <item quantity="other">%1$d (보조 호출과 재시도 포함)</item>
+    </plurals>
+    <string name="metrics_steps">단계</string>
+    <string name="metrics_observe_act">읽기 / 동작</string>
+    <string name="metrics_observe_act_value">%1$d / %2$d</string>
+    <string name="metrics_counted">집계 대상</string>
+    <plurals name="metrics_n_runs">
+        <item quantity="other">%1$d회 실행</item>
+    </plurals>
+    <string name="metrics_success_rate">성공률</string>
+    <string name="metrics_success_value">%1$s (%2$d/%3$d)</string>
+    <string name="metrics_median_time">시간 중앙값</string>
+    <string name="metrics_median_feedback">첫 반응 중앙값</string>
+    <string name="metrics_avg_round_trips">평균 모델 왕복 횟수</string>
+    <string name="metrics_avg_round_trips_value">%1$s</string>
+    <string name="metrics_avg_tokens">평균 토큰</string>
+    <plurals name="metrics_copied">
+        <item quantity="other">%1$d회 실행의 요약을 복사했어요</item>
+    </plurals>
+    <string name="metrics_export_failed">내보내지 못했어요. 데이터가 너무 클 수 있어요. 범위를 줄여서 다시 시도하세요.</string>
+    <string name="metrics_where_time">시간이 어디에 쓰였는지 보기</string>
+    <string name="metrics_overview">개요</string>
+    <string name="metrics_time_split">시간이 쓰인 곳</string>
+    <string name="metrics_export">내보내기</string>
+    <plurals name="metrics_summary_of">
+        <item quantity="other">이 %1$d회 실행의 요약</item>
+    </plurals>
+    <string name="metrics_summary_sub">실행 1회당 항목 하나, 직접 분석할 때 쓰세요</string>
+    <plurals name="chat_steps_n">
+        <item quantity="other">%1$d단계</item>
+    </plurals>
+</resources>

@@ -15,7 +15,7 @@ object MikaLinks {
     const val X_HANDLE = "@wangzan101"
 
     /** X 上的 Mika 交流群:点开即申请加入(不用微信的走这里)。 */
-    const val X_GROUP = "https://x.com/i/chat/group_join/g2116500883139862983/xP74Qyff3X"
+    const val X_GROUP = "https://x.com/i/chat/group_join/g2116926829198246025/48B52j5svL"
 
     /** 检查更新只问 GitHub 发布页(不登录,每小时有次数限制)。 */
     const val LATEST_RELEASE_API = "https://api.github.com/repos/wangzan101/Mika/releases/latest"

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trace_switch">Записывать подробную трассировку</string>
+    <string name="trace_switch_detail">Для новых запусков. Текст запросов может содержать личную информацию. Если выключить, запись прекратится сразу.</string>
+    <string name="trace_storage_limit">Лимит места для трассировок</string>
+    <string name="trace_storage_hint">Когда нужно место, старые завершённые трассировки удаляются.</string>
+    <string name="trace_storage_value">%1$d МиБ</string>
+    <string name="trace_title">Подробная трассировка</string>
+    <string name="trace_partial">Неполная запись</string>
+    <string name="trace_recorded">Записано на этом устройстве</string>
+    <string name="trace_unknown">Нет данных</string>
+    <string name="trace_ok">ОК</string>
+    <string name="trace_error">Ошибка</string>
+    <string name="trace_cancelled">Отменено</string>
+    <string name="trace_attempt">Шаг %1$d · Попытка %2$d · %3$s</string>
+    <string name="trace_tool">Шаг %1$d · %2$s</string>
+    <string name="trace_counts">Вход %1$s · Из кеша %2$s · Без кеша %3$s · Выход %4$s</string>
+    <string name="trace_largest">Больше всего входных токенов вне кеша</string>
+    <string name="trace_diff">Первое отличие: %1$s</string>
+    <string name="trace_no_body">Тело запроса не записано</string>
+    <string name="trace_attach">Включить текст с вычеркнутыми данными</string>
+    <string name="trace_attach_hint">Только локальный ZIP. Перед сохранением просмотрите текст запроса выше.</string>
+    <string name="trace_save">Сохранить эту трассировку</string>
+    <string name="trace_saved">Трассировка сохранена</string>
+    <string name="trace_failed">Не удалось экспортировать трассировку</string>
+    <string name="trace_send">Отправить по OTLP/HTTP</string>
+    <string name="trace_network_hint">Отправляются только метаданные этой трассировки.</string>
+    <string name="trace_endpoint">Адрес приёма трассировок</string>
+    <string name="trace_endpoint_hint">Для публичных адресов используйте HTTPS. HTTP разрешён для localhost и локальной сети.</string>
+    <string name="trace_header_name">Имя заголовка авторизации</string>
+    <string name="trace_header_value">Значение заголовка авторизации (необязательно)</string>
+    <string name="trace_sent">Трассировка принята</string>
+    <string name="trace_sent_warning">Трассировка принята, получатель вернул предупреждение</string>
+    <string name="trace_rejected">Получатель отклонил спанов: %1$d</string>
+    <string name="trace_http_error">Получатель вернул HTTP %1$d</string>
+    <string name="trace_send_failed">Не удалось отправить трассировку</string>
+</resources>

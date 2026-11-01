@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat composer: hold to talk -->
+    <string name="voice_placeholder_idle">Mantén pulsado para hablar, toca para escribir</string>
+    <string name="voice_placeholder_busy">Mantén pulsado para hablarle a la tarea, toca para escribir</string>
+    <string name="voice_placeholder_answer">Mantén pulsado para responder, toca para escribir</string>
+    <string name="voice_listening">Escuchando</string>
+    <string name="voice_steer_to">Avisando a “%1$s”</string>
+    <string name="voice_engine_phone">Teléfono</string>
+    <string name="voice_engine_phone_offline">Teléfono · sin conexión</string>
+    <string name="voice_say_now">Adelante, te escucho…</string>
+    <string name="voice_recording">Grabando. Suelta y se convertirá en texto…</string>
+    <string name="voice_foot_live">Suelta · las palabras pasan al cuadro para editarlas</string>
+    <string name="voice_foot_convert">Suelta · se convierte en texto y pasa al cuadro</string>
+    <string name="voice_left">Quedan %1$d s</string>
+    <string name="voice_slide_cancel">Desliza hacia arriba para cancelar</string>
+    <string name="voice_release_cancel">Suelta para cancelar</string>
+    <string name="voice_release_fill">Suelta para rellenar</string>
+    <string name="voice_release_convert">Suelta para convertir</string>
+    <string name="voice_converting">Convirtiendo…</string>
+    <string name="voice_no_match">No te entendí. Mantén pulsado y repítelo</string>
+    <string name="voice_busy">El reconocimiento de voz está ocupado. Inténtalo de nuevo en un momento</string>
+    <string name="voice_network">Sin red, no se pudo convertir en texto</string>
+    <string name="voice_mic_unavailable">El micrófono no está disponible. Puede que otra app lo esté usando</string>
+    <string name="voice_hold_to_talk">Mantén pulsado para hablar</string>
+    <string name="voice_mic_blocked_title">El micrófono sigue sin estar disponible</string>
+    <string name="voice_mic_blocked_body">La grabación ya está permitida, pero Mika sigue sin poder grabar. Comprueba que el interruptor de acceso al micrófono de los Ajustes rápidos esté activado (Android 12 y posteriores) y que el micrófono de Mika no esté desactivado en el administrador de permisos del sistema. También puede que otra app esté usando el micrófono.</string>
+    <string name="voice_provider_failed">No se pudo convertir en texto: %1$s</string>
+    <string name="voice_unavailable_title">La entrada de voz no está lista</string>
+    <string name="voice_unavailable_no_engine">Este teléfono no tiene reconocimiento de voz integrado y no se ha elegido ningún modelo de voz a texto. Elige el modelo de voz de un proveedor en Ajustes › Modelos › Voz a texto y funcionará.</string>
+    <string name="voice_unavailable_system_gone">Voz a texto está configurado con el reconocimiento integrado del teléfono, pero este teléfono ya no lo tiene. Elige otro en Ajustes › Modelos › Voz a texto.</string>
+    <string name="voice_unavailable_system_silent">El reconocimiento de voz integrado del teléfono no respondió, así que no llegó ninguna palabra. Elige el modelo de voz de un proveedor en Ajustes › Modelos › Voz a texto y funcionará.</string>
+    <string name="voice_unavailable_provider_gone">Se eliminó el proveedor del modelo de voz elegido. Elige otro en Ajustes › Modelos › Voz a texto.</string>
+    <string name="voice_unavailable_off">Voz a texto está desactivado. Elige uno en Ajustes › Modelos › Voz a texto.</string>
+    <string name="voice_go_pick">Elegir uno</string>
+    <string name="voice_permission_title">Mika necesita el micrófono</string>
+    <string name="voice_permission_body">Para oírte mientras mantienes pulsado para hablar, Mika necesita grabar audio. Se denegó antes, así que el teléfono no volverá a preguntar. Activa el micrófono en la página de permisos de Mika en los ajustes del sistema.</string>
+    <string name="voice_permission_open">Abrir ajustes</string>
+    <!-- Floating capsule: long press to talk -->
+    <string name="capsule_voice_talk">Hablar</string>
+    <string name="capsule_voice_send">Enviar</string>
+    <string name="capsule_voice_answer_title">Respondiendo a Mika</string>
+    <string name="capsule_voice_continue_title">Continuando “%1$s”</string>
+    <string name="capsule_voice_cancel">Cancelar</string>
+    <string name="capsule_voice_edit">Editar</string>
+    <string name="capsule_voice_foot_send_up">Suelta para enviar · arrastra hacia arriba para cancelar o editar</string>
+    <string name="capsule_voice_foot_send_down">Suelta para enviar · arrastra hacia abajo para cancelar o editar</string>
+    <string name="capsule_voice_foot_convert_up">Suelta para convertir y enviar · arrastra hacia arriba para cancelar o editar</string>
+    <string name="capsule_voice_foot_convert_down">Suelta para convertir y enviar · arrastra hacia abajo para cancelar o editar</string>
+    <string name="capsule_voice_foot_edit">Suelta · la tarjeta se abre con las palabras en el cuadro</string>
+    <string name="capsule_voice_foot_cancel">Suelta · descartar esto</string>
+    <string name="capsule_voice_foot_a11y">Cuando termines, elige “Enviar” en las acciones de la cápsula</string>
+    <string name="capsule_voice_steered">Se lo dijiste a la tarea: %1$s</string>
+    <string name="capsule_voice_answered">Respondido: %1$s</string>
+    <string name="capsule_voice_sent">Enviado: %1$s</string>
+    <string name="capsule_voice_need_mic">Toca para permitir el micrófono en Mika</string>
+    <string name="capsule_voice_not_ready">La entrada de voz no está lista · toca</string>
+    <string name="capsule_voice_open">Abrir Mika</string>
+</resources>

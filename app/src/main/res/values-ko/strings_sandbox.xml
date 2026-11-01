@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="install_check">기기 확인 중</string>
+    <string name="install_extract">압축 푸는 중</string>
+    <string name="install_configure">구성 중</string>
+    <string name="install_skills">스킬 스크립트 동기화 중</string>
+    <string name="install_interrupted">설정이 중단됐어요. 다시 시도할 수 있어요</string>
+    <string name="install_checksum">파일 체크섬이 일치하지 않아요</string>
+    <string name="install_unpack_failed">환경의 압축을 풀지 못했어요. Mika를 다시 설치하세요: %1$s</string>
+    <string name="install_unsupported">이 기기에서는 지원하지 않아요 (arm64 필요)</string>
+    <string name="install_no_space">공간이 부족해요: %1$d MB 필요 (%2$d MB 남음)</string>
+    <string name="install_cannot_start">환경을 시작할 수 없어요: %1$s</string>
+    <string name="install_exit_code">종료 코드 %1$d</string>
+    <string name="install_no_client">mika 명령이 없어요 (패키지가 불완전해요)</string>
+    <string name="sandbox_resetting">초기화 중</string>
+    <string name="sandbox_incomplete">환경 파일이 불완전해요. 설정 → 고급에서 초기화할 수 있어요</string>
+    <string name="sandbox_not_finished">설정이 끝나지 않았어요. 다시 시도할 수 있어요</string>
+    <string name="sandbox_network">스크립트의 인터넷 사용 허용</string>
+    <string name="sandbox_network_sub">기본적으로 꺼져 있어요</string>
+    <string name="sandbox_network_explain">기본적으로 Mika는 오프라인으로 파일을 다루고 스크립트를 실행해요. 이 기능을 켜면 스크립트가 네트워크를 쓸 수 있어요(예: 논문이나 지도 조회). 대신 채팅의 파일을 밖으로 보낼 수도 있어요.</string>
+    <string name="sandbox_isolation_unavailable">이 기기에서는 스크립트를 오프라인으로 유지할 수 없어요. “스크립트의 인터넷 사용 허용”을 켜야만 Mika가 파일을 다루고 스크립트를 실행할 수 있어요</string>
+    <string name="sandbox_reset_title">환경을 초기화할까요?</string>
+    <string name="sandbox_reset_body">Mika가 파일과 스크립트에 쓰는 환경과, 각 채팅에서 만든 파일(첨부한 파일 포함)을 삭제한 뒤 자동으로 다시 설정해요. 채팅과 설정은 그대로예요.</string>
+    <string name="sandbox_broken">설정이 끝나지 않았어요: %1$s</string>
+    <string name="sandbox_reset_sub">문제가 있을 때 사용하세요. 삭제한 뒤 다시 설정해요</string>
+    <string name="sandbox_reset">환경 초기화</string>
+    <string name="reset">초기화</string>
+</resources>

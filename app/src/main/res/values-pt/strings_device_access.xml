@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_access_group">Ativação e desbloqueio remotos</string>
+    <string name="device_access_title">Permitir ativação e desbloqueio remotos</string>
+    <string name="device_access_sub">Um computador com o seu token MCP pode ativar e desbloquear este celular.</string>
+    <string name="device_access_credential">Credencial do bloqueio de tela</string>
+    <string name="device_access_no_credential">Não configurada · só deslizar ou sem bloqueio de tela</string>
+    <string name="device_access_pin_saved">PIN salvo · toque para substituir</string>
+    <string name="device_access_password_saved">Senha salva · toque para substituir</string>
+    <string name="device_access_blocked">Desbloqueio pausado · confira e salve a credencial de novo neste celular</string>
+    <string name="device_access_clear">Remover credencial salva</string>
+    <string name="device_access_foot">Desativado por padrão. As credenciais ficam criptografadas neste celular e nunca são enviadas a um modelo ou computador. Uma tentativa com credencial errada pausa as próximas. Depois de reiniciar, desbloqueie o celular você mesmo uma vez antes. O controle do celular precisa estar configurado.</string>
+    <string name="device_access_pin">PIN</string>
+    <string name="device_access_password">Senha</string>
+    <string name="device_access_value">Credencial</string>
+    <string name="device_access_value_hint">Digite o seu bloqueio de tela atual</string>
+    <string name="device_access_repeat">Confirmar</string>
+    <string name="device_access_repeat_hint">Digite de novo</string>
+    <string name="device_access_save">Salvar credencial</string>
+    <string name="device_access_pin_hint">Use o PIN atual de 4 a 16 dígitos. Salvar de novo permite uma nova tentativa após uma falha.</string>
+    <string name="device_access_password_hint">Use a senha atual de 4 a 64 caracteres: letras do alfabeto inglês, números, espaços e símbolos ASCII comuns. Outros caracteres e padrões de desenho não são aceitos.</string>
+    <string name="device_access_save_failed">Não foi possível salvar. Verifique o armazenamento do celular e tente de novo.</string>
+</resources>

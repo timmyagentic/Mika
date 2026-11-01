@@ -65,4 +65,24 @@ class McpDeviceToolsTest {
         assertEquals(200, call("test-token").status)
         assertEquals(0, writes)
     }
+
+    @Test fun requestsWithoutDeviceAccessNeverSeeOrReachScreenTools() {
+        val endpoints = com.wangzan101.mika.core.remote.RemoteEndpoints(FakeRemoteTasks(), "test", device = DeviceAccess(port, store))
+        fun post(json: String, deviceAccess: Boolean) = endpoints.handle(HttpRequest("POST", "/mcp",
+            mapOf("content-type" to "application/json"), json.toByteArray(), java.net.InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0))),
+            deviceAccess).body.toString(Charsets.UTF_8)
+        fun get(path: String, deviceAccess: Boolean) = endpoints.handle(HttpRequest("GET", path, emptyMap(), ByteArray(0),
+            java.net.InetAddress.getByAddress(byteArrayOf(0, 0, 0, 0))), deviceAccess)
+        val list = """{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""
+        val unlock = """{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"mika_unlock_device","arguments":{}}}"""
+        assertTrue(post(list, true).contains("mika_unlock_device"))
+        val hidden = post(list, false)
+        assertTrue(hidden.contains("mika_run_task"))
+        for (name in listOf("mika_device_state", "mika_wake_device", "mika_unlock_device")) assertFalse(hidden.contains(name))
+        assertFalse(post(unlock, false).contains("\"unlocked\""))
+        assertFalse(get("/api/v1", false).body.toString(Charsets.UTF_8).contains("device_state"))
+        assertEquals(503, get("/api/v1/device", false).status)
+        assertEquals(200, get("/api/v1/device", true).status)
+        assertEquals(0, writes)
+    }
 }

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appaccess_title">Доступ к приложениям</string>
+    <string name="appaccess_row_sub">Блокировка приложений и показа экрана для каждого приложения</string>
+    <string name="appaccess_intro">Выберите, какие приложения Mika может читать и использовать с помощью стандартных инструментов телефона. Команды оболочки, песочница и доступ к компьютеру (MCP) этой настройкой не ограничиваются.</string>
+    <string name="appaccess_privacy">При определении категорий названия приложений и имена пакетов отправляются модели ИИ; перед действием «Обновить список приложений» вас спросят.</string>
+    <string name="appaccess_unavailable">Не удаётся прочитать настройки доступа к приложениям, поэтому стандартный доступ к телефону приостановлен. Сброс удалит сохранённые разрешения и категории.</string>
+    <string name="appaccess_reset">Сбросить доступ к приложениям</string>
+    <string name="appaccess_search">Название или имя пакета</string>
+    <string name="appaccess_refreshing">Определяем категории…</string>
+    <string name="appaccess_refresh">Обновить список приложений</string>
+    <string name="appaccess_recommend">Рекомендуем заблокировать</string>
+    <string name="appaccess_recommend_count">Рекомендуем заблокировать · %1$d</string>
+    <string name="appaccess_allow_all">Разрешить все</string>
+    <string name="appaccess_risk_note">Автоматические действия в таких приложениях могут привести к ограничениям аккаунта; заблокируйте ненужные.</string>
+    <string name="appaccess_blocked">Заблокировано</string>
+    <string name="appaccess_allowed">Разрешено</string>
+    <string name="appaccess_revoke_share">Отозвать показ экрана для «%1$s»</string>
+
+    <string name="appaccess_send_title">Отправить список приложений ИИ?</string>
+    <string name="appaccess_send_body">При обновлении Mika читает список установленных приложений и отправляет их названия и имена пакетов настроенной вами модели ИИ, чтобы определить категорию риска. Содержимое самих приложений не отправляется.</string>
+    <string name="appaccess_send_confirm">Продолжить и определить категории</string>
+    <string name="appaccess_cancel">Отмена</string>
+
+    <string name="appaccess_recommend_title">Рекомендуем заблокировать: финансовые приложения</string>
+    <string name="appaccess_recommend_body">Эти приложения отнесены к финансам или платежам, и Mika всё ещё может ими пользоваться. Блокируйте их по одному или все сразу.</string>
+    <string name="appaccess_recommend_empty">Блокировать нечего.</string>
+    <string name="appaccess_block">Заблокировать</string>
+    <string name="appaccess_block_all">Заблокировать все</string>
+
+    <string name="appaccess_edit_category">Изменить категорию</string>
+    <string name="appaccess_category_manual">Задано вами</string>
+
+    <string name="appaccess_error_save">Не удалось сохранить</string>
+    <string name="appaccess_error_no_model">Нет доступной модели. Список приложений обновлён, но категории определить не удалось.</string>
+    <string name="appaccess_error_refresh">Не удалось обновить</string>
+    <string name="appaccess_error_load">Не удалось прочитать список приложений</string>
+
+    <string name="appaccess_category_finance">Финансы</string>
+    <string name="appaccess_category_social">Соцсети</string>
+    <string name="appaccess_category_game">Игры</string>
+    <string name="appaccess_category_shopping">Покупки</string>
+    <string name="appaccess_category_productivity">Продуктивность</string>
+    <string name="appaccess_category_media">Медиа</string>
+    <string name="appaccess_category_other">Другое</string>
+    <string name="appaccess_category_unknown">Без категории</string>
+
+    <string name="appaccess_share_title">Показать экран приложения «%1$s»</string>
+    <string name="appaccess_share_body">Это приложение заблокировано. Показ экрана позволяет вам показать его сознательно; автоматическое чтение и управление остаются заблокированными.</string>
+    <string name="appaccess_share_allow">Разрешить только показ экрана</string>
+    <string name="appaccess_share_unblock">Убрать из заблокированных</string>
+    <string name="appaccess_share_cancel">Отменить показ</string>
+    <string name="appaccess_share_expired">Разрешение на показ экрана истекло. Сделайте новый снимок экрана.</string>
+</resources>

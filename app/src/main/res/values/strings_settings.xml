@@ -2,10 +2,16 @@
 <resources>
     <string name="language_title">Language</string>
     <string name="language_system">Follow system</string>
-    <string name="language_system_detail">Simplified or Traditional Chinese to match a Chinese system, English otherwise</string>
+    <string name="language_system_detail">Uses your system language when Mika has it, English otherwise</string>
     <string name="language_simplified_chinese" translatable="false">简体中文</string>
     <string name="language_traditional_chinese" translatable="false">繁體中文</string>
     <string name="language_english" translatable="false">English</string>
+    <string name="language_japanese" translatable="false">日本語</string>
+    <string name="language_korean" translatable="false">한국어</string>
+    <string name="language_spanish" translatable="false">Español</string>
+    <string name="language_portuguese" translatable="false">Português</string>
+    <string name="language_russian" translatable="false">Русский</string>
+    <string name="language_indonesian" translatable="false">Bahasa Indonesia</string>
     <string name="settings_basic">Basic</string>
     <string name="settings_model">Model</string>
     <string name="settings_not_set">Not set</string>
@@ -49,7 +55,7 @@
     <string name="settings_allowed">Allowed</string>
     <string name="settings_task_notifs">Task notifications</string>
     <string name="settings_keep_on">Keep screen on</string>
-    <string name="settings_keep_on_sub">The screen stays on while a task runs, then goes back to normal</string>
+    <string name="settings_keep_on_sub">The screen stays on while a task runs (it can still dim when you’re not using it), then goes back to normal</string>
     <string name="settings_mute">Mute the app being used</string>
     <string name="settings_mute_sub">Apps Mika is using stay silent; sound returns when you take over</string>
     <string name="settings_pace">Operating pace</string>
@@ -86,11 +92,18 @@
     <string name="routes_clear_title">Clear all saved routes?</string>
     <string name="routes_clear_body">After clearing, Mika works things out step by step again next time. Other settings aren’t affected.</string>
     <string name="clear">Clear</string>
-    <string name="sandbox_proxy">Network proxy</string>
-    <string name="sandbox_proxy_sub">Not set: commands connect directly</string>
     <string name="sandbox_proxy_off">%1$s · used once network access is on</string>
-    <string name="sandbox_proxy_hint">Only for commands run here (http_proxy, https_proxy, all_proxy), and only while network access is on; Mika’s own model calls don’t use it. It may include a user name and password, which are stored encrypted on this phone. Leave empty for a direct connection.</string>
-    <string name="sandbox_proxy_invalid">Write it as http://host:port (https, socks5 and socks5h work too), optionally with user:password@ before the host.</string>
+    <string name="net_proxy">Network proxy</string>
+    <string name="net_proxy_row_sub">For model requests, updates, the in-app browser and commands</string>
+    <string name="net_proxy_hint">Used for Mika’s model requests (chat, model lists, account sign-in), in-app update downloads, the in-app browser, and commands in Files &amp; computing environment while network access is on there. Addresses on this phone or your local network (localhost, 192.168.x.x, 10.x.x.x, names ending in .local) always connect directly, so local models keep working. It may include user:password@, stored encrypted on this phone. Leave empty for a direct connection.</string>
+    <string name="net_proxy_invalid">Write it as http://host:port (socks5, socks5h and https work too), optionally with user:password@ before the host.</string>
+    <string name="net_proxy_container_only">https:// proxies are only used by commands in Files &amp; computing environment; Mika’s own connections stay direct. Use http:// or socks5:// to cover everything.</string>
+    <string name="net_proxy_browser_unsupported">This phone’s WebView can’t use a separate proxy, so the in-app browser connects directly.</string>
+    <string name="net_proxy_browser_socks_auth">The in-app browser can’t use a SOCKS proxy that needs a user name and password, so it connects directly.</string>
+    <string name="net_proxy_unreachable">Couldn’t reach the network proxy, or it didn’t pass the request on. Check that the proxy is running and that the address in Settings › Network proxy is right.</string>
+    <string name="net_proxy_auth_failed">The network proxy rejected the user name or password. Check them in Settings › Network proxy.</string>
+    <string name="sandbox_proxy_sub">Not set: commands connect directly. Change it in Settings › Network proxy</string>
+    <string name="sandbox_proxy_on">%1$s · change it in Settings › Network proxy</string>
     <string name="sandbox_usage">Space used</string>
     <string name="sandbox_usage_total">Total</string>
     <string name="sandbox_usage_runtime">Runtime</string>
@@ -105,4 +118,12 @@
     <string name="sandbox_usage_clear_all_title">Clear every chat’s workspace?</string>
     <string name="sandbox_usage_clear_all_body">Files in every chat’s workspace will be deleted: attachments, shared screens and files tasks wrote. Chats stay. Chats with a running task are skipped.</string>
     <string name="sandbox_usage_note">The runtime and skills come with the app and aren’t cleared here; to start over, use “Reset environment” above.</string>
+    <string name="appearance_title">Language and appearance</string>
+    <string name="appearance_group">Appearance</string>
+    <string name="appearance_system">Follow the system</string>
+    <string name="appearance_system_detail">Light or dark, whichever the phone is in</string>
+    <string name="appearance_light">Always light</string>
+    <string name="appearance_dark">Always dark</string>
+    <string name="settings_self_config">Let Mika change its own settings</string>
+    <string name="settings_self_config_sub">When on, tasks get one tool to read and change these preferences (pace, mute, capsule, appearance, screen-on). Models, API keys, container network and anything that deletes data are never included</string>
 </resources>

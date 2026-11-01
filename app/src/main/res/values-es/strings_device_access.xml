@@ -1,0 +1,22 @@
+<resources>
+    <string name="device_access_group">Activación y desbloqueo remotos</string>
+    <string name="device_access_title">Permitir activación y desbloqueo remotos</string>
+    <string name="device_access_sub">Un ordenador con tu token de MCP puede activar y desbloquear este teléfono.</string>
+    <string name="device_access_credential">Credencial del bloqueo de pantalla</string>
+    <string name="device_access_no_credential">Sin configurar · solo deslizar o sin bloqueo de pantalla</string>
+    <string name="device_access_pin_saved">PIN guardado · toca para reemplazarlo</string>
+    <string name="device_access_password_saved">Contraseña guardada · toca para reemplazarla</string>
+    <string name="device_access_blocked">Desbloqueo en pausa · revisa la credencial y vuelve a guardarla en este teléfono</string>
+    <string name="device_access_clear">Quitar la credencial guardada</string>
+    <string name="device_access_foot">Desactivado por defecto. Las credenciales se guardan cifradas en este teléfono y nunca se envían a un modelo ni a un ordenador. Un intento fallido con la credencial pausa los siguientes. Tras un reinicio, desbloquea tú el teléfono una vez primero. Hay que tener configurado el control del teléfono.</string>
+    <string name="device_access_pin">PIN</string>
+    <string name="device_access_password">Contraseña</string>
+    <string name="device_access_value">Credencial</string>
+    <string name="device_access_value_hint">Introduce tu bloqueo de pantalla actual</string>
+    <string name="device_access_repeat">Confirmar</string>
+    <string name="device_access_repeat_hint">Introdúcela otra vez</string>
+    <string name="device_access_save">Guardar credencial</string>
+    <string name="device_access_pin_hint">Usa el PIN actual de 4 a 16 dígitos. Si vuelves a guardarlo, se permite un nuevo intento tras un fallo.</string>
+    <string name="device_access_password_hint">Usa la contraseña actual de 4 a 64 caracteres: letras inglesas, números, espacios y símbolos ASCII comunes. No se admiten otros caracteres ni patrones de desbloqueo.</string>
+    <string name="device_access_save_failed">No se pudo guardar. Revisa el almacenamiento del teléfono e inténtalo de nuevo.</string>
+</resources>

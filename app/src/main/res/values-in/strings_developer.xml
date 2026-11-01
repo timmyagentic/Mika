@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev_adaptive">Baca elemen dulu, gambar jika perlu</string>
+    <string name="dev_adaptive_sub">Tidak mengirim gambar jika pohon UI sudah cukup; menambahkan satu jika belum</string>
+    <string name="dev_inline">Kembalikan perubahan layar setelah tindakan</string>
+    <string name="dev_inline_sub">Melirik layar setelah tiap tindakan, jadi tidak perlu pembacaan terpisah</string>
+    <string name="dev_batch">Kerjakan beberapa langkah jika yakin</string>
+    <string name="dev_batch_sub">Mengerjakan langkah yang pasti sekaligus tanpa berhenti bertanya ke model</string>
+    <string name="dev_deep_links">Buka halaman tujuan secara langsung</string>
+    <string name="dev_deep_links_sub">Memakai tautan untuk langsung ke halaman di dalam aplikasi, bukan mengetuk satu per satu</string>
+    <string name="dev_light">Langkah mudah diserahkan ke model ringan</string>
+    <string name="dev_light_sub">Model ringan yang lebih cepat mengerjakan langkah mudah; model utama menangani yang sulit</string>
+    <string name="dev_replay">Ulangi yang berhasil sebelumnya</string>
+    <string name="dev_replay_sub">Memutar ulang rute tersimpan untuk hal yang pernah dikerjakan; diserahkan kembali ke model jika tidak cocok</string>
+    <string name="dev_parallel">Jalankan obrolan secara paralel</string>
+    <string name="dev_parallel_sub">Tugas dari obrolan berbeda masing-masing mendapat layar virtual dan berjalan bersamaan</string>
+    <string name="dev_compaction">Ringkasan terstruktur untuk tugas panjang</string>
+    <string name="dev_compaction_sub">Saat banyak langkah perlu dipadatkan, mencatat tujuan, fakta, kemajuan, dan langkah berikutnya</string>
+    <string name="dev_group">Cara Mika bekerja</string>
+    <string name="dev_autonomy">Mode otonom</string>
+    <string name="dev_autonomy_sub">Jika aktif, Mika tidak bertanya bahkan sebelum membayar dan langsung menyelesaikan; jika nonaktif, Mika hanya bertanya sebelum membayar</string>
+    <string name="dev_note">Pengaturan ini memengaruhi cara dan kecepatan kerja Mika. Biasanya biarkan di nilai default.</string>
+    <string name="dev_grounding">Penentuan posisi visual terverifikasi</string>
+    <string name="dev_grounding_sub">Aktifkan setelah model visual %1$s teruji menemukan posisi dengan akurat; jika nonaktif, posisi yang ditandainya perlu bukti lain sebelum Mika mengetuk.</string>
+    <string name="dev_speed">Kecepatan</string>
+    <string name="dev_experiments">Eksperimen</string>
+    <string name="dev_run_log">Catatan eksekusi</string>
+</resources>

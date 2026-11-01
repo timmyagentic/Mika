@@ -1,0 +1,22 @@
+<resources>
+    <string name="device_access_group">Удалённое пробуждение и разблокировка</string>
+    <string name="device_access_title">Разрешить удалённое пробуждение и разблокировку</string>
+    <string name="device_access_sub">Компьютер с вашим токеном MCP сможет разбудить и разблокировать этот телефон.</string>
+    <string name="device_access_credential">Данные блокировки экрана</string>
+    <string name="device_access_no_credential">Не задано · только проведите пальцем или без блокировки экрана</string>
+    <string name="device_access_pin_saved">PIN-код сохранён · нажмите, чтобы заменить</string>
+    <string name="device_access_password_saved">Пароль сохранён · нажмите, чтобы заменить</string>
+    <string name="device_access_blocked">Разблокировка приостановлена · проверьте данные и сохраните их на этом телефоне заново</string>
+    <string name="device_access_clear">Удалить сохранённые данные</string>
+    <string name="device_access_foot">По умолчанию выключено. Данные хранятся на этом телефоне в зашифрованном виде и никогда не отправляются ни модели, ни компьютеру. После одной неудачной попытки дальнейшие попытки приостанавливаются. После перезагрузки сначала один раз разблокируйте телефон сами. Управление телефоном должно быть настроено.</string>
+    <string name="device_access_pin">PIN-код</string>
+    <string name="device_access_password">Пароль</string>
+    <string name="device_access_value">Данные</string>
+    <string name="device_access_value_hint">Введите текущую блокировку экрана</string>
+    <string name="device_access_repeat">Подтверждение</string>
+    <string name="device_access_repeat_hint">Введите ещё раз</string>
+    <string name="device_access_save">Сохранить данные</string>
+    <string name="device_access_pin_hint">Используйте текущий PIN-код из 4–16 цифр. Повторное сохранение даёт одну новую попытку после неудачи.</string>
+    <string name="device_access_password_hint">Используйте текущий пароль из 4–64 символов: английские буквы, цифры, пробелы и обычные символы ASCII. Другие символы и графические ключи не поддерживаются.</string>
+    <string name="device_access_save_failed">Не удалось сохранить. Проверьте память телефона и повторите попытку.</string>
+</resources>

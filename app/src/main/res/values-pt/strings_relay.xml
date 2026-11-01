@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">Remoto</string>
+    <string name="relay_pair_title">Parear um gateway remoto</string>
+    <string name="relay_pair_sub">Crie um código de pareamento na página web do gateway e digite abaixo o endereço e o código.</string>
+    <string name="relay_gateway">Gateway</string>
+    <string name="relay_code">Código de pareamento</string>
+    <string name="relay_code_hint">Código de uso único do seu gateway</string>
+    <string name="relay_pair">Parear gateway</string>
+    <string name="relay_busy">Aguarde…</string>
+    <string name="relay_enable">Permitir acesso remoto</string>
+    <string name="relay_disabled">Pareado. O acesso remoto está desativado</string>
+    <string name="relay_online">Gateway conectado. Aguardando solicitações da CLI / MCP</string>
+    <string name="relay_connecting">Conectando ao gateway remoto…</string>
+    <string name="relay_offline">Conexão perdida. Reconectando automaticamente</string>
+    <string name="relay_unauthorized">O pareamento expirou ou foi revogado. Pareie o gateway de novo</string>
+    <string name="relay_copy_address">Copiar endereço MCP</string>
+    <string name="relay_client_help">Copie a configuração para o seu cliente MCP no computador para conectar.</string>
+    <string name="relay_unpair">Desparear gateway</string>
+    <string name="relay_unpair_body">Desconecta este celular do gateway. É necessária conexão com a internet. O token de acesso do celular não muda.</string>
+    <string name="relay_failed">Não foi possível concluir. Verifique o endereço do gateway, a conexão com a internet e o código de pareamento. Se o despareamento falhou, o acesso está desativado; tente de novo ou revogue o celular no gateway.</string>
+    <string name="relay_notif_body">O acesso remoto está ativado. Abra o Mika para ver a conexão com o gateway.</string>
+    <string name="relay_incompatible">Atualize o Mika e o gateway para versões compatíveis</string>
+    <string name="relay_copy_gateway">Copiar endereço do gateway</string>
+    <string name="relay_cli_help">Salve o token de acesso em um arquivo no computador e execute o comando de conexão acima.</string>
+    <string name="relay_intro">O gateway encaminha para o seu celular, para acesso remoto, as solicitações da CLI e do MCP que normalmente passam por Wi-Fi / rede local. Instale-o no seu próprio servidor público antes de parear.</string>
+    <string name="relay_device_access">Permitir ativação e desbloqueio pelo gateway</string>
+    <string name="relay_device_access_sub">Desativado por padrão. Também exige “Permitir ativação e desbloqueio remotos” nesta página. Com as duas opções ativadas, qualquer pessoa com o token de acesso pode ativar e desbloquear este celular pela internet.</string>
+</resources>

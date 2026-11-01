@@ -5,6 +5,8 @@
     <string name="phone_later">稍後再說</string>
     <string name="phone_bar_title">手機操作</string>
     <string name="phone_skip_note">也可以先跳過,只用上網、檔案和聊天;第一次要操作 App 時會再提醒。</string>
+    <string name="phone_unavailable">這個環境不能操作手機裡的 App;聊天、網頁、檔案和計算照常可用。</string>
+    <string name="phone_unavailable_reason">操作手機 App 要用到 Android 的「開發人員選項」和「無線偵錯」,這裡兩樣都沒有。</string>
     <string name="phone_step_dev">開啟開發人員選項</string>
     <string name="phone_step_dev_body">開啟手機設定裡的「關於手機」,連續點「版本號碼」7 次,看到「您現在已成為開發人員」的提示就好。有的手機「版本號碼」在「軟體資訊」裡面。</string>
     <string name="phone_step_dev_action">開啟關於手機</string>

@@ -1,0 +1,129 @@
+package com.wangzan101.mika.core.general
+
+import com.wangzan101.mika.core.agent.Turn
+import com.wangzan101.mika.core.assembly.toolDispatcher
+import com.wangzan101.mika.core.model.Part
+import com.wangzan101.mika.core.observation.ObsKind
+import com.wangzan101.mika.core.observation.Trust
+import com.wangzan101.mika.core.record.RunEvent
+import com.wangzan101.mika.core.record.RunRecords
+import com.wangzan101.mika.core.record.RunSummary
+import com.wangzan101.mika.core.run.RunId
+import com.wangzan101.mika.core.run.RunSpec
+import com.wangzan101.mika.core.tool.ActionPass
+import com.wangzan101.mika.core.tool.FakeScreen
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class HistoryReadTest {
+    private class FakeRecords(val runs: Map<String, List<RunEvent>>) : RunRecords {
+        val asked = mutableListOf<String>()
+        override suspend fun summary(runId: String) = runs[runId]?.let { RunSummary(runId, "goal", startedAtMs = 1_700_000_000_000) }
+        override suspend fun events(runId: String): List<RunEvent> { asked += runId; return runs[runId].orEmpty() }
+    }
+
+    private val searchRun = listOf(
+        RunEvent.TaskStarted(1, "查三家店的价格", "m"),
+        RunEvent.ModelReply(2, 1, "先看第一家", "web_navigate", "{}", null, null, null),
+        RunEvent.Observed(3, 1, "甲店:拿铁 28 元", id = 1, source = "web", title = "甲店菜单", untrusted = true),
+        RunEvent.Observed(4, 2, "乙店:拿铁 25 元", id = 2, kind = ObsKind.Output.wire, source = "sandbox"),
+        RunEvent.Observed(5, 3, "甲店:拿铁 28 元", id = 3, source = "web", untrusted = true),
+        RunEvent.ModelReply(6, 4, "最终回答", null, null, null, null, null),
+    )
+
+    private val turns = listOf(
+        Turn("你好", "你好!", "succeeded"),
+        Turn("查三家店的价格", "已取消", "cancelled", runId = "run-a"),
+        Turn("再查一下", "没找到", "failed", runId = "run-gone"),
+    )
+
+    private fun tools(records: RunRecords?, prior: List<Turn> = turns) =
+        toolDispatcher(FakeScreen(), runSpec = RunSpec(RunId("now"), "继续", "thread", priorTurns = prior), runRecords = records)
+
+    private fun call(records: RunRecords, args: String) = runBlocking {
+        tools(records).execute(Part.ToolCall("h", HISTORY_READ, args), ActionPass())
+    }
+
+    @Test fun offeredOnlyWithRecordsAndRecordedEarlierTurns() {
+        val records = FakeRecords(emptyMap())
+        assertTrue(HISTORY_READ in tools(records).definitions().map { it.name })
+        assertFalse(HISTORY_READ in tools(null).definitions().map { it.name })
+        assertFalse(HISTORY_READ in tools(records, prior = emptyList()).definitions().map { it.name })
+        assertFalse(HISTORY_READ in tools(records, prior = listOf(Turn("你好", "你好!", "succeeded"))).definitions().map { it.name })
+    }
+
+    @Test fun listsEarlierTurnsNewestFirst() {
+        val r = call(FakeRecords(mapOf("run-a" to searchRun)), "{}").content
+        val list = r["turns"] as JsonArray
+        assertEquals(3, list.size)
+        val first = list[0] as JsonObject
+        assertEquals(1, first["turn"]!!.jsonPrimitive.int)
+        assertEquals("再查一下", first["said"]!!.jsonPrimitive.content)
+        assertEquals(JsonPrimitive(false), first["recorded"])
+        val second = list[1] as JsonObject
+        assertEquals("cancelled", second["status"]!!.jsonPrimitive.content)
+        assertEquals(JsonPrimitive(true), second["recorded"])
+        assertTrue("time" in second)
+        assertEquals("你好", (list[2] as JsonObject)["said"]!!.jsonPrimitive.content)
+    }
+
+    @Test fun readsNotesAndGatheredTextOfOneTurn() {
+        val tool = call(FakeRecords(mapOf("run-a" to searchRun, "other" to searchRun)), """{"turn":2}""")
+        val r = tool.content
+        assertEquals(JsonPrimitive(true), r["ok"])
+        assertEquals("查三家店的价格", r["said"]!!.jsonPrimitive.content)
+        val items = (r["items"] as JsonArray).map { it as JsonObject }
+        // 进度说明 + 两条原文;重复的原文、不带调用的回答不重复给
+        assertEquals(listOf("note", "read", "output"), items.map { it["kind"]!!.jsonPrimitive.content })
+        assertEquals(3, r["totalItems"]!!.jsonPrimitive.int)
+        assertTrue(items[1]["text"]!!.jsonPrimitive.content.startsWith("<untrusted>"))
+        assertEquals("甲店菜单", items[1]["where"]!!.jsonPrimitive.content)
+        assertNull(r["nextOffset"])
+        // 读到的原文交给核查,网页上的仍是不可信的
+        assertEquals(listOf("甲店:拿铁 28 元", "乙店:拿铁 25 元"), tool.observations.map { it.text })
+        assertEquals(Trust.Untrusted, tool.observations[0].trust)
+        assertEquals("history", tool.observations[0].source)
+    }
+
+    @Test fun pagesThroughLongRecords() {
+        val big = (1..10).map { RunEvent.Observed(it.toLong(), it, "第${it}页 " + "字".repeat(1_900), id = it) }
+        val records = FakeRecords(mapOf("run-a" to big))
+        val first = call(records, """{"turn":2}""").content
+        val firstItems = first["items"] as JsonArray
+        assertTrue(firstItems.size in 1..9)
+        val next = first["nextOffset"]!!.jsonPrimitive.int
+        assertEquals(firstItems.size, next)
+        val second = call(records, """{"turn":2,"offset":$next}""").content
+        val n = ((second["items"] as JsonArray)[0] as JsonObject)["n"]!!.jsonPrimitive.int
+        assertEquals(next, n)
+        // 一条原文有长度上限
+        val one = call(FakeRecords(mapOf("run-a" to listOf(RunEvent.Observed(1, 1, "长".repeat(10_000))))), """{"turn":2}""").content
+        assertEquals(HistoryRead.ITEM_CHARS, (((one["items"] as JsonArray)[0] as JsonObject)["text"]!!.jsonPrimitive.content).length)
+    }
+
+    @Test fun recordGoneLeavesOnlyTheOutcome() {
+        val r = call(FakeRecords(emptyMap()), """{"turn":1}""").content
+        assertEquals(JsonPrimitive(true), r["ok"])
+        assertEquals(JsonPrimitive(false), r["recorded"])
+        assertEquals("没找到", r["outcome"]!!.jsonPrimitive.content)
+        assertTrue("message" in r)
+        assertFalse("items" in r)
+    }
+
+    @Test fun onlyTurnsOfThisConversationCanBeRead() {
+        val records = FakeRecords(mapOf("run-a" to searchRun, "other" to searchRun))
+        val r = call(records, """{"turn":4}""").content
+        assertEquals("turn_not_found", r["error"]!!.jsonPrimitive.content)
+        call(records, """{"turn":2}""")
+        assertEquals(listOf("run-a"), records.asked)
+    }
+}

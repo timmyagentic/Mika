@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="install_check">Memeriksa perangkat</string>
+    <string name="install_extract">Mengekstrak</string>
+    <string name="install_configure">Mengonfigurasi</string>
+    <string name="install_skills">Menyinkronkan skrip keterampilan</string>
+    <string name="install_interrupted">Penyiapan terhenti; Anda bisa mencoba lagi</string>
+    <string name="install_checksum">Checksum berkas tidak cocok</string>
+    <string name="install_unpack_failed">Gagal mengekstrak lingkungan; silakan instal ulang Mika: %1$s</string>
+    <string name="install_unsupported">Tidak didukung di perangkat ini (perlu arm64)</string>
+    <string name="install_no_space">Ruang tidak cukup: perlu %1$d MB (tersisa %2$d MB)</string>
+    <string name="install_cannot_start">Lingkungan tidak mau mulai: %1$s</string>
+    <string name="install_exit_code">kode keluar %1$d</string>
+    <string name="install_no_client">Perintah mika tidak ada (paket tidak lengkap)</string>
+    <string name="sandbox_resetting">Mereset</string>
+    <string name="sandbox_incomplete">Berkas lingkungan tidak lengkap; Anda bisa meresetnya di Pengaturan → Lanjutan</string>
+    <string name="sandbox_not_finished">Penyiapan belum selesai; Anda bisa mencoba lagi</string>
+    <string name="sandbox_network">Izinkan skrip online</string>
+    <string name="sandbox_network_sub">Nonaktif secara default</string>
+    <string name="sandbox_network_explain">Secara default Mika mengolah berkas dan menjalankan skrip secara offline. Dengan ini aktif, skrip bisa memakai jaringan (misalnya untuk mencari makalah atau peta) dan juga bisa mengirim keluar berkas dari obrolan.</string>
+    <string name="sandbox_isolation_unavailable">Perangkat ini tidak bisa menjaga skrip tetap offline: Mika hanya bisa mengolah berkas dan menjalankan skrip jika “Izinkan skrip online” aktif</string>
+    <string name="sandbox_reset_title">Reset lingkungan?</string>
+    <string name="sandbox_reset_body">Menghapus lingkungan yang dipakai Mika untuk berkas dan skrip, beserta berkas yang dibuat di setiap obrolan (termasuk yang Anda lampirkan), lalu menyiapkannya kembali secara otomatis. Obrolan dan pengaturan tidak terpengaruh.</string>
+    <string name="sandbox_broken">Penyiapan belum selesai: %1$s</string>
+    <string name="sandbox_reset_sub">Jika ada masalah: hapus lalu siapkan lagi</string>
+    <string name="sandbox_reset">Reset lingkungan</string>
+    <string name="reset">Reset</string>
+</resources>

@@ -7,6 +7,7 @@ import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.chat.CurrentChat
 import com.wangzan101.mika.confirm.ConfirmationNotifier
 import com.wangzan101.mika.core.agent.FailKind
+import com.wangzan101.mika.core.agent.GateReason
 import com.wangzan101.mika.core.agent.QuoteMessage
 import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.R
@@ -566,7 +567,7 @@ class ChatViewModelTest {
         assertEquals("订会议室", vm.ui.value.exchanges.single().goal)
         assertEquals(ExchangeStatus.Working, vm.ui.value.exchanges.single().status)
         // 这条排在它后面,服务显示它的排队状态
-        val queued = TaskState.Held(TaskGate.paused("排队中:前面还有 1 个任务"))
+        val queued = TaskState.Held(GateReason.queued("排队中:前面还有 1 个任务"))
         active.value = listOf("remote", mine)
         shown.value = mine to queued
         emit(queued)
@@ -576,7 +577,7 @@ class ChatViewModelTest {
     @Test fun messageQueuedBehindATaskStartedElsewhereStartsAfterIt() = runTest {
         val vm = raceVm()
         val mine = vm.ui.value.conversationId!!
-        assertEquals(ExchangeStatus.Paused("排队中:前面还有 1 个任务"), vm.ui.value.exchanges.single().status)
+        assertEquals(ExchangeStatus.Queued("排队中:前面还有 1 个任务"), vm.ui.value.exchanges.single().status)
         assertEquals(ComposerMode.Busy, vm.ui.value.composer)
         // 那个任务收尾,这条放出来开始跑,直到做完
         active.value = listOf(mine)
@@ -1761,7 +1762,7 @@ class ChatViewModelTest {
         calls.clear()
         // 定时任务在对话 b 里排上,服务显示了它
         active.value = listOf("a", "b")
-        serve("b", TaskState.Held(TaskGate.paused("排队中:前面还有 1 个任务")))
+        serve("b", TaskState.Held(GateReason.queued("排队中:前面还有 1 个任务")))
         assertEquals(listOf("show:a"), calls)
         assertEquals(ExchangeStatus.Working, vm.ui.value.exchanges.last().status)
     }

@@ -31,9 +31,9 @@ enum class Verb {
     Navigate, ReadPage, EvaluateJs, SiteCommand, Tabs, Downloads, Upload, SiteMode, Script, Interact, Capture, WaitFor, KeepOpen,
     RunCommand, RunBundledScript, ReadFile, WriteFile, SearchFiles, ShareFile,
     Wait, AskUser, RequestConfirmation, HandToUser, HandleObstacle, EndNotDone,
-    KnowledgeSearch, KnowledgeRead, SkillSearch, SkillRead, SkillSave, MemorySearch, MemorySave, ProfileEdit,
+    KnowledgeSearch, KnowledgeRead, SkillSearch, SkillRead, SkillSave, MemorySearch, MemorySave, ProfileEdit, HistoryRead,
     ScheduleTask,
-    SpawnAgent,
+    SpawnAgent, SettingsList, SettingsSet,
 }
 
 /** 按名字查得到的工具声明。 */

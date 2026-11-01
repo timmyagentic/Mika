@@ -45,10 +45,12 @@ class TaskServiceTest {
     /**
      * 每个任务一个脚本模型:模型的调用编号、核查次数各任务分开数。共用一个时,上一个任务没取走的调用
      * (核查、收尾)会被下一个任务的等待取到,测试就跑到了任务前面。
+     * 一个任务里向工厂要模型的不止任务本身:新对话起标题、停止后写交代也各要一次,而且和任务并发,
+     * 谁先要到说不准。所以工厂不按「第几次被要」发模型,一律给最近开始的那个任务的模型(见 [model])。
      */
     private val models = List(MAX_TASKS) { ScriptedModel() }
-    private val handed = AtomicInteger()
-    private var started = 0
+    /** 工厂在任务服务的线程上读它。 */
+    @Volatile private var started = 0
     /** 最近一次 [start] 开始的那个任务的模型(还没开始任务时是第一个任务要用的)。 */
     private val model: ScriptedModel get() = models[maxOf(0, started - 1)]
 
@@ -65,7 +67,9 @@ class TaskServiceTest {
         DeviceSupport.service()
         sh("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")
         priorAudio = shell.getAudioMode(SETTINGS)!!
-        testTasks.modelFactory = { _, _ -> models[handed.getAndIncrement().coerceAtMost(MAX_TASKS - 1)] }
+        // 这里的任务都从界面发起,提议第一个工具调用时会另问一次意图;一律答「要操作」,不占脚本
+        models.forEach { it.intent = "ACT" }
+        testTasks.modelFactory = { _, _ -> model }
         testTasks.lightModelFactory = { _, _ -> null }
         testTasks.visionModelFactory = { _, _ -> null }
     }
@@ -112,48 +116,36 @@ class TaskServiceTest {
     private fun mikaScreenLock(): String? =
         sh("dumpsys power").lines().map { it.trim() }.firstOrNull { "'Mika:task'" in it }
 
-    /** 核查走设置里的轻量模型,而不是主模型:回答里的值没读到过时才请它,退回一次后标成未确认。 */
+    /**
+     * 产品路径上回答不另请核查(任务以 reviewFinalAnswer = false 运行):模型给的回答原样交出,结局是办成、未经核查;
+     * 主模型和轻量模型都收不到核查请求。核查本身的规则由核心的单元测试管。
+     */
     @Test
-    fun verifierUsesLightModel() {
+    fun answerHandedOverWithoutReview() {
         val lightChecks = AtomicInteger()
         testTasks.lightModelFactory = { _, _ ->
             object : ChatModel {
                 override val capabilities = Capabilities(toolCalls = false, vision = false, contextTokens = 8_000, reasoning = false)
                 override suspend fun complete(system: String, messages: List<Message>, tools: List<ToolSpec>): ModelReply {
-                    assertEquals(Verifier.PROMPT, system)
-                    lightChecks.incrementAndGet()
+                    // 配了轻量模型时,判意图、起标题先问它;别的只可能是核查,数下来
+                    if (system == INTENT) return ModelReply(listOf(Part.Text("ACT")), StopReason.EndTurn, null)
+                    if (system == TITLE) return ModelReply(listOf(Part.Text("测试对话")), StopReason.EndTurn, null)
+                    if (system == Verifier.PROMPT) lightChecks.incrementAndGet()
                     return ModelReply(listOf(Part.Text(ScriptedModel.CANNOT_VERIFY)), StopReason.EndTurn, null)
                 }
             }
         }
-        start("测试任务")
-        assertEquals(1, model.awaitCall().number)
-        model.feed("phone_observe")
-        assertEquals(2, model.awaitCall().number)
-        model.answer("电量是 9731 毫安时")
-        assertEquals(3, model.awaitCall().number)
-        model.answer("电量是 9731 毫安时")
-        val end = pollUntil(15_000) { DeviceTaskState.state.value.takeIf { !it.running() } }
-        assertTrue("$end", end is TaskState.Succeeded && !end.verified && end.unconfirmed.isNotEmpty())
-        assertEquals(2, lightChecks.get())
-        assertEquals(0, model.verifierRequests.get())
-    }
-
-    /** 产品路径上核查一定接着:回答里有没读到过的值就请核查;核实不了时结局带 verified=false,通知写明原因。 */
-    @Test
-    fun verifierAlwaysWired() {
         model.verdict = ScriptedModel.CANNOT_VERIFY
         start("测试任务")
         assertEquals(1, model.awaitCall().number)
         model.feed("phone_observe")
         assertEquals(2, model.awaitCall().number)
         model.answer("电量是 9731 毫安时")
-        assertEquals(3, model.awaitCall().number)
-        model.answer("电量是 9731 毫安时")
-        val end = pollUntil(15_000) { DeviceTaskState.state.value.takeIf { !it.running() } } as TaskState.Succeeded
-        assertFalse(end.verified)
-        assertEquals(2, model.verifierRequests.get())
-        assertEquals("办完了,但没能核实", TaskService.describe(end).first)
+        val end = pollUntil(15_000) { DeviceTaskState.state.value.takeIf { !it.running() } }
+        assertTrue("$end", end is TaskState.Succeeded && end.answer == "电量是 9731 毫安时" && !end.reviewed && end.unconfirmed.isEmpty())
+        assertEquals(0, lightChecks.get())
+        assertEquals(0, model.verifierRequests.get())
+        pollUntil(10_000) { DeviceTaskState.busy.value.takeIf { !it } }
     }
 
     /** 不打开 App 的任务不建虚拟屏:读屏是空屏并提示先 phone_launch_app,写操作失败 no_app_open,没有画面。 */
@@ -225,12 +217,13 @@ class TaskServiceTest {
         val line = mikaScreenLock()
         assertNotNull("Mika holds no screen wake lock while running", line)
         // 有的系统在类型前加锁对象编号(mLock:<id>),只认类型字样
-        assertTrue(line!!, "SCREEN_BRIGHT_WAKE_LOCK" in line)
+        // 只保持亮屏、允许系统调暗,不锁在全亮
+        assertTrue(line!!, "SCREEN_DIM_WAKE_LOCK" in line)
         assertFalse(line, "DISABLED" in line)
         val summary = sh("dumpsys power").lines().map { it.trim() }.first { it.startsWith("mWakeLockSummary=") }
-        // 摘要是位掩码(0x..),AOSP 的 WAKE_LOCK_SCREEN_BRIGHT = 1 shl 1;部分版本打印成文字
+        // 摘要是位掩码(0x..),AOSP 的 WAKE_LOCK_SCREEN_DIM = 1 shl 2;部分版本打印成文字
         val bits = Regex("0x([0-9a-fA-F]+)").find(summary)?.groupValues?.get(1)?.toInt(16)
-        assertTrue(summary, if (bits != null) bits and (1 shl 1) != 0 else "SCREEN_BRIGHT" in summary)
+        assertTrue(summary, if (bits != null) bits and (1 shl 2) != 0 else "SCREEN_DIM" in summary)
 
         finishAndAwait()
         val released = pollUntil(3_000) { if (mikaScreenLock() == null) true else null }
@@ -316,5 +309,6 @@ class TaskServiceTest {
         const val MAX_TASKS = 4
         val INTENT by lazy { com.wangzan101.mika.core.prompt.Prompts.role("intent_gate") }
         val SUMMARY by lazy { com.wangzan101.mika.core.prompt.Prompts.role("stop_summary") }
+        val TITLE by lazy { com.wangzan101.mika.core.prompt.Prompts.role("conversation_title") }
     }
 }

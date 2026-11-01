@@ -1,0 +1,36 @@
+services:
+  relay:
+    build: .
+    restart: unless-stopped
+    command:
+      - -listen
+      - 0.0.0.0:8787
+      - -public-url
+      - https://${MIKA_DOMAIN:?Set MIKA_DOMAIN in .env}
+      - -data
+      - /data/relay.json
+      - -owner-key-file
+      - /data/owner-key
+      - -trust-proxy
+    volumes:
+      - relay_data:/data
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    environment:
+      MIKA_DOMAIN: ${MIKA_DOMAIN:?Set MIKA_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [relay]
+volumes:
+  relay_data:
+  caddy_data:
+  caddy_config:

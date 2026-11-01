@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev_adaptive">Сначала элементы, изображения по необходимости</string>
+    <string name="dev_adaptive_sub">Не отправляет изображение, если хватает дерева интерфейса; добавляет его, когда не хватает</string>
+    <string name="dev_inline">Показывать изменения экрана после действий</string>
+    <string name="dev_inline_sub">Бросает взгляд на экран после каждого действия, и отдельное чтение не нужно</string>
+    <string name="dev_batch">Делать несколько шагов сразу, когда всё ясно</string>
+    <string name="dev_batch_sub">Выполняет очевидные шаги за один раз, не останавливаясь, чтобы спросить модель</string>
+    <string name="dev_deep_links">Открывать нужную страницу напрямую</string>
+    <string name="dev_deep_links_sub">Переходит по ссылкам сразу на нужные страницы внутри приложений, не нажимая по меню</string>
+    <string name="dev_light">Простые шаги отдавать лёгкой модели</string>
+    <string name="dev_light_sub">Простые шаги выполняет более быстрая лёгкая модель; сложные остаются за основной</string>
+    <string name="dev_replay">Повторять то, что получилось раньше</string>
+    <string name="dev_replay_sub">Воспроизводит сохранённые маршруты для уже выполнявшихся дел; если они не подходят, возвращает управление модели</string>
+    <string name="dev_parallel">Запускать чаты параллельно</string>
+    <string name="dev_parallel_sub">Задачи из разных чатов получают каждая свой виртуальный экран и идут одновременно</string>
+    <string name="dev_compaction">Структурные сводки для долгих задач</string>
+    <string name="dev_compaction_sub">Когда нужно сжать много шагов, записывает цель, факты, ход работы и следующий шаг</string>
+    <string name="dev_group">Как работает Mika</string>
+    <string name="dev_autonomy">Автономный режим</string>
+    <string name="dev_autonomy_sub">Когда включён, Mika не спрашивает даже перед оплатой и просто доводит дело до конца; когда выключен, спрашивает только перед оплатой</string>
+    <string name="dev_note">Эти переключатели влияют на то, как и как быстро работает Mika. Обычно лучше оставить значения по умолчанию.</string>
+    <string name="dev_grounding">Привязка к экрану проверена</string>
+    <string name="dev_grounding_sub">Включите, когда проверено, что модель зрения %1$s точно находит элементы; пока выключено, перед нажатием на отмеченные ею места Mika нужны другие подтверждения.</string>
+    <string name="dev_speed">Скорость</string>
+    <string name="dev_experiments">Эксперименты</string>
+    <string name="dev_run_log">Журнал запусков</string>
+</resources>

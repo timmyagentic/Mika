@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_transport">Удалённо</string>
+    <string name="relay_pair_title">Сопряжение с удалённым шлюзом</string>
+    <string name="relay_pair_sub">Создайте код сопряжения на веб-странице шлюза, затем введите ниже его адрес и код.</string>
+    <string name="relay_gateway">Шлюз</string>
+    <string name="relay_code">Код сопряжения</string>
+    <string name="relay_code_hint">Одноразовый код от вашего шлюза</string>
+    <string name="relay_pair">Сопрячь шлюз</string>
+    <string name="relay_busy">Подождите…</string>
+    <string name="relay_enable">Разрешить удалённый доступ</string>
+    <string name="relay_disabled">Сопряжено. Удалённый доступ выключен</string>
+    <string name="relay_online">Шлюз подключён. Ожидание запросов CLI / MCP</string>
+    <string name="relay_connecting">Подключение к удалённому шлюзу…</string>
+    <string name="relay_offline">Соединение потеряно. Переподключаемся автоматически</string>
+    <string name="relay_unauthorized">Сопряжение истекло или отозвано. Сопрягите шлюз заново</string>
+    <string name="relay_copy_address">Копировать адрес MCP</string>
+    <string name="relay_client_help">Скопируйте конфигурацию в клиент MCP на компьютере, чтобы подключиться.</string>
+    <string name="relay_unpair">Разорвать сопряжение со шлюзом</string>
+    <string name="relay_unpair_body">Отключить этот телефон от шлюза. Нужно подключение к интернету. Токен доступа к телефону не изменится.</string>
+    <string name="relay_failed">Не удалось завершить. Проверьте адрес шлюза, подключение к интернету и код сопряжения. Если разорвать сопряжение не удалось, доступ выключен; повторите попытку или отзовите телефон на шлюзе.</string>
+    <string name="relay_notif_body">Удалённый доступ включён. Откройте Mika, чтобы проверить подключение к шлюзу.</string>
+    <string name="relay_incompatible">Обновите Mika и шлюз до одинаковых версий</string>
+    <string name="relay_copy_gateway">Копировать адрес шлюза</string>
+    <string name="relay_cli_help">Сохраните токен доступа в файл на компьютере, затем выполните команду подключения выше.</string>
+    <string name="relay_intro">Шлюз передаёт на ваш телефон запросы CLI и MCP, которые обычно идут по Wi-Fi / локальной сети, для удалённого доступа. Перед сопряжением разверните его на собственном публичном сервере.</string>
+    <string name="relay_device_access">Разрешить пробуждение и разблокировку через шлюз</string>
+    <string name="relay_device_access_sub">По умолчанию выключено. Также нужно включить «Разрешить удалённое пробуждение и разблокировку» на этой странице. Когда включено и то и другое, любой, у кого есть токен доступа, сможет разбудить и разблокировать этот телефон через интернет.</string>
+</resources>

@@ -12,18 +12,28 @@ import android.os.LocaleList
 import java.util.Locale
 
 /**
- * App 界面的语言:跟随系统、简体中文、繁體中文、English。资源里英文是默认(`values/`),简体中文在 `values-zh/`、繁体中文在 `values-b+zh+Hant/`,
- * 安卓按文字体系挑资源,所以「跟随系统」时简体、繁体中文的系统各显示对应的中文,其他语言的系统显示英文。
+ * App 界面的语言:跟随系统,或者选定下面的一种。资源里英文是默认(`values/`),简体中文在 `values-zh/`、繁体中文在 `values-b+zh+Hant/`,
+ * 其他语言各在 `values-<语言>/`(印尼语沿用安卓的旧代码 `values-in/`)。安卓按语言和文字体系挑资源,
+ * 所以「跟随系统」时系统语言有译文就显示它,没有就显示英文;某种语言缺了哪条,那条也显示英文。
  *
  * 安卓 13 起由系统的「应用语言」管(LocaleManager):系统记住选择、套到整个进程、重建界面,
  * 系统设置里的「应用语言」和这里的开关是同一个值。安卓 11、12 没有这项,由这里记在本地,
  * 经 [wrap] 套到界面的 Context、经 [resources] 套到界面以外取文字的地方,换了之后重建当前界面。
  */
-enum class AppLanguage(val tag: String?) {
-    System(null),
-    SimplifiedChinese("zh-Hans"),
-    TraditionalChinese("zh-Hant"),
-    English("en");
+enum class AppLanguage(val tag: String?, val speechTag: String?) {
+    System(null, null),
+    SimplifiedChinese("zh-Hans", "zh-CN"),
+    TraditionalChinese("zh-Hant", "zh-TW"),
+    English("en", "en-US"),
+    Japanese("ja", "ja-JP"),
+    Korean("ko", "ko-KR"),
+    Spanish("es", "es-ES"),
+    Portuguese("pt", "pt-BR"),
+    Russian("ru", "ru-RU"),
+    Indonesian("id", "id-ID");
+
+    /** 语言代码(不带文字体系和地区);跟随系统时为 null。 */
+    val language: String? get() = tag?.let { Locale.forLanguageTag(it).language.let(::modernCode) }
 
     companion object {
         private const val PREFS = "app_language"
@@ -54,13 +64,22 @@ enum class AppLanguage(val tag: String?) {
 
         /**
          * 中文按文字体系分:写的或 [likelyScript] 补出的是 Hant 就是繁體中文,别的中文是简体中文;
-         * 其他非空的标签是英文。以前选「中文」存下的 zh-Hans 仍是简体中文。
+         * 其他语言按语言代码对上一项(地区不管),对不上的是英文。以前选「中文」存下的 zh-Hans 仍是简体中文。
          */
         internal fun fromTag(tag: String?, likelyScript: (String) -> String): AppLanguage {
             if (tag.isNullOrEmpty()) return System
             val l = Locale.forLanguageTag(tag)
-            if (l.language != "zh") return English
-            return if (l.script.ifEmpty { likelyScript(tag) } == "Hant") TraditionalChinese else SimplifiedChinese
+            val code = modernCode(l.language)
+            if (code == "zh") return if (l.script.ifEmpty { likelyScript(tag) } == "Hant") TraditionalChinese else SimplifiedChinese
+            return entries.firstOrNull { it.tag != null && it.language == code } ?: English
+        }
+
+        /** 安卓上 java.util.Locale 仍给几种语言用旧代码(印尼语是 in、希伯来语是 iw…),统一成现行代码再比。 */
+        internal fun modernCode(language: String): String = when (language) {
+            "in" -> "id"
+            "iw" -> "he"
+            "ji" -> "yi"
+            else -> language
         }
 
         /** 换语言并重建界面。安卓 13 起交给系统(系统自己重建);之前记在本地,重建 [context] 所在的界面。 */

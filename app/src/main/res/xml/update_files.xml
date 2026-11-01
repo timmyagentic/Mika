@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 走网络代理时 Mika 自己下的更新安装包:只有应用专属外部目录里的 Download/updates/ -->
+<paths>
+    <external-files-path name="updates" path="Download/updates/" />
+</paths>

@@ -70,7 +70,17 @@ sealed interface TaskState {
  * [why] 是给用户看的说明(可为空),[resumable] 为 true 时用户可以点「继续」,否则条件满足后自动继续。
  * [needsYou] 为 true 时要用户在手机上动一下手才能接着做(界面上算「要你处理」,不只是等条件)。
  */
-data class GateReason(val code: String, val why: String = "", val resumable: Boolean = false, val needsYou: Boolean = false)
+data class GateReason(val code: String, val why: String = "", val resumable: Boolean = false, val needsYou: Boolean = false) {
+    /** 还没开始、排在开始队列里(并行已满、同一对话已有任务):轮到时自动开始,点「继续」不能让它插队。 */
+    val queued: Boolean get() = code == QUEUED
+
+    companion object {
+        const val QUEUED = "queued"
+
+        /** 排队等开始;[why] 是给用户看的那句(比如前面还有几个任务)。 */
+        fun queued(why: String) = GateReason(QUEUED, why)
+    }
+}
 
 /** 任务失败的来源。 */
 enum class FailKind {

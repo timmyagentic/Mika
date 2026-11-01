@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appaccess_title">Acceso a apps</string>
+    <string name="appaccess_row_sub">Bloquea apps y el uso compartido de pantalla app por app</string>
+    <string name="appaccess_intro">Elige qué apps puede leer y manejar Mika con las herramientas estándar del teléfono. Los comandos de shell, el sandbox y el acceso desde el ordenador (MCP) no están restringidos por este ajuste.</string>
+    <string name="appaccess_privacy">Al clasificar se envían los nombres de las apps y de sus paquetes al modelo de IA; “Actualizar lista de apps” te lo pregunta antes.</string>
+    <string name="appaccess_unavailable">No se pueden leer los ajustes de acceso a apps, así que el acceso estándar al teléfono está en pausa. Al restablecer se borran los permisos y categorías guardados.</string>
+    <string name="appaccess_reset">Restablecer acceso a apps</string>
+    <string name="appaccess_search">Buscar nombre o paquete</string>
+    <string name="appaccess_refreshing">Clasificando…</string>
+    <string name="appaccess_refresh">Actualizar lista de apps</string>
+    <string name="appaccess_recommend">Se recomienda bloquear</string>
+    <string name="appaccess_recommend_count">Se recomienda bloquear · %1$d</string>
+    <string name="appaccess_allow_all">Permitir todas</string>
+    <string name="appaccess_risk_note">El manejo automático puede traer limitaciones en la cuenta; bloquea las que no necesites.</string>
+    <string name="appaccess_blocked">Bloqueada</string>
+    <string name="appaccess_allowed">Permitida</string>
+    <string name="appaccess_revoke_share">Revocar el uso compartido de pantalla de %1$s</string>
+
+    <string name="appaccess_send_title">¿Enviar la lista de apps a la IA?</string>
+    <string name="appaccess_send_body">Al actualizar se leen tus apps instaladas y se envían sus nombres y los de sus paquetes al modelo de IA que configuraste, para que juzgue una categoría de riesgo. No se envía nada del interior de las apps.</string>
+    <string name="appaccess_send_confirm">Continuar y clasificar</string>
+    <string name="appaccess_cancel">Cancelar</string>
+
+    <string name="appaccess_recommend_title">Se recomienda bloquear: apps financieras</string>
+    <string name="appaccess_recommend_body">Estas apps están clasificadas como financieras o de pagos, y Mika aún puede manejarlas. Bloquéalas una a una, o todas a la vez.</string>
+    <string name="appaccess_recommend_empty">No hay nada que bloquear.</string>
+    <string name="appaccess_block">Bloquear</string>
+    <string name="appaccess_block_all">Bloquear todas</string>
+
+    <string name="appaccess_edit_category">Cambiar categoría</string>
+    <string name="appaccess_category_manual">Definida por ti</string>
+
+    <string name="appaccess_error_save">No se pudo guardar</string>
+    <string name="appaccess_error_no_model">No hay ningún modelo disponible. La lista de apps se actualizó, pero no se puede clasificar.</string>
+    <string name="appaccess_error_refresh">Error al actualizar</string>
+    <string name="appaccess_error_load">No se pudo leer la lista de apps</string>
+
+    <string name="appaccess_category_finance">Finanzas</string>
+    <string name="appaccess_category_social">Redes sociales</string>
+    <string name="appaccess_category_game">Juegos</string>
+    <string name="appaccess_category_shopping">Compras</string>
+    <string name="appaccess_category_productivity">Productividad</string>
+    <string name="appaccess_category_media">Multimedia</string>
+    <string name="appaccess_category_other">Otras</string>
+    <string name="appaccess_category_unknown">Sin clasificar</string>
+
+    <string name="appaccess_share_title">Compartir la pantalla de %1$s</string>
+    <string name="appaccess_share_body">Esta app está bloqueada. Compartir pantalla te permite compartirla a propósito; la lectura y el manejo automáticos siguen bloqueados.</string>
+    <string name="appaccess_share_allow">Permitir solo compartir pantalla</string>
+    <string name="appaccess_share_unblock">Quitar de bloqueadas</string>
+    <string name="appaccess_share_cancel">Cancelar el uso compartido</string>
+    <string name="appaccess_share_expired">El permiso para compartir pantalla caducó. Haz una captura nueva.</string>
+</resources>

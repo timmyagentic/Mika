@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_approve_once">今回だけ許可</string>
+    <string name="card_see_process">Mika に戻って全体の流れを見る</string>
+    <string name="card_back_to_mika">Mika に戻る</string>
+    <string name="card_continue_last">前回のチャットを続ける</string>
+    <string name="card_screen">バックグラウンドの画面。タップで拡大</string>
+    <string name="card_screen_label">バックグラウンド</string>
+    <string name="card_zoomed">拡大したバックグラウンドの画面。タップで閉じる</string>
+    <string name="card_zoom_hint">Mika はバックグラウンドで作業中 · タップで閉じる</string>
+    <string name="card_continuing">「%1$s」を続ける</string>
+    <string name="card_queued_ahead">先に別の引き継ぎを済ませてから、こちらをお願いします</string>
+    <string name="card_hint_answer">Mika に答える…</string>
+    <string name="card_hint_continue">会話を続ける…</string>
+    <plurals name="capsule_behind">
+        <item quantity="other">このあと、あと %1$d 件が待っています</item>
+    </plurals>
+    <string name="capsule_hold">保留中</string>
+    <string name="capsule_handed_over">操作中です</string>
+    <string name="capsule_running">作業中</string>
+    <string name="capsule_done">完了</string>
+    <string name="capsule_failed">うまくいきませんでした</string>
+    <string name="capsule_stopped">停止しました</string>
+    <string name="capsule_stop">この作業を止める</string>
+    <string name="capsule_expand">このタスクを開く</string>
+    <string name="capsule_talk">Mika と話す</string>
+    <string name="capsule_swap_side">反対側に移動</string>
+    <string name="capsule_desc_needs">%1$s、タップして対応</string>
+    <string name="capsule_desc_running">Mika が作業中: %1$s、タップで詳細</string>
+    <string name="capsule_desc_other">Mika: %1$s、タップで詳細</string>
+    <string name="capsule_then_tap_right">終わったら右側をタップ</string>
+    <string name="capsule_need_of_total">%1$d 件が対応待ち · 全部で %2$d 件</string>
+    <string name="capsule_of_total">%1$s · 全部で %2$d 件</string>
+    <string name="capsule_done_tap">完了 · タップで結果を見る</string>
+    <string name="capsule_failed_tap">うまくいきませんでした · タップで理由を見る</string>
+    <string name="capsule_needs_you">対応が必要: %1$s</string>
+    <string name="capsule_handle_it">確認する</string>
+    <string name="capsule_needs_ok">許可が必要: %1$s</string>
+    <string name="capsule_asks">Mika からの質問: %1$s</string>
+    <string name="capsule_hold_why">保留中: %1$s</string>
+    <string name="capsule_you_handle">あなたの番です</string>
+    <string name="capsule_thinking">次の一手を考え中</string>
+    <string name="capsule_continuing">続行中</string>
+    <string name="capsule_replay">手順をたどっています %1$d/%2$d</string>
+    <plurals name="capsule_batch">
+        <item quantity="other">%1$d ステップを一度に</item>
+    </plurals>
+    <string name="and_more">" など"</string>
+</resources>
