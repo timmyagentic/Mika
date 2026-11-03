@@ -31,6 +31,7 @@ class ConversationDeleter(
     private val stopWaitMs: Long = 15_000,
     /** 读写定时任务和对话记录在哪儿做。 */
     private val io: CoroutineContext = Dispatchers.IO,
+    private val forgetRemoteTasks: (String) -> Unit = {},
 ) {
     fun impact(conversationId: String): DeleteImpact =
         DeleteImpact(conversationId in active.value, runCatching { schedulesOf(conversationId).size }.getOrDefault(0))
@@ -45,6 +46,9 @@ class ConversationDeleter(
         }
         // 工作区删不掉(运行环境不支持等)也照样删对话记录
         try { deleteWorkspace(conversationId) } catch (e: CancellationException) { throw e } catch (e: Exception) { }
-        withContext(io) { store.delete(conversationId) }
+        withContext(io) {
+            forgetRemoteTasks(conversationId)
+            store.delete(conversationId)
+        }
     }
 }

@@ -119,6 +119,14 @@
             <div class="notices">
               <p id="error" role="alert" hidden></p>
               <p id="notice" role="status" hidden></p>
+              <div id="pending-run" hidden>
+                <p id="pending-label" role="status"></p>
+                <div class="turn-tools">
+                  <button type="button" id="lookup-run" data-i18n="lookupRun">Find task</button>
+                  <button type="button" id="retry-run" data-i18n="retryRun">Retry with the same ID</button>
+                  <button type="button" id="forget-run" data-i18n="forgetRun">Dismiss</button>
+                </div>
+              </div>
             </div>
             <div id="scroll-thread">
               <div id="transcript"></div>

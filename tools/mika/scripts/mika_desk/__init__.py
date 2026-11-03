@@ -38,6 +38,8 @@ def command(data):
     expected = FIELDS[action] | {"action"}
     if action == "run" and "conversation" in data:
         expected.add("conversation")
+    if action == "run" and "request_id" in data:
+        expected.add("request_id")
     if data.keys() != expected:
         raise ValueError
     if "task_id" in data and not re.fullmatch(r"[A-Za-z0-9_-]+", data["task_id"]):
@@ -111,7 +113,7 @@ class Desk(ThreadingHTTPServer):
                         client.request("POST", f"/tasks/{data['task_id']}/wait", {"timeout_s": WATCH_SECONDS},
                                        timeout=max(client.timeout, WATCH_SECONDS + 5))
                     except CliError as exc:
-                        if exc.details.get("http_status") != 404:
+                        if exc.details.get("http_status") not in (404, 410):
                             raise
                         # The phone may have restarted and lost this task ID.
                 tasks = recent_tasks(client, 50)["tasks"]
@@ -136,7 +138,7 @@ class Desk(ThreadingHTTPServer):
                         "capabilities": info["capabilities"], "device": device, "tasks": tasks,
                         "history_enabled": info.get("history_enabled", False), "history": history}
 
-        args = argparse.Namespace(**{**vars(self.args), "conversation": None, **data, "command": "task",
+        args = argparse.Namespace(**{**vars(self.args), "conversation": None, "request_id": None, **data, "command": "task",
                                      "goal_file": None, "text_file": None})
         return execute(args, sensitive)
 

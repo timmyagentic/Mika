@@ -49,6 +49,8 @@ On the phone, open **Settings → Connect a computer → Advanced** and enable *
 
 Each turn’s **View process** can show saved run events and detailed Trace entries, including model attempts, tool calls, timing, input and cached tokens, and the first changed request block. **Read request and reply** loads redacted text one page at a time. Recordings update while the page is visible, and switching the inspected turn keeps the composer’s draft. Detailed recording must have been enabled beforehand in Developer options in a debug or perf build. Missing, rotated and incomplete records are identified in the view.
 
+On a phone with task recovery, the desk matches a missing submission receipt by ID when the connection returns. Choose **Find task** if the task is outside the recent list. If the phone has no record yet, choose **Retry with the same ID**. The tab keeps the pending request across a reload until you recover it, retry successfully or dismiss it.
+
 - With several ADB devices, choose one in the page or start with `mika ui --device SERIAL`; Wi-Fi / private VPN connections use the usual `--url` and `--token-file`.
 - With only the Skill installed, run `python3 <skills-directory>/mika/scripts/mika_cli.py ui`.
 - If no browser opens, add `--no-open` and open the printed link in a browser on this computer.

@@ -15,6 +15,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 
 VERSION = "0.1.0"
 API = "/api/v1"
@@ -316,6 +317,8 @@ def task_snapshot(result, client, *, mutation=False, task_id=None):
             client.unknown(task_id)
         raise CliError("protocol", "Mika returned an invalid task snapshot.")
     if task_id is not None and result["task_id"] != task_id:
+        if mutation:
+            client.unknown(task_id)
         raise CliError("protocol", "Mika returned a different task ID.")
     return result
 
@@ -336,6 +339,12 @@ def execute(args, secrets):
     if args.command == "task":
         if args.action == "run":
             args.goal = text_input(args.goal, args.goal_file, "goal")
+            if args.request_id is not None:
+                try:
+                    if str(uuid.UUID(args.request_id)) != args.request_id:
+                        raise ValueError
+                except ValueError:
+                    raise CliError("arguments", "request_id must be a canonical lowercase UUID.") from None
         if args.action in {"answer", "steer"}:
             args.text = text_input(args.text, args.text_file, args.action)
         if hasattr(args, "task_id") and not re.fullmatch(r"[A-Za-z0-9_-]+", args.task_id):
@@ -361,9 +370,16 @@ def execute(args, secrets):
         path = "/tasks" + ("/" + args.task_id if hasattr(args, "task_id") else "")
         if action == "run":
             body = {"goal": args.goal}
+            request_id = args.request_id
+            if "task_recovery" in info["capabilities"]:
+                request_id = request_id or str(uuid.uuid4())
+                body["request_id"] = request_id
+            elif request_id is not None:
+                raise CliError("incompatible_api", "Update the phone app to submit a recoverable request.")
             if args.conversation is not None:
                 body["conversation"] = args.conversation
-            return task_snapshot(client.request("POST", path, body, mutation=True), client, mutation=True)
+            result = client.request("POST", path, body, mutation=True, task_id=request_id)
+            return task_snapshot(result, client, mutation=True, task_id=request_id)
         if action == "list":
             return recent_tasks(client, args.limit)
         if action in {"status", "wait"}:
@@ -433,6 +449,7 @@ def parser():
     goal.add_argument("--goal")
     goal.add_argument("--goal-file", help="UTF-8 file, or - for stdin")
     run.add_argument("--conversation", help="Continue a conversation returned by a previous remote task")
+    run.add_argument("--request-id", help="A lowercase UUID chosen before submission. Query it as the task ID after a lost receipt.")
     for name in ["status", "wait", "answer", "steer", "cancel"]:
         cmd = actions.add_parser(name, parents=[common])
         cmd.add_argument("task_id")

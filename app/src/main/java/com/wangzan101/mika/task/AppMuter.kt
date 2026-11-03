@@ -16,7 +16,7 @@ import com.wangzan101.mika.cap.phone.shell.AppAudioKey
  */
 class AppMuter(
     private val audio: AudioMute,
-    /** 设置 › 干活时的「打开的 App 静音」;每次现读,任务中途关掉也算数。 */
+    /** 设置 › 任务运行的「打开的 App 静音」;每次现读,任务中途关掉也算数。 */
     private val enabled: () -> Boolean,
     /** 这个包能不能静(见类说明的「不碰的」前两条)。 */
     private val mutable: (packageName: String) -> Boolean,

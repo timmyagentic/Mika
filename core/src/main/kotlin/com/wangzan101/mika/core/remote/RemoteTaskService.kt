@@ -8,7 +8,7 @@ import java.util.UUID
  * 要按入口换说法的几种情形各是一个子类,适配器按类型换,不去比对 message 的文字。
  */
 sealed class RemoteTaskError(val code: Code, message: String) : Exception(message) {
-    enum class Code { INVALID_ARGUMENT, NOT_FOUND, CONFLICT, UNAVAILABLE }
+    enum class Code { INVALID_ARGUMENT, NOT_FOUND, GONE, CONFLICT, UNAVAILABLE }
 
     /** 其余错误:message 原样给调用方。 */
     class General(code: Code, message: String) : RemoteTaskError(code, message)
@@ -32,11 +32,12 @@ data class RemoteSteerReceipt(val taskId: String, val messageId: String)
 class RemoteTaskService(private val tasks: RemoteTasks, private val pollMs: Long = 250) {
     init { require(pollMs > 0) }
 
-    fun start(goal: String, conversation: String? = null): RemoteTask {
+    fun start(goal: String, conversation: String? = null, requestId: String? = null): RemoteTask {
         val clean = required(goal, "goal", MAX_GOAL)
         val thread = conversation?.trim()?.takeIf { it.isNotEmpty() }
         if (thread != null && !isConversation(thread)) throw RemoteTaskError.BadConversation()
-        return when (val r = tasks.start(clean, thread)) {
+        if (requestId != null && !isUuid(requestId)) invalid("request_id must be a canonical lowercase UUID")
+        return when (val r = tasks.start(clean, thread, requestId)) {
             is StartOutcome.Started -> r.task
             is StartOutcome.Refused -> throw RemoteTaskError.General(RemoteTaskError.Code.UNAVAILABLE, r.message)
         }
@@ -124,7 +125,7 @@ class RemoteTaskService(private val tasks: RemoteTasks, private val pollMs: Long
         // 保留已发出的对话编号,让新 CLI 与原 MCP 可以继续同一个远程对话。
         private const val CONVERSATION_PREFIX = "mcp-"
         fun newConversation(): String = CONVERSATION_PREFIX + UUID.randomUUID()
-        fun isConversation(id: String): Boolean = id.startsWith(CONVERSATION_PREFIX) &&
-            id.removePrefix(CONVERSATION_PREFIX).let { raw -> runCatching { UUID.fromString(raw).toString() == raw }.getOrDefault(false) }
+        private fun isUuid(id: String) = runCatching { UUID.fromString(id).toString() == id }.getOrDefault(false)
+        fun isConversation(id: String): Boolean = id.startsWith(CONVERSATION_PREFIX) && isUuid(id.removePrefix(CONVERSATION_PREFIX))
     }
 }

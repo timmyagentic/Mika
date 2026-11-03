@@ -1,6 +1,10 @@
 package com.wangzan101.mika.cap.phone.display
 
 import android.hardware.display.DisplayManager
+import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.ParcelFileDescriptor
 import android.os.Build
 import android.view.Display
@@ -8,6 +12,7 @@ import android.view.KeyEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.wangzan101.mika.cap.phone.a11y.DeviceSupport
+import com.wangzan101.mika.cap.phone.a11y.AndroidScreen
 import com.wangzan101.mika.shell.IMikaShell
 import com.wangzan101.mika.cap.phone.PhoneServices
 import com.wangzan101.mika.cap.phone.shell.BuiltinShellConnection
@@ -64,7 +69,7 @@ class AgentDisplayTest {
         display?.release()
     }
 
-    private fun newDisplay() = AgentDisplay(shell, 720, 1600, 320).also { display = it }
+    private fun newDisplay() = AgentDisplay(shell, 720, 1600, 320, InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(android.hardware.display.DisplayManager::class.java)).also { display = it }
 
     @Test
     fun createsVersionAppropriatePublicDisplay() {
@@ -132,12 +137,70 @@ class AgentDisplayTest {
     }
 
     @Test
+    fun appOrientationUpdatesPreviewScreenshotAndScreenCoordinates() = runBlocking {
+        val d = newDisplay()
+        val main = context.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
+        val mainRotation = main.rotation
+        val mainState = DeviceSupport.mainScreenState(shell)
+        val screen = AndroidScreen(DeviceSupport.service(), shell, DeviceSupport.ready(d))
+        val testPackage = InstrumentationRegistry.getInstrumentation().context.packageName
+        for (orientation in listOf(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE, ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)) {
+            shellCommand("am start -W --display ${d.displayId} -f 0x30000000 " +
+                "-n $testPackage/${RotationTestActivity::class.java.name} --ei orientation $orientation")
+            val landscape = orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE ||
+                orientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+            val width = if (landscape) 1600 else 720
+            val height = if (landscape) 720 else 1600
+            val previewWidth = if (landscape) 800 else 360
+            val preview = pollUntil(5_000) {
+                d.frames.value?.takeIf { it.width == previewWidth && it.height == height * previewWidth / width && uprightCorners(it) }
+            }
+            assertNotNull("preview did not follow orientation $orientation: logical=${d.width}x${d.height}, " +
+                "preview=${d.frames.value?.let { "${it.width}x${it.height}" }}", preview)
+            assertEquals(width, d.width)
+            assertEquals(height, d.height)
+            val snapshot = screen.snapshot()
+            assertEquals(width, snapshot.width)
+            assertEquals(height, snapshot.height)
+            val png = d.latestFramePng()!!
+            val image = BitmapFactory.decodeByteArray(png, 0, png.size)
+            try {
+                assertEquals(width, image.width)
+                assertEquals(height, image.height)
+                assertTrue("PNG corners for orientation $orientation", uprightCorners(image))
+            } finally { image.recycle() }
+            assertTrue(shell.injectTap(d.displayId, width * 3 / 4, height * 3 / 4))
+            assertNotNull("logical tap missed the bottom-right quadrant", pollUntil(3_000) {
+                val image = d.latestFrameBitmap() ?: return@pollUntil null
+                try { true.takeIf { nearColor(image.getPixel(width * 3 / 4, height * 3 / 4), Color.CYAN) } }
+                finally { image.recycle() }
+            })
+            assertEquals("main display rotated", mainRotation, main.rotation)
+            assertEquals("main screen focus changed", mainState, DeviceSupport.mainScreenState(shell))
+        }
+    }
+
+    private fun uprightCorners(frame: Bitmap): Boolean =
+        nearColor(frame.getPixel(frame.width / 4, frame.height / 4), Color.RED) &&
+            nearColor(frame.getPixel(frame.width * 3 / 4, frame.height / 4), Color.GREEN) &&
+            nearColor(frame.getPixel(frame.width / 4, frame.height * 3 / 4), Color.BLUE) &&
+            nearColor(frame.getPixel(frame.width * 3 / 4, frame.height * 3 / 4), Color.YELLOW)
+
+    // Surface 合成和 GPU 转屏可能把通道的 255 变为 254;容许量化误差,仍严格区分四个象限。
+    private fun nearColor(actual: Int, expected: Int): Boolean =
+        kotlin.math.abs(Color.red(actual) - Color.red(expected)) <= 4 &&
+            kotlin.math.abs(Color.green(actual) - Color.green(expected)) <= 4 &&
+            kotlin.math.abs(Color.blue(actual) - Color.blue(expected)) <= 4
+
+    @Test
     fun movesTaskBetweenVirtualDisplays() {
         val d = newDisplay()
         shell.startApp(d.displayId, SETTINGS)
         val task = pollUntil(5_000) { shell.topTaskId(d.displayId).takeIf { it != -1 } }!!
         // 在两块虚拟屏之间挪,不碰用户的主屏
-        val other = AgentDisplay(shell, 720, 1600, 320)
+        val other = AgentDisplay(shell, 720, 1600, 320, InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(android.hardware.display.DisplayManager::class.java))
         try {
             assertTrue(shell.moveTask(task, other.displayId))
             assertEquals(task, pollUntil(3_000) { shell.topTaskId(other.displayId).takeIf { it == task } })
@@ -151,7 +214,7 @@ class AgentDisplayTest {
     fun coldStartDoesNotKillAppWithTaskOnAnotherScreen() {
         val d = newDisplay()
         // 用另一块虚拟屏代表「Mika 屏以外的任务」,不碰用户的主屏
-        val other = AgentDisplay(shell, 720, 1600, 320)
+        val other = AgentDisplay(shell, 720, 1600, 320, InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(android.hardware.display.DisplayManager::class.java))
         try {
             assertEquals(ShellService.START_OK, shell.startApp(other.displayId, SETTINGS))
             assertNotNull(pollUntil(5_000) { shell.topTaskId(other.displayId).takeIf { it != -1 } })
@@ -206,7 +269,7 @@ class AgentDisplayTest {
         }
         assertNotNull("shell did not come back after its process died", after)
         assertNotEquals(pid, shellPid())
-        val d = AgentDisplay(after!!, 720, 1600, 320).also { display = it }
+        val d = AgentDisplay(after!!, 720, 1600, 320, InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(android.hardware.display.DisplayManager::class.java)).also { display = it }
         assertTrue(d.displayId >= 0)
     }
 
@@ -216,8 +279,7 @@ class AgentDisplayTest {
         ?.get(0)?.toIntOrNull()
 
     private fun shellCommand(cmd: String): String {
-        val pfd = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(cmd)
-        return ParcelFileDescriptor.AutoCloseInputStream(pfd).bufferedReader().use { it.readText() }
+        return DeviceSupport.sh(cmd)
     }
 
     /** 等画面静止(相隔 500ms 的两帧一样),返回该帧。 */

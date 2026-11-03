@@ -39,6 +39,13 @@ class FeatureFlags(private val prefs: SharedPreferences) {
         prefs.edit().putInt(PARALLEL_MAX, max).commit()
     }
 
+    /** 每个任务最多走多少步;null 表示不限制。默认不限制,下次任务起生效。 */
+    fun taskStepLimit(): Int? = prefs.getInt(TASK_STEP_LIMIT, 0).takeIf { it in 1..MAX_TASK_STEP_LIMIT }
+
+    fun setTaskStepLimit(limit: Int?) {
+        prefs.edit().putInt(TASK_STEP_LIMIT, (limit ?: 0).coerceIn(0, MAX_TASK_STEP_LIMIT)).commit()
+    }
+
     /** 干活时屏幕保持常亮;默认开,用户可以关。 */
     fun keepScreenOn(): Boolean = prefs.getBoolean(KEEP_SCREEN_ON, true)
 
@@ -127,6 +134,8 @@ class FeatureFlags(private val prefs: SharedPreferences) {
 
     companion object {
         const val PREFS = "feature_flags"
+        /** 每个任务步数上限能设的最大值;0/null 表示不限制。 */
+        const val MAX_TASK_STEP_LIMIT = 500
         private const val SPEED_FLAGS = "speed_flags"
         /**
          * 提速开关默认值的升级,按先后各做一次(键记下做过没有):v2 打开分级读屏、连续操作、按需看图;
@@ -137,6 +146,7 @@ class FeatureFlags(private val prefs: SharedPreferences) {
             "speed_defaults_applied_v3" to { f -> f.copy(replay = true) },
         )
         private const val PARALLEL_MAX = "parallel_max"
+        private const val TASK_STEP_LIMIT = "task_step_limit"
         private const val KEEP_SCREEN_ON = "keep_screen_on"
         private const val MUTE_TARGET = "mute_target"
         private const val OPERATING_PACE = "operating_pace"

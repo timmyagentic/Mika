@@ -167,6 +167,15 @@ const STRINGS = {
   nextPage: ["下一页", "Next page"],
   pageN: ["第 {n} 页", "Page {n}"],
   closeBody: ["收起正文", "Hide body"],
+  pendingRun: ["待核对的提交 · {id}", "Submission to check · {id}"],
+  lostReceipt: ["手机可能已受理。连接恢复后，点「查找原任务」核对。", "The phone may have accepted this task. Once connected, choose Find task to check."],
+  recoveredRun: ["已按编号确认手机收到任务 · {id}", "Submission confirmed by its task ID · {id}"],
+  lookupRun: ["查找原任务", "Find task"],
+  retryRun: ["用同一编号重试", "Retry with the same ID"],
+  forgetRun: ["放弃核对", "Dismiss"],
+  forgetConfirm: ["放弃核对不会取消手机上的任务。之后再次发送会创建新任务，确定放弃？", "Dismiss this receipt? Any task on the phone keeps running. Sending again will create a new task."],
+  notReceived: ["手机暂未查到这个编号。要再提交，请用同一编号重试。", "The phone does not have this ID yet. Retry with the same ID if you still want to submit it."],
+  removedRun: ["这次提交已受理过，所属对话后来被删除。", "This submission was accepted and its conversation was later deleted."],
 };
 
 const $ = id => document.getElementById(id);
@@ -232,9 +241,16 @@ function groupTasks(tasks) {
 // The private launch link is the only source of the browser session.
 const ticket = location.hash.slice(1) || sessionStorage.getItem("deskSession");
 if (location.hash) {
+  if (sessionStorage.getItem("deskSession") !== ticket) sessionStorage.removeItem("deskPendingRun");
   sessionStorage.setItem("deskSession", ticket);
   for (const key of ["deskGroup", "selectedTask"]) sessionStorage.removeItem(key);
   history.replaceState(null, "", location.pathname);
+}
+let pendingRun = JSON.parse(sessionStorage.getItem("deskPendingRun") || "null");
+function setPendingRun(value) {
+  pendingRun = value;
+  if (value) sessionStorage.setItem("deskPendingRun", JSON.stringify(value));
+  else sessionStorage.removeItem("deskPendingRun");
 }
 let overview = null,
   groups = [],
@@ -983,7 +999,7 @@ function syncComposer() {
   $("compose-label").textContent = t(route.send || "message");
   $("submit-goal").setAttribute("aria-label", t(route.send || "submit"));
   $("submit-goal").title = t(route.send || "submit");
-  $("submit-goal").disabled = !online || busy || route.kind === "wait" || !goal.value.trim();
+  $("submit-goal").disabled = !online || busy || route.kind === "wait" || (route.kind === "run" && !!pendingRun) || !goal.value.trim();
   const opts = Array.isArray(route.options) ? route.options : [];
   const sig = JSON.stringify([key, opts, busy, online]);
   if (sig === optionsSignature) return;
@@ -1014,6 +1030,12 @@ function render() {
   $("new-chat").disabled = busy;
   $("refresh").disabled = busy;
   $("pick-device").disabled = busy;
+  $("pending-run").hidden = !pendingRun || busy;
+  if (pendingRun) {
+    message("pending-label", t("pendingRun", { id: pendingRun.fields.request_id }));
+    $("lookup-run").disabled = !online;
+    $("retry-run").disabled = !online || !overview?.capabilities.includes("task_recovery");
+  }
   renderNav();
   renderTurns();
   syncComposer();
@@ -1079,9 +1101,10 @@ function updateDevice(next) {
 }
 
 function showProblem(e) {
-  if (e.code === "outcome_unknown") writeWarning = t("errOutcomeUnknown");
   const key = (e.code === "device_offline" && deviceStates.get(e.state)) || errorNames[e.code];
-  const detail = key ? t(key) : e.message || t("errFallback");
+  const detail = e.code === "outcome_unknown" && pendingRun && (!e.task_id || e.task_id === pendingRun.fields.request_id)
+    ? t("lostReceipt") : key ? t(key) : e.message || t("errFallback");
+  if (e.code === "outcome_unknown") writeWarning = detail;
   // A phone rejecting an outdated action is still a connected phone.
   if (e.http_status === 409 && e.code !== "device_selection" && e.code !== "device_pinned" && online) {
     message("notice", detail);
@@ -1143,7 +1166,7 @@ async function refresh({ device, watchId, at = revision } = {}) {
       if (!groupKey || threadOf(task) === groupKey) next.tasks.push(task);
     } catch (e) {
       if (at !== revision) return false;
-      if (e.http_status !== 404) throw e;
+      if (![404, 410].includes(e.http_status)) throw e;
       if (keep === inspectId) inspectId = null;
       if (keep === anchorId) {
         anchorId = null;
@@ -1168,12 +1191,21 @@ async function refresh({ device, watchId, at = revision } = {}) {
   }
   overview = next;
   mergeHistoryGroups();
+  const recovered = pendingRun && byId(next.tasks, pendingRun.fields.request_id);
+  if (recovered) {
+    const { key, fields } = pendingRun;
+    const draft = drafts.get(key);
+    // Confirm from the ordinary read without sending another command or replacing an edited draft.
+    const atSubmission = groupKey === (fields.conversation ? threadOf(recovered) : fresh);
+    acknowledgeSubmission(recovered, key, fields.goal, atSubmission && (!draft || draft.trim() === fields.goal) && !inspectId);
+    message("notice", t("recoveredRun", { id: recovered.task_id }));
+  }
   if (!groupKey) {
     const legacy = byId(next.tasks, anchorId),
       chosen = legacy ? threadOf(legacy) : groups[0]?.key || fresh;
     rememberGroup(chosen, legacy?.task_id || groups.find(g => g.key === chosen)?.turns.at(-1)?.task_id);
   }
-  const current = currentTask();
+  const current = byId(group()?.turns, preferredTask) || currentTask();
   if (current && anchorId !== current.task_id) rememberGroup(groupKey, current.task_id);
   online = true;
   retryDelay = 0;
@@ -1246,27 +1278,88 @@ async function work(fn, write = false) {
   }
 }
 
+function acknowledgeSubmission(task, key, text, select) {
+  if (drafts.get(key)?.trim() === text) {
+    drafts.delete(key);
+    if (composerKey === key) $("goal").value = "";
+  }
+  setPendingRun(null);
+  writeWarning = "";
+  if (select) {
+    preferredTask = task.task_id;
+    inspectId = null;
+    rememberGroup(threadOf(task), task.task_id);
+  }
+}
+
+function openSubmittedTask(task, key, text) {
+  acknowledgeSubmission(task, key, text, true);
+  const recent = overview?.tasks || [];
+  const tasks = byId(recent, task.task_id)
+    ? recent.map(old => old.task_id === task.task_id ? task : old)
+    : [task, ...recent];
+  overview = { ...overview, tasks };
+  mergeHistoryGroups();
+  noteProgress(tasks);
+  render();
+}
+
+async function recoverSubmission(retry) {
+  if (!pendingRun || !online) return;
+  const { key, fields } = pendingRun;
+  let opened = false;
+  await work(async () => {
+    let task;
+    try {
+      task = retry ? await call("run", fields) : await call("status", { task_id: fields.request_id });
+    } catch (e) {
+      if (!retry && e.http_status === 404) return message("notice", t("notReceived"));
+      if (e.http_status !== 410) throw e;
+      setPendingRun(null);
+      writeWarning = "";
+      message("error", "");
+      return message("notice", t("removedRun"));
+    }
+    openSubmittedTask(task, key, fields.goal);
+    opened = true;
+    message("notice", "");
+    await refresh();
+  });
+  if (opened) $(processSlotId(fields.request_id))?.closest(".turn")?.scrollIntoView({ block: "nearest" });
+}
+$("lookup-run").addEventListener("click", () => recoverSubmission(false));
+$("retry-run").addEventListener("click", () => recoverSubmission(true));
+$("forget-run").addEventListener("click", () => {
+  if (!busy && confirm(t("forgetConfirm"))) {
+    setPendingRun(null);
+    writeWarning = "";
+    message("error", "");
+    message("notice", "");
+    render();
+  }
+});
+
 async function submit() {
   const route = composeTarget(),
     goal = $("goal"),
     text = goal.value.trim(),
     key = route.key;
-  if (!online || busy || !text || !key || route.kind === "wait") return;
+  if (!online || busy || !text || !key || route.kind === "wait" || (route.kind === "run" && pendingRun)) return;
   await work(async () => {
     if (route.kind === "run") {
       const fields = { goal: text };
       if (route.conversation) fields.conversation = route.conversation;
-      const task = await call("run", fields);
-      drafts.delete(key);
-      goal.value = "";
-      preferredTask = null;
-      inspectId = null;
-      const tasks = [task, ...(overview?.tasks || []).filter(old => old.task_id !== task.task_id)];
-      overview = { ...overview, tasks };
-      groups = groupTasks(tasks);
-      noteProgress(tasks);
-      rememberGroup(threadOf(task), task.task_id);
-      render();
+      if (overview.capabilities.includes("task_recovery")) {
+        fields.request_id = crypto.randomUUID();
+        setPendingRun({ key, fields });
+      }
+      let task;
+      try { task = await call("run", fields); }
+      catch (e) {
+        if (e.code !== "outcome_unknown" && e.http_status >= 400 && e.http_status < 500) setPendingRun(null);
+        throw e;
+      }
+      openSubmittedTask(task, key, text);
     } else {
       const id = route.task.task_id,
         receipt = await call(route.kind, { task_id: id, text });

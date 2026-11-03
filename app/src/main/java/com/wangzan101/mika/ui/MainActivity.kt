@@ -46,9 +46,9 @@ import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.about.Diagnostics
 import com.wangzan101.mika.about.DiagnosticsCollector
 import com.wangzan101.mika.about.MikaLinks
-import com.wangzan101.mika.about.QrImage
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.record.RunStore
+import com.wangzan101.mika.replay.FileRouteStore
 import com.wangzan101.mika.task.TaskService
 import com.wangzan101.mika.core.knowledge.GuideCatalog
 import com.wangzan101.mika.settings.Prerequisites
@@ -340,21 +340,15 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             }
         }
         Route.Settings -> {
-            val registry = remember { WebSites.registry(context) }
-            val sites by registry.entries.collectAsState()
-            val webSites = WebSitesState(
-                sites = sites,
-                onOpenLogin = { WebHandover.showLogin(context, it) },
-                onLogout = { WebSites.login(context).logout(it) },
-                onLogoutAll = { WebSites.logoutAll(context) },
-            )
             val autonomous by app.approvals.autonomous.collectAsState()
             SettingsScreen(store, status, release, onFix, onBack = back, onOpenMemory = { nav.push(Route.Memory) },
-                onOpenModels = { nav.push(Route.Models) }, webSites = webSites,
+                onOpenModels = { nav.push(Route.Models) },
                 autonomous = autonomous, onAutonomous = app.approvalControl::setAutonomous,
-                updateVersion = updateState.update?.version, onOpenAbout = { nav.push(Route.About) })
+                updateVersion = updateState.update?.version, onOpenAbout = { nav.push(Route.About) },
+                mcpServers = app.mcpServers)
         }
-        Route.Models -> ModelsScreen(store, onBack = back, onOpenSpeech = { nav.push(Route.SpeechModel) })
+        Route.Models -> ModelsScreen(store, onBack = back, onOpenSpeech = { nav.push(Route.SpeechModel) }, onOpenUsage = { nav.push(Route.Usage) })
+        Route.Usage -> UsageScreen(app.usage, store.providers, onBack = back)
         Route.SpeechModel -> SpeechModelScreen(store, onBack = back)
         Route.About -> AboutScreen(
             versionName = BuildConfig.VERSION_NAME, build = BuildConfig.GIT_HASH, beta = BuildConfig.BETA,
@@ -369,7 +363,6 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             },
             onCheck = app.updates::checkInBackground,
             onOpenUrl = { openInBrowser(context, it) },
-            onSaveQr = { QrImage.saveToPictures(context) },
             onOpenLicense = { nav.push(Route.License) },
             onBack = back,
             diagnostics = {
@@ -379,8 +372,19 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
         Route.License -> LicensesScreen(onBack = back)
         Route.Browser -> BrowserScreen(remember { UserBrowser.of(context) }, onBack = back)
         Route.Memory -> {
+            val registry = remember { WebSites.registry(context) }
+            val sites by registry.entries.collectAsState()
+            val webSites = WebSitesState(
+                sites = sites,
+                onOpenLogin = { WebHandover.showLogin(context, it) },
+                onLogout = { WebSites.login(context).logout(it) },
+                onLogoutAll = { WebSites.logoutAll(context) },
+            )
+            val routeStore = remember { FileRouteStore.shared(context) }
+            var routeCount by remember { mutableStateOf<Int?>(null) }
             // 第一次取记忆要读盘解密,放到后台线程;页面的协程跟着这一屏走
             val vmScope = rememberCoroutineScope()
+            LaunchedEffect(Unit) { routeCount = withContext(Dispatchers.IO) { runCatching { routeStore.count() }.getOrNull() } }
             val vm by produceState<MemoryViewModel?>(null) {
                 value = withContext(Dispatchers.IO) {
                     MemoryViewModel(
@@ -396,7 +400,13 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             vm?.let { m ->
                 // 从结果卡片的「看看」进来:直接看技能分段
                 LaunchedEffect(m) { if (memoryRuntime.openRequest.value != null) m.select(Segment.Skills) }
-                MemoryScreen(m) { memoryRuntime.requestOpen(null); nav.back() }
+                MemoryDataScreen(
+                    m, webSites, routeCount,
+                    onClearRoutes = {
+                        vmScope.launch { routeCount = withContext(Dispatchers.IO) { routeStore.clear(); routeStore.count() } }
+                    },
+                    onBack = { memoryRuntime.requestOpen(null); nav.back() },
+                )
             }
         }
         Route.Run -> {

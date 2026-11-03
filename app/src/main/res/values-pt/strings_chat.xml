@@ -143,6 +143,14 @@
     <string name="chat_quote">Citar</string>
     <string name="chat_select_text">Selecionar texto</string>
     <string name="chat_copied">Copiado</string>
+    <string name="chat_branch">Ramificar daqui</string>
+    <string name="chat_branch_done">Ramificação criada</string>
+    <string name="chat_branch_failed">Não foi possível criar a ramificação</string>
+    <string name="chat_branch_title_suffix">" · ramo"</string>
+    <string name="chat_branch_origin">Ramificada de outra conversa</string>
+    <string name="chat_branch_attachments_skipped">Nem todos os anexos foram copiados</string>
+    <string name="chat_branch_retry">Perguntar de novo daqui</string>
+    <string name="chat_branch_attachments_readd">Anexe novamente os arquivos que quiser incluir</string>
     <string name="chat_select_hint">Toque e segure o texto para selecioná-lo</string>
     <string name="chat_quote_remove">Remover citação</string>
     <string name="chat_quoting_mika">Citando o Mika: %1$s</string>
@@ -153,4 +161,6 @@
     <string name="pip_reopen">Mostrar tela</string>
     <string name="pip_closed_needs_you">Precisa de você</string>
     <string name="pip_closed_hint">Fechada para esta tarefa. Toque em “Mostrar tela” no canto inferior direito ou abra “Telas em segundo plano” no menu lateral.</string>
+    <string name="chat_conversation_tokens">Esta conversa: %1$s</string>
+    <string name="chat_conversation_tokens_partial">Esta conversa: pelo menos %1$s</string>
 </resources>
