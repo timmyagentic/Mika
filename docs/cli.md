@@ -84,7 +84,9 @@ mika --device SERIAL task list --limit 10 --json
 | 4 | 写入结果不明;可能已被手机接受,没有自动重试。 |
 | 130 | 本地读取/等待被中断,没有请求取消手机任务。 |
 
-响应丢失、写入遇到服务端错误、或写入过程中按 Ctrl-C 时,可能无法判断手机是否接受。已知任务 ID 就查同一任务;没有 ID 就查最近任务,仍不能确认则如实交回。查询失败也不自动重试。手机端任务索引仍在内存中,进程重启后可能找不到旧 ID;本 PR 不增加任务持久化或幂等提交保证。
+支持 `task_recovery` 的手机会在执行前保存收件记录。新版 CLI 会在发送前生成小写 UUID，用作任务编号。自动化程序也可以先保存自己的 UUID，通过 `task run --request-id UUID --goal ...` 提交。回执丢失时，退出码 4 的错误里带有 `task_id`。重新连接同一台手机，运行 `mika task status UUID` 即可查询。若暂时返回 404，需要重试时请使用原编号、原目标及原对话参数。相同请求返回原任务，复用编号提交不同内容返回 409。CLI 不会自动重发。
+
+手机进程重启后，可用原编号读取原答复、核验状态、失败原因或取消状态。未正常收尾的任务返回 `failed` 和 `failure_kind=interrupted`。删除对话会清除对应的远程任务内容，旧编号返回 410，也不能再次启动任务。已收尾的任务记录保留 30 天、至多最近 1000 条，过后同一编号按新请求处理。升级前只在内存里的编号无法补回。在旧手机版本上，普通提交仍可用，丢回执后需要核对近期任务。显式指定 `--request-id` 会要求升级手机。
 
 `doctor` 只检查连接/API 和可用的设备状态,`model_configuration` 明确为 unverified。它不会调用模型或提交任务,也不能证明真实手机操作已经验收。结果缺少 `verified` 时表示核实情况未知。付款确认、手机接管和手机本地任务的访问边界与 MCP 共用同一套规则。
 
@@ -105,7 +107,7 @@ mika ui --device SERIAL --no-open
 | --- | --- |
 | GET 根路径 | API 版本、服务器版本、能力和输入上限。 |
 | GET /device | 只读设备状态;未提供设备接口时返回 503。 |
-| POST /tasks | goal、可选 conversation;201 返回任务状态和 ID。 |
+| POST /tasks | 目标 goal，可选 conversation 和 request_id。带编号时 task_id 等于 request_id。 |
 | GET /tasks?limit=10 | 最近远程任务;limit 范围 1–50。 |
 | GET /tasks/ID | 当前任务状态。 |
 | POST /tasks/ID/wait | timeout_s 范围 1–50,默认 30;返回状态与 changed。 |

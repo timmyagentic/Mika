@@ -1,12 +1,16 @@
 package com.wangzan101.mika
 
 import com.wangzan101.mika.record.DetailedTraces
+import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.ResourceTexts
 import com.wangzan101.mika.i18n.UiText
 import com.wangzan101.mika.i18n.AppLanguage
+import com.wangzan101.mika.i18n.tr
+import com.wangzan101.mika.ui.ChatCopy
 import android.app.Application
 import android.net.Uri
 import android.util.Log
+import com.wangzan101.mika.chat.AndroidBranchWorkspace
 import com.wangzan101.mika.chat.ConversationDeleter
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.core.cap.sandbox.SandboxStatus
@@ -52,7 +56,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.wangzan101.mika.cap.web.cdp.WebDevtools
 import com.wangzan101.mika.cap.web.WebOwner
 import com.wangzan101.mika.cap.web.SiteRegistry
@@ -99,6 +102,23 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             com.wangzan101.mika.settings.RelaySettings(settingsDir, com.wangzan101.mika.settings.KeystoreKeyCipher("mika-remote-relay")))
     }
     val childRuns by lazy { FileChildRunStore(java.io.File(filesDir, "children-v3.json")) }
+
+    /** 外部 MCP server 的设置(与「连接电脑」的 inbound 设置分开)。 */
+    val mcpServers by lazy {
+        com.wangzan101.mika.settings.McpServerStore(
+            java.io.File(filesDir, "settings"),
+            com.wangzan101.mika.settings.KeystoreKeyCipher("mika-mcp-servers"),
+            stdio = com.wangzan101.mika.core.cap.mcp.McpStdioLauncher { workspace, argv ->
+                val process = AndroidSandbox(this, SandboxState.get(this)).openProcess(workspace, argv, null)
+                object : com.wangzan101.mika.core.cap.mcp.McpStdioProcess {
+                    override val stdin get() = process.stdin
+                    override val stdout get() = process.stdout
+                    override val stderr get() = process.stderr
+                    override fun close() = process.close()
+                }
+            },
+        )
+    }
     override val tabBudget get() = resources.tabBudget
 
     /** 任务结束后留在后台接着运行的那一页;关掉时在来源对话那一轮记下原因(对话页那一轮下面显示「后台网页已关闭」)。 */
@@ -180,13 +200,15 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         val app = this
         ConversationDeleter(
             conversations, taskState.activeConversations,
+            forgetRemoteTasks = { id ->
+                if (com.wangzan101.mika.core.remote.RemoteTaskService.isConversation(id)) remoteTasks.forget(id)
+            },
             cancelTasks = { id -> taskState.runs.value.filter { it.conversationId == id }.forEach { TaskService.cancel(app, it.key) } },
             schedulesOf = { id -> TriggerRuntime.list(app).filter { it.threadId == id }.map { it.id } },
             removeSchedule = { TriggerRuntime.remove(app, it) },
             deleteWorkspace = { id ->
-                // 工作区里有附件、用户发来的屏幕、任务写的文件;沙箱里的命令碰得到这里,按句柄删、不跟进链接,和重置互斥
-                val dirs = SandboxDirs(app)
-                dirs.tree.shared { withContext(Dispatchers.IO) { dirs.gate.deleteTree(dirs.work, dirs.workspace(id).name) } }
+                // 工作区里有附件、用户发来的屏幕、任务写的文件;沙箱里的命令碰得到这里,和命令、导入、重置互斥着删
+                SandboxDirs(app).deleteWorkspace(id)
             },
         )
     }
@@ -288,6 +310,9 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             removeConversation = conversationDeleter::delete,
             keptPage = pageKeeper.page,
             closeKept = { pageKeeper.close(com.wangzan101.mika.core.cap.web.KeptPageClose.User) },
+            branchWorkspace = AndroidBranchWorkspace(app),
+            // 标题后面加当前界面语言的「分支」后缀;源标题太长时先截短,后缀留着
+            branchTitle = { base -> ChatCopy.branchTitle(base, tr(R.string.chat_branch_title_suffix)) },
         )
     }
 
@@ -315,7 +340,8 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
         scope.launch { taskRecovery.recover() }
         // 上次进程被杀时没结束的运行:现在就标为中断并告知,不等任务服务起来
         runRecovery.recover().let { if (it.isNotEmpty()) Log.w("MikaTask", "${it.size} runs interrupted by process restart") }
-        scope.launch(Dispatchers.IO) { runCatching { TriggerRuntime.rearm(this@MikaApp) } }
+        // 先对一下设备时区:没记过就记下当前的(升级上来的用户也有基线),和记下的不同就重算当地时间计划(关着时改了时区也补上)
+        scope.launch(Dispatchers.IO) { runCatching { TriggerRuntime.syncTimeZone(this@MikaApp); TriggerRuntime.rearm(this@MikaApp) } }
         // 给电脑跑的「经 USB 连接」脚本;顺带清掉上次开机留下的 USB 连接信息
         scope.launch(Dispatchers.IO) { runCatching { mcp.writeUsbScript() }.onFailure { Log.w("MikaMcp", "cannot write USB script", it) } }
         // 上次导出写到一半被杀留下的空壳条目

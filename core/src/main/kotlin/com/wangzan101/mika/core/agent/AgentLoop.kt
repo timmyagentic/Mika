@@ -242,7 +242,8 @@ class AgentLoop(
         confirmations?.reset()
         utterances?.clear()
         emit(RunEvent.TaskStarted(now(), Redactor.text(task), model.name,
-            origin = runProvenance.origin.takeIf { it != RunOrigin.Ui }?.name?.lowercase()))
+            origin = runProvenance.origin.takeIf { it != RunOrigin.Ui }?.name?.lowercase(),
+            stepLimit = maxSteps.takeIf { it != Int.MAX_VALUE }))
         var end: TaskState? = null
         replay?.reset()
         lastEnd = null

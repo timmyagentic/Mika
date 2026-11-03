@@ -16,9 +16,12 @@ import com.wangzan101.mika.core.observation.Trust
 sealed interface RunEvent {
     val atMs: Long
 
-    /** [origin] 是谁发起的这次运行(`RunOrigin` 的小写名);手机上发起的不写。 */
+    /** [origin] 是谁发起的这次运行(`RunOrigin` 的小写名);手机上发起的不写。[stepLimit] 是这次运行的步数上限,不限制为 null。 */
     @Serializable @SerialName("task_started")
-    data class TaskStarted(override val atMs: Long, val goal: String, val model: String, val origin: String? = null) : RunEvent
+    data class TaskStarted(
+        override val atMs: Long, val goal: String, val model: String,
+        val origin: String? = null, val stepLimit: Int? = null,
+    ) : RunEvent
 
     /** 本任务发给模型的系统提示词与工具定义的摘要([com.wangzan101.mika.core.prompt.PromptVersion])。 */
     @Serializable @SerialName("prompt_version")
@@ -284,6 +287,8 @@ data class RunSummary(
     /** 交出回答后判的结局([RunEvent.OutcomeJudged.outcome]);没判过(失败、取消、旧记录)为 null。 */
     val judged: String? = null,
     val steps: Int = 0,
+    /** 这次运行的步数上限(见 [RunEvent.TaskStarted.stepLimit]);旧记录或不限制为 null。 */
+    val stepLimit: Int? = null,
     val inputTokens: Int = 0,
     val outputTokens: Int = 0,
     val cachedTokens: Int = 0,
@@ -292,7 +297,7 @@ data class RunSummary(
 ) {
     /** 把一个事件计入概要。 */
     fun with(e: RunEvent): RunSummary = when (e) {
-        is RunEvent.TaskStarted -> copy(model = e.model, origin = e.origin)
+        is RunEvent.TaskStarted -> copy(model = e.model, origin = e.origin, stepLimit = e.stepLimit)
         is RunEvent.Criteria -> copy(criteria = e.criteria)
         is RunEvent.ModelReply -> copy(
             steps = maxOf(steps, e.step),

@@ -30,7 +30,7 @@ sealed interface StartOutcome {
  * 只认电脑交来的任务(按 [RemoteTask.id]),手机上发起的任务看不到也动不了。
  */
 interface RemoteTasks {
-    fun start(goal: String, conversation: String?): StartOutcome
+    fun start(goal: String, conversation: String?, requestId: String? = null): StartOutcome
     fun get(id: String): RemoteTask?
     /** 新的在前。 */
     fun list(limit: Int): List<RemoteTask>

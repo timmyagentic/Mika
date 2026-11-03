@@ -33,6 +33,7 @@ class RemoteTaskApi(
         val status = when (e.code) {
             RemoteTaskError.Code.INVALID_ARGUMENT -> 400
             RemoteTaskError.Code.NOT_FOUND -> 404
+            RemoteTaskError.Code.GONE -> 410
             RemoteTaskError.Code.CONFLICT -> 409
             RemoteTaskError.Code.UNAVAILABLE -> 503
         }
@@ -46,7 +47,7 @@ class RemoteTaskApi(
             method(req, "GET")
             return ok(buildJsonObject {
                 put("api_version", 1); put("server_version", serverVersion)
-                putJsonArray("capabilities") { add("tasks"); add("task_steer"); if (device != null) add("device_state") }
+                putJsonArray("capabilities") { add("tasks"); add("task_steer"); add("task_recovery"); if (device != null) add("device_state") }
                 putJsonObject("limits") {
                     put("max_wait_s", RemoteTaskService.MAX_WAIT_S)
                     put("max_goal", RemoteTaskService.MAX_GOAL)
@@ -72,8 +73,10 @@ class RemoteTaskApi(
                 }
                 "POST" -> {
                     if (query.isNotEmpty()) invalid("Task submission accepts no query parameters")
-                    val body = body(req, setOf("goal", "conversation"))
-                    ok(RemoteStatus.describe(service.start(string(body, "goal").orEmpty(), string(body, "conversation"))), 201)
+                    val body = body(req, setOf("goal", "conversation", "request_id"))
+                    val requestId = if ("request_id" in body) string(body, "request_id").orEmpty() else null
+                    val task = service.start(string(body, "goal").orEmpty(), string(body, "conversation"), requestId)
+                    ok(RemoteStatus.describe(task), 201)
                 }
                 else -> wrongMethod("GET, POST")
             }

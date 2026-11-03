@@ -101,6 +101,7 @@ fun toolDispatcher(
     imageOps: ImageOps? = vision?.ops,
     /** 开局约束允许的能力；旧调用方不传时仍得到今天的工具。 */
     runSpec: RunSpec = RunSpec(RunId("legacy"), "legacy", "legacy"),
+    /** 这次任务接上的所有外部 MCP 端点(不分来源,调用方在一处拼好);每个成为一个能力,按 serverId 区分。 */
     mcpServers: List<McpConnection> = emptyList(),
     /** 存下一个定时任务,并说明能不能准时(见 [Scheduled])。 */
     scheduleTrigger: ((TriggerDefinition) -> Scheduled)? = null,

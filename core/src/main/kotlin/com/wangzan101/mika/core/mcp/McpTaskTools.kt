@@ -38,6 +38,10 @@ class McpTaskTools(
             "follow it with mika_wait_task. Payments and confirmations are never approved over MCP.",
             schema(required = listOf("goal")) {
                 putJsonObject("goal") { put("type", "string"); put("description", "What to get done, in plain words, as you would tell a person.") }
+                putJsonObject("request_id") {
+                    put("type", "string"); put("format", "uuid")
+                    put("description", "Choose a lowercase UUID before submitting. It is also the task_id for status after a lost reply. Reuse only for the same request.")
+                }
                 putJsonObject("conversation") {
                     put("type", "string")
                     put("description", "Optional: continue a conversation returned by an earlier task so Mika keeps its context.")
@@ -96,7 +100,10 @@ class McpTaskTools(
     /** 只做协议参数转换和 MCP 展示;业务规则由两个入口共用的 service 执行。 */
     suspend fun call(name: String, args: JsonObject): JsonObject = try {
         when (name) {
-            RUN -> describe(service.start(string(args, "goal").orEmpty(), optString(args, "conversation")))
+            RUN -> {
+                val requestId = if ("request_id" in args) string(args, "request_id").orEmpty() else null
+                describe(service.start(string(args, "goal").orEmpty(), optString(args, "conversation"), requestId))
+            }
             STATUS -> describe(service.get(taskId(args)))
             WAIT -> service.wait(taskId(args), optInt(args, "timeout_s") ?: DEFAULT_WAIT_S).let { r ->
                 buildJsonObject {

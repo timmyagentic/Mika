@@ -35,6 +35,8 @@ class RemoteTaskApiTest {
     }.toString()).second["result"]!!.jsonObject
 
     @Test fun bothAdaptersUseTheSameTasksAndConversationNamespace() {
+        assertTrue(request("/api/v1").second["capabilities"]!!.jsonArray.any { it.jsonPrimitive.content == "task_recovery" })
+        assertEquals(400, request("/api/v1/tasks", "POST", """{"goal":"invalid","request_id":null}""").first)
         val (code, first) = request("/api/v1/tasks", "POST", """{"goal":"from CLI"}""")
         assertEquals(201, code)
         val id = first["task_id"]!!.jsonPrimitive.content

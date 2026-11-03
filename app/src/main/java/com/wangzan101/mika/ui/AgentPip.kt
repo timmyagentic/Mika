@@ -183,22 +183,24 @@ private fun PipWindow(
 ) {
     val density = LocalDensity.current
     val sizeSpec = if (reduceMotion) snap() else tween<androidx.compose.ui.unit.Dp>(350, easing = Ease)
-    // 大小跟着画面的长宽比走:手机画面是主屏的比例(不同手机略有长短),桌面网页是横向的,按固定的宽度定高度,
+    // 大小跟着画面的长宽比走:手机游戏和桌面网页都可能横向,按固定的宽度定高度,
     // 画面整张放得下;放不下时按比例整体缩小
     val context = LocalContext.current
     val screenAspect = remember { mainScreenAspect(context) }
-    val landscapeWeb = frame != null && webContent && frame.width > frame.height
+    val landscapeFrame = frame != null && frame.width > frame.height
     val aspect = frame?.let { it.height.toFloat() / it.width } ?: screenAspect
     val target = run {
         val margin = with(density) { 24.dp.toPx() }
         val availableWidth = with(density) { (areaWidth - margin).coerceAtLeast(1f).toDp() }
         val availableHeight = with(density) { (areaHeight - topInset - bottomInset - margin).coerceAtLeast(1f).toDp() }
         val base = when {
-            landscapeWeb -> if (pip.expanded) 320.dp else 220.dp
+            landscapeFrame -> if (pip.expanded) 320.dp else 220.dp
             else -> if (pip.expanded) ExpandedWidth else CollapsedWidth
         }
-        val width = minOf(base, availableWidth, availableHeight / aspect)
-        width to width * aspect
+        val inset = if (pip.expanded) 8.dp else 6.dp
+        val contentWidth = minOf(base - inset, (availableWidth - inset).coerceAtLeast(1.dp),
+            (availableHeight - inset).coerceAtLeast(1.dp) / aspect)
+        contentWidth + inset to contentWidth * aspect + inset
     }
     val w by animateDpAsState(target.first, sizeSpec, label = "pipW")
     val h by animateDpAsState(target.second, sizeSpec, label = "pipH")
@@ -279,7 +281,7 @@ private fun PipWindow(
             )
         }
         Box(
-            Modifier.size(w, h)
+            Modifier.testTag("pip-window").size(w, h)
                 .alpha(if (pip.mode == PipMode.Done) 0.85f else 1f)
                 .floatShadow(MikaTheme.colors, outer)
                 .background(MikaTheme.colors.glass, outer)
@@ -318,8 +320,8 @@ private fun PipWindow(
             Box(Modifier.fillMaxSize().clip(inner).background(MikaTheme.colors.surface)) {
                 if (frame != null) {
                     val image = remember(frame) { frame.asImageBitmap() }
-                    Image(image, stringResource(R.string.pip_screen), Modifier.fillMaxSize(), alignment = Alignment.TopCenter,
-                        contentScale = if (webContent) ContentScale.Fit else ContentScale.Crop)
+                    Image(image, stringResource(R.string.pip_screen), Modifier.testTag("pip-frame").fillMaxSize(), alignment = Alignment.Center,
+                        contentScale = ContentScale.Fit)
                 }
             }
             if (pip.expanded) {

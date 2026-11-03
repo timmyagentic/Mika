@@ -133,6 +133,14 @@
     <string name="chat_quote">Kutip</string>
     <string name="chat_select_text">Pilih teks</string>
     <string name="chat_copied">Disalin</string>
+    <string name="chat_branch">Cabang dari sini</string>
+    <string name="chat_branch_done">Cabang dibuat</string>
+    <string name="chat_branch_failed">Tidak bisa membuat cabang</string>
+    <string name="chat_branch_title_suffix">" · cabang"</string>
+    <string name="chat_branch_origin">Dicabang dari obrolan lain</string>
+    <string name="chat_branch_attachments_skipped">Tidak semua lampiran tersalin</string>
+    <string name="chat_branch_retry">Tanya ulang dari sini</string>
+    <string name="chat_branch_attachments_readd">Tambahkan ulang lampiran yang ingin disertakan</string>
     <string name="chat_select_hint">Tekan lama teks untuk memilihnya</string>
     <string name="chat_quote_remove">Hapus kutipan</string>
     <string name="chat_quoting_mika">Mengutip Mika: %1$s</string>
@@ -143,4 +151,6 @@
     <string name="pip_reopen">Tampilkan layar</string>
     <string name="pip_closed_needs_you">Perlu Anda</string>
     <string name="pip_closed_hint">Ditutup untuk tugas ini. Ketuk “Tampilkan layar” di kanan bawah, atau buka “Layar latar belakang” di menu samping.</string>
+    <string name="chat_conversation_tokens">Percakapan ini: %1$s</string>
+    <string name="chat_conversation_tokens_partial">Percakapan ini: setidaknya %1$s</string>
 </resources>

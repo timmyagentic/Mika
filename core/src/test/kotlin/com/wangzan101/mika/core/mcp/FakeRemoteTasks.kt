@@ -14,9 +14,10 @@ class FakeRemoteTasks : RemoteTasks {
     var refuse: String? = null
     private var next = 0
 
-    override fun start(goal: String, conversation: String?): StartOutcome {
+    override fun start(goal: String, conversation: String?, requestId: String?): StartOutcome {
         refuse?.let { return StartOutcome.Refused(it) }
-        val t = RemoteTask("t${++next}", conversation ?: com.wangzan101.mika.core.remote.RemoteTaskService.newConversation(), goal, 1000L * next, null)
+        val n = ++next
+        val t = RemoteTask(requestId ?: "t$n", conversation ?: com.wangzan101.mika.core.remote.RemoteTaskService.newConversation(), goal, 1000L * n, null)
         tasks[t.id] = t
         return StartOutcome.Started(t)
     }

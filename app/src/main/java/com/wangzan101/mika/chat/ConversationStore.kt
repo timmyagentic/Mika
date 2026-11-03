@@ -83,7 +83,8 @@ class ConversationStore(private val dir: File) {
 
     /**
      * 对话列表,最近改过的在前;[ConversationSummary.title] 是标题(用户改的或起好的),没有时是第一句话;
-     * [ConversationSummary.pinnedAt] 是置顶的时间;[ConversationSummary.page] 是从哪一页开始的。没有内容的对话不列。
+     * [ConversationSummary.pinnedAt] 是置顶的时间;[ConversationSummary.page] 是从哪一页开始的;
+     * [ConversationSummary.branchOf] 是从哪个对话的第几轮分出来的。没有内容的对话不列。
      */
     @Synchronized
     fun list(): List<ConversationSummary> =
@@ -92,7 +93,7 @@ class ConversationStore(private val dir: File) {
             .mapNotNull { f ->
                 val id = f.name.removeSuffix(".json")
                 val first = turns(id).firstOrNull() ?: return@mapNotNull null
-                ConversationSummary(id, title(id) ?: first.userText, f.lastModified(), pinnedAt(id), pageOrigin(id))
+                ConversationSummary(id, title(id) ?: first.userText, f.lastModified(), pinnedAt(id), pageOrigin(id), branchOrigin(id))
             }
 
     /** 对话起好的标题(见 [ConversationTitler]);没有、读不到为 null。标题放在对话文件旁边的 `.title` 文件里,不动对话文件的格式。 */
@@ -107,8 +108,8 @@ class ConversationStore(private val dir: File) {
     private val deleted = mutableSetOf<String>()
 
     /**
-     * 删掉一个对话存下的一切:对话文件、标题、置顶,以及写到一半的临时文件和挪到一边的损坏文件。删了什么都发一次 [changes]
-     * 和 [deletions]。
+     * 删掉一个对话存下的一切:对话文件、标题、置顶、网页来源、分支来源,以及写到一半的临时文件和挪到一边的损坏文件。
+     * 删了什么都发一次 [changes] 和 [deletions]。
      * 对话的工作区、定时任务、在跑的任务不归这里管,见 [ConversationDeleter]。
      */
     @Synchronized
@@ -117,7 +118,7 @@ class ConversationStore(private val dir: File) {
         val main = file(conversationId).name
         dir.listFiles { f ->
             f.isFile && (f.name == main || f.name.startsWith("$main.") || f.name == titleFile(conversationId).name || f.name == pinFile(conversationId).name ||
-                f.name == pageFile(conversationId).name)
+                f.name == pageFile(conversationId).name || f.name == branchFile(conversationId).name)
         }
             .orEmpty().forEach { it.delete() }
         // 删掉的正是用户此刻在的那个:不再指着它,胶囊回落到最近那个
@@ -187,6 +188,79 @@ class ConversationStore(private val dir: File) {
         val ok = runCatching { pageFile(conversationId).writeText(json.toString()) }.isSuccess
         if (ok) _changes.tryEmit(conversationId)
         return ok
+    }
+
+    /**
+     * 把 [sourceId] 的轮次复制成新对话 [targetId],复制到 [throughTurn](0 起,含在内)为止。
+     * 源不存在、源文件损坏、[throughTurn] 越界、目标已有对话文件时返回 false,什么都不写。
+     * [title] 非空白时写成新对话标题;[origin] 非空时写 `<targetId>.branch`。
+     * 标题、网页来源、分支来源都是旁文件,写不进去不影响对话本身已复制好。
+     */
+    @Synchronized
+    fun branch(
+        sourceId: String,
+        targetId: String,
+        throughTurn: Int,
+        title: String? = null,
+        origin: BranchOrigin? = null,
+    ): Boolean = copyBranch(sourceId, targetId, throughTurn, includeTurn = true, title, origin)
+
+    /**
+     * 把 [sourceId] 在 [beforeTurn] 之前的轮次(不含这一轮)复制成新对话 [targetId],给「从用户消息重新问」用。
+     * [beforeTurn] 为 0 时新对话还没有轮次(和刚新开的对话一样,不进侧栏列表),第一句话存进来后才算这个对话的第一轮。
+     * 其余条件同 [branch]。
+     */
+    @Synchronized
+    fun branchBefore(
+        sourceId: String,
+        targetId: String,
+        beforeTurn: Int,
+        title: String? = null,
+        origin: BranchOrigin? = null,
+    ): Boolean = copyBranch(sourceId, targetId, beforeTurn, includeTurn = false, title, origin)
+
+    /** [branch] 和 [branchBefore] 共用:复制 [sourceId] 的前 [turn] 轮([includeTurn] 时连这一轮),再写标题、网页来源、分支来源。 */
+    private fun copyBranch(sourceId: String, targetId: String, turn: Int, includeTurn: Boolean, title: String?, origin: BranchOrigin?): Boolean {
+        val source = file(sourceId)
+        if (!source.isFile) return false
+        val records = read(source) ?: return false
+        if (turn !in records.indices) return false
+        if (file(targetId).exists()) return false
+        deleted -= safe(targetId)
+        write(targetId, records.take(if (includeTurn) turn + 1 else turn))
+        title?.let { writeTitle(targetId, it) }
+        pageOrigin(sourceId)?.let { setPageOrigin(targetId, it) }
+        origin?.let { writeBranchOrigin(targetId, it) }
+        return true
+    }
+
+    /** 分支来源:从哪个对话的第几轮分出来的;没有、读不到为 null。放在 `<id>.branch` 里。 */
+    @Synchronized
+    fun branchOrigin(conversationId: String): BranchOrigin? = runCatching {
+        val f = branchFile(conversationId).takeIf { it.isFile } ?: return@runCatching null
+        val o = Json.parseToJsonElement(f.readText()) as? JsonObject ?: return@runCatching null
+        val parentId = str(o, "parent")?.takeIf(String::isNotEmpty) ?: return@runCatching null
+        val parentTurn = (o["turn"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()?.takeIf { it >= 0 } ?: return@runCatching null
+        val afterTurn = (o["after"] as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() ?: return@runCatching null
+        val at = (o["at"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: return@runCatching null
+        BranchOrigin(parentId, parentTurn, afterTurn, at)
+    }.getOrNull()
+
+    /** 写分支来源;先写临时文件再改名,写到一半被杀不会留下半个文件。 */
+    private fun writeBranchOrigin(conversationId: String, origin: BranchOrigin) {
+        dir.mkdirs()
+        val json = buildJsonObject {
+            put("parent", origin.parentId); put("turn", origin.parentTurn); put("after", origin.afterTurn); put("at", origin.at)
+        }
+        val f = branchFile(conversationId)
+        val tmp = File(dir, "${f.name}.tmp")
+        runCatching {
+            tmp.writeText(json.toString())
+            if (!tmp.renameTo(f)) {
+                f.writeText(json.toString())
+                tmp.delete()
+            }
+        }
     }
 
     /** 文件损坏时当作空对话,不让它挡住新任务。 */
@@ -322,13 +396,24 @@ class ConversationStore(private val dir: File) {
     private fun titleFile(id: String) = File(dir, "${safe(id)}.title")
     private fun pinFile(id: String) = File(dir, "${safe(id)}.pin")
     private fun pageFile(id: String) = File(dir, "${safe(id)}.page")
+    private fun branchFile(id: String) = File(dir, "${safe(id)}.branch")
 
     /** 用户此刻在哪个对话,见 [CurrentChat];不是 `.json`,不进 [list]。 */
     private fun currentFile() = File(dir, "current")
     private fun safe(id: String) = id.filter { it.isLetterOrDigit() || it == '-' || it == '_' }
 }
 
-data class ConversationSummary(val id: String, val title: String, val updatedAt: Long, val pinnedAt: Long? = null, val page: PageOrigin? = null)
+data class ConversationSummary(
+    val id: String,
+    val title: String,
+    val updatedAt: Long,
+    val pinnedAt: Long? = null,
+    val page: PageOrigin? = null,
+    val branchOf: BranchOrigin? = null,
+)
+
+/** 分支来源:从 [parentId] 的第 [parentTurn] 轮(0 起)分出来的;[afterTurn] 为 false 时是复制到这一轮之前(第 2 阶段从用户消息重新问)。 */
+data class BranchOrigin(val parentId: String, val parentTurn: Int, val afterTurn: Boolean, val at: Long)
 
 /**
  * 用户此刻在哪个对话:App 里新开、还没说过话的是 [Fresh],正在看的是 [Open];没有记录(没进过 Mika、旧版本)为 null。

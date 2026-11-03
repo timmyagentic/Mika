@@ -130,6 +130,8 @@ class AndroidScreen(
     private val displayId get() = display.current?.displayId ?: -1
     /** 屏已经建好(不等于打开过 App)。 */
     private val hasDisplay get() = display.current != null
+    private val screenWidth get() = display.current?.width ?: display.width
+    private val screenHeight get() = display.current?.height ?: display.height
     private val ids = NodeIds()
 
     /** 最近一次 launch_app 成功打开的包,用于判断是否被切走。 */
@@ -164,7 +166,7 @@ class AndroidScreen(
         packages.ifEmpty { listOfNotNull(foregroundTaskPackage()) }
     }
 
-    private fun read() = ScreenReader.read(windows(), display.width, display.height)
+    private fun read() = ScreenReader.read(windows(), screenWidth, screenHeight)
     private fun treeHash() = ScreenReader.hash(windows())
 
     /** 显式使用系统命令或事件工具时按需建屏;普通任务等到第一次打开 App 才建。 */
@@ -178,7 +180,7 @@ class AndroidScreen(
     override suspend fun peek(): ScreenSnapshot = capture(register = false)
 
     private suspend fun capture(register: Boolean): ScreenSnapshot = withContext(Dispatchers.IO) {
-        if (!hasDisplay) return@withContext ScreenSnapshot(snapshotId(), null, emptyList(), display.width, display.height, hasWindow = false)
+        if (!hasDisplay) return@withContext ScreenSnapshot(snapshotId(), null, emptyList(), screenWidth, screenHeight, hasWindow = false)
         // 上一个动作过了一会儿才开到用户主屏上的:先挪回来再读(只在模型要读的这一屏上做,不在判效果的那一眼里做)
         val late = if (register) lateSpill() else null
         val r = read()
@@ -189,8 +191,8 @@ class AndroidScreen(
             snapshotId = snap.id,
             packageName = r.topPackage,
             elements = r.entries.map { it.element },
-            width = display.width,
-            height = display.height,
+            width = screenWidth,
+            height = screenHeight,
             changedDuringRead = after != r.hash,
             protected = r.hasAppWindow && frameBlack() == true,
             hasWindow = r.anyAppWindow,
@@ -434,8 +436,8 @@ class AndroidScreen(
         val node = start?.let { ancestorOrSelf(it) { n -> n.isScrollable } }
         if (node == null) {
             // 没有可滚动的控件时用屏幕中部的滑动代替
-            val cx = display.width / 2
-            val (from, to) = if (down) display.height * 3 / 4 to display.height / 4 else display.height / 4 to display.height * 3 / 4
+            val cx = screenWidth / 2
+            val (from, to) = if (down) screenHeight * 3 / 4 to screenHeight / 4 else screenHeight / 4 to screenHeight * 3 / 4
             val r = swipe(cx, from, cx, to)
             return@withContext if (r is ActionResult.Ok && relocatedTo != null) r.copy(relocated = true, relocatedTo = relocatedTo) else r
         }
@@ -453,8 +455,8 @@ class AndroidScreen(
         val area = read().entries.filter { it.element.scrollable }
             .map { e -> android.graphics.Rect().also { e.node.getBoundsInScreen(it) } }
             .maxByOrNull { it.width().toLong() * it.height() } ?: return@withContext false
-        if (area.width().toLong() * area.height() < display.width.toLong() * display.height * IDLE_MIN_AREA) return@withContext false
-        val dist = (display.height * kotlin.math.abs(fraction)).roundToInt().coerceAtMost(area.height() / 2)
+        if (area.width().toLong() * area.height() < screenWidth.toLong() * screenHeight * IDLE_MIN_AREA) return@withContext false
+        val dist = (screenHeight * kotlin.math.abs(fraction)).roundToInt().coerceAtMost(area.height() / 2)
         if (dist < IDLE_MIN_PX) return@withContext false
         val cx = area.centerX()
         val mid = area.centerY()
@@ -646,7 +648,7 @@ class AndroidScreen(
         val w = windows().firstOrNull { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD } ?: return null
         val r = android.graphics.Rect().also(w::getBoundsInScreen)
         if (r.isEmpty) return null
-        return listOf(normalize(r.left, display.width), normalize(r.top, display.height), normalize(r.right, display.width), normalize(r.bottom, display.height))
+        return listOf(normalize(r.left, screenWidth), normalize(r.top, screenHeight), normalize(r.right, screenWidth), normalize(r.bottom, screenHeight))
     }
 
     /**
@@ -864,7 +866,7 @@ class AndroidScreen(
         val pkg = w.root?.packageName?.toString() ?: return null
         if (pkg == packageName || pkg == before || !isSystemPackage(pkg)) return null
         val label = appLabel(packageName) ?: return null
-        val entries = ScreenReader.read(listOf(w), display.width, display.height).entries
+        val entries = ScreenReader.read(listOf(w), screenWidth, screenHeight).entries
         val picked = LaunchChooser.optionIndices(label, entries.map { it.element }) ?: return null
         return picked.map { i -> android.graphics.Rect().also(entries[i].node::getBoundsInScreen).let { it.centerX() to it.centerY() } }
     }
@@ -1043,7 +1045,7 @@ class AndroidScreen(
         if (!hasDisplay) return@withContext WheelOutcome(false, null, null, 0, "none", error = "no_app_open")
         val (node, _) = resolve(ref, snapshotId) ?: return@withContext WheelOutcome(false, null, null, 0, "none", error = "ref_expired")
         val driver = WheelDriver(
-            display.width, display.height,
+            screenWidth, screenHeight,
             quiet = { q, cap -> withEventClock { it.awaitQuiet(q, cap) } },
             // 慢拖:按节奏走时末尾减速到停、松手不甩,免得转过头;慢拖拖不动时换成快快划一下
             drag = { points, slow -> drag(points, if (slow) WHEEL_DRAG_MS else WHEEL_SWIPE_MS, bow = false) },
@@ -1069,7 +1071,7 @@ class AndroidScreen(
         val pkg = w.root?.packageName?.toString() ?: return null
         if (pkg == packageName || pkg == before || !isSystemPackage(pkg)) return null
         val label = appLabel(packageName) ?: return null
-        val elements = ScreenReader.read(listOf(w), display.width, display.height).entries.map { it.element }
+        val elements = ScreenReader.read(listOf(w), screenWidth, screenHeight).entries.map { it.element }
         val options = LaunchChooser.options(label, elements, profiles?.get(packageName).orEmpty()) ?: return null
         return LaunchChoice(pkg, options)
     }
@@ -1596,7 +1598,7 @@ class AndroidScreen(
             is NodeIds.Lookup.Old -> l.entry to l.snapshot
         }
         val now = read()
-        return when (val r = relocate(entry.locator, snapshot.locators, now.entries.map { it.locator }, min(display.width, display.height))) {
+        return when (val r = relocate(entry.locator, snapshot.locators, now.entries.map { it.locator }, min(screenWidth, screenHeight))) {
             is Relocation.Found -> now.entries[r.index].let { it.node to it.element.name }
             else -> null
         }
@@ -1606,7 +1608,7 @@ class AndroidScreen(
     private fun unchanged(entry: NodeEntry): Boolean {
         val n = entry.node
         if (!n.refresh()) return false
-        val now = ScreenReader.locatorOf(n, display.width, display.height) ?: return false
+        val now = ScreenReader.locatorOf(n, screenWidth, screenHeight) ?: return false
         return now == entry.locator.copy(context = null)
     }
 
@@ -1650,7 +1652,7 @@ class AndroidScreen(
         val b = FieldShape.of(n)
         if (a.cls != b.cls || a.rid != b.rid) return false
         // 大小要几乎一样;位置允许整页挪动一点(输入时页面常会上移),和编号找回用同一个上限
-        val short = min(display.width, display.height)
+        val short = min(screenWidth, screenHeight)
         val sizeTol = short * SAME_FIELD_SIZE
         val moveTol = short * RELOCATE_MAX_SHIFT
         return kotlin.math.abs(a.rect.width() - b.rect.width()) <= sizeTol && kotlin.math.abs(a.rect.height() - b.rect.height()) <= sizeTol &&
@@ -1713,7 +1715,7 @@ class AndroidScreen(
     private suspend fun drag(points: List<Pair<Int, Int>>, durationMs: Long, bow: Boolean): Boolean {
         if (!pacing.paced) return a11y.gesture(displayId, pathOf(points), durationMs)
         delay(pacing.approach())
-        val stroke = pacing.stroke(points.map { it.first.toDouble() to it.second.toDouble() }, durationMs, bow, display.width to display.height)
+        val stroke = pacing.stroke(points.map { it.first.toDouble() to it.second.toDouble() }, durationMs, bow, screenWidth to screenHeight)
         if (injectStroke(stroke.points)) return true
         return a11y.gesture(displayId, pathOf(stroke.points.map { it.x.roundToInt() to it.y.roundToInt() }), stroke.durationMs)
     }

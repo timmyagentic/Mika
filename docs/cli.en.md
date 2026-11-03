@@ -84,7 +84,9 @@ Queued, paused, question-waiting, phone-handoff and terminal tasks reject steeri
 | 4 | Write outcome unknown; the phone may have accepted it, and it was not retried. |
 | 130 | A local read/wait was interrupted; no phone task cancellation was requested. |
 
-A lost write response, server-side write error or Ctrl-C during a write can leave its outcome unknown. Query the known task ID, or inspect recent tasks when no ID was received. Report uncertainty if it cannot be resolved. Reads also have no automatic retries. The phone's remote task index remains in memory, so an app process restart can make old IDs unavailable. This PR does not add task persistence or idempotent submission guarantees.
+On a phone advertising `task_recovery`, the CLI generates a lowercase UUID before submitting and the phone records it before starting the task. For automation, save your own UUID first and pass it to `task run --request-id UUID --goal ...`. A lost receipt returns exit 4 with the `task_id`. Reconnect to the same phone and run `mika task status UUID`. If the phone still returns 404 and you intend to retry, use the same ID, goal and conversation argument. A replay returns the existing task. Reusing the ID for a different request returns 409. The CLI never automatically resends a write.
+
+After an app process restart the same ID retrieves the answer and verification fields, failure reason or cancellation. An unfinished task returns `failed` with `failure_kind=interrupted`. Deleting a conversation clears its remote task contents. Its used IDs return 410 and cannot start tasks again. Finished task records are kept for 30 days, up to the latest 1000; after that the same ID counts as a new request. IDs held only in memory before upgrading cannot be reconstructed. Ordinary submissions still work on older phones with the previous recent-task lookup. An explicit `--request-id` requires a compatible phone.
 
 `doctor` checks connectivity/API and available device state; it explicitly reports model configuration as unverified. It neither invokes a model nor starts a task, and cannot establish real-device task acceptance. Missing `verified` means unknown. Payment confirmations, phone handoff and access to phone-local tasks retain the same boundaries as MCP.
 
@@ -105,7 +107,7 @@ All paths below are relative to `/api/v1` and use the same Bearer authentication
 | --- | --- |
 | GET root | API version, server version, capabilities and input limits. |
 | GET /device | Read-only device state; 503 if unavailable. |
-| POST /tasks | goal and optional conversation; 201 with task ID and state. |
+| POST /tasks | A goal, optional conversation and optional request_id. With a request ID, the returned task_id equals that ID. |
 | GET /tasks?limit=10 | Recent remote tasks; limit 1–50. |
 | GET /tasks/ID | Current task state. |
 | POST /tasks/ID/wait | timeout_s 1–50, default 30; state and changed. |

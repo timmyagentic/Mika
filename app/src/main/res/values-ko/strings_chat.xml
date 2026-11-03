@@ -133,6 +133,14 @@
     <string name="chat_quote">인용</string>
     <string name="chat_select_text">텍스트 선택</string>
     <string name="chat_copied">복사했어요</string>
+    <string name="chat_branch">여기서 분기</string>
+    <string name="chat_branch_done">분기를 만들었어요</string>
+    <string name="chat_branch_failed">분기를 만들지 못했어요</string>
+    <string name="chat_branch_title_suffix">" · 분기"</string>
+    <string name="chat_branch_origin">다른 대화에서 분기됨</string>
+    <string name="chat_branch_attachments_skipped">첨부 파일을 모두 복사하지 못했어요</string>
+    <string name="chat_branch_retry">여기서 다시 묻기</string>
+    <string name="chat_branch_attachments_readd">첨부 파일을 다시 추가하세요</string>
     <string name="chat_select_hint">텍스트를 길게 눌러 선택하세요</string>
     <string name="chat_quote_remove">인용 삭제</string>
     <string name="chat_quoting_mika">Mika 인용: %1$s</string>
@@ -143,4 +151,6 @@
     <string name="pip_reopen">화면 표시</string>
     <string name="pip_closed_needs_you">확인 필요</string>
     <string name="pip_closed_hint">이 작업에서는 닫았어요. 오른쪽 아래의 “화면 표시”를 누르거나 사이드 메뉴에서 “백그라운드 화면”을 여세요.</string>
+    <string name="chat_conversation_tokens">이 대화: %1$s</string>
+    <string name="chat_conversation_tokens_partial">이 대화: %1$s 이상</string>
 </resources>
