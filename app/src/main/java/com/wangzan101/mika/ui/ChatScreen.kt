@@ -2,6 +2,7 @@ package com.wangzan101.mika.ui
 
 import androidx.compose.foundation.gestures.scrollBy
 import com.wangzan101.mika.core.agent.QuoteMessage
+import com.wangzan101.mika.core.record.ConversationTokens
 import com.wangzan101.mika.core.cap.web.AttachedPage
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import android.content.Context
@@ -256,6 +257,10 @@ fun ChatScreen(
         if (grown > 0 && followingTail && !listState.isScrollInProgress) listState.scrollBy(grown.toFloat())
     }
 
+    // 已结束各轮的运行小结:每轮结束那一行写这一轮的 token,顶栏闲着时写这个对话合起来的
+    val endedRuns = ui.exchanges.filter { !it.status.isActive() }.mapNotNull { it.runId }
+    val runMetrics = rememberRunMetrics(endedRuns)
+
     val c = MikaTheme.colors
     val backdrop = rememberGlassBackdrop()
     val context = LocalContext.current
@@ -296,7 +301,10 @@ fun ChatScreen(
                 }
                 ui.exchanges.forEachIndexed { i, ex ->
                     val backgroundNote = i == ui.exchanges.lastIndex && ui.operatingPhone
-                    exchange(i, ex, ui.conversationId, ui.takeoverStage, vm, reduceMotion, backgroundNote, openRun, loadSource, openSource, kept)
+                    exchange(
+                        i, ex, ui.conversationId, ui.takeoverStage, vm, reduceMotion, backgroundNote, openRun, loadSource, openSource, kept,
+                        tokens = ConversationTokens.turn(ex.runId?.let(runMetrics::get)),
+                    )
                 }
                 if (phoneSetupNeeded && ui.exchanges.isNotEmpty()) item("phone-setup") { PhoneSetupLine(openPhoneSetup) }
                 ui.blocked?.let { problems ->
@@ -313,8 +321,11 @@ fun ChatScreen(
             }
         }
 
-        // 没有任务在跑、这个对话留着一页在后台运行时:顶栏写「后台保持着 1 个网页」
-        val sub = ChatCopy.subtitle(last, last?.let(vm::livePlace)) ?: kept?.let { ChatCopy.KEPT_PAGE to ChatCopy.Tone.Ok }
+        // 没有任务在跑、这个对话留着一页在后台运行时:顶栏写「后台保持着 1 个网页」;都没有时写这个对话用了多少 token
+        // (对话合计只在最后这一行,不要它时删掉这一行)
+        val sub: Pair<String, ChatCopy.Tone?>? = ChatCopy.subtitle(last, last?.let(vm::livePlace))
+            ?: kept?.let { ChatCopy.KEPT_PAGE to ChatCopy.Tone.Ok }
+            ?: ChatTokensCopy.conversationSubtitle(endedRuns, runMetrics)?.let { it to null }
         Column(Modifier.behindMenu(menuOpen) { lift.value }.onSizeChanged { topHeight = it.height }) {
             TopBar(
                 ChatCopy.APP_TITLE,
@@ -387,10 +398,13 @@ fun ChatScreen(
             },
         )
 
-        // 长按消息的菜单盖在最上面:复制纯文字;引用放到输入框上方;选择文字让那条换回系统的长按选中
+        // 长按消息的菜单盖在最上面:复制纯文字;引用放到输入框上方;选择文字让那条换回系统的长按选中;
+        // 已经答完的一轮还能从这里分支
         menu?.let { m ->
             val pending = withdrawableSteer(ui.exchanges, m.key)
             val canEdit = input.isBlank() && ui.quote == null && ui.attachments.isEmpty() && !ui.importing
+            val branchTurn = vm.branchTurn(m.key)
+            val retryTurn = vm.retryTurn(m.key)
             MessageMenu(
                 m, progress = { lift.value },
                 onCopy = { closeMenu { copyMessage(context, m.text) } },
@@ -402,6 +416,38 @@ fun ChatScreen(
                     }
                 },
                 onDismiss = { closeMenu() },
+                onBranch = branchTurn?.let { turn -> {
+                    closeMenu {
+                        scope.launch {
+                            val id = vm.branchFrom(turn)
+                            val copy = vm.branchCopy.value
+                            val message = when {
+                                id == null -> R.string.chat_branch_failed
+                                copy?.truncated == true -> R.string.chat_branch_attachments_skipped
+                                else -> R.string.chat_branch_done
+                            }
+                            if (id != null) input = ""
+                            Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
+                            vm.clearBranchCopy()
+                        }
+                    }
+                } },
+                onBranchRetry = retryTurn?.let { turn -> {
+                    closeMenu {
+                        scope.launch {
+                            val result = vm.branchBefore(turn)
+                            val message = when {
+                                result == null -> R.string.chat_branch_failed
+                                result.needsReattach -> R.string.chat_branch_attachments_readd
+                                vm.branchCopy.value?.truncated == true -> R.string.chat_branch_attachments_skipped
+                                else -> R.string.chat_branch_done
+                            }
+                            if (result != null) input = result.prefill
+                            Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
+                            vm.clearBranchCopy()
+                        }
+                    }
+                } },
                 onEdit = if (pending != null && canEdit && editableSteer(pending.text)) ({ closeMenu {
                     vm.editSteer(pending.id)?.let { input = it; editRequest++ }
                 } }) else null,
@@ -473,6 +519,8 @@ private fun LazyListScope.exchange(
     index: Int, ex: Exchange, conversationId: String?, stage: Takeover.Stage, vm: ChatViewModel, reduceMotion: Boolean, backgroundNote: Boolean,
     openRun: (String) -> Unit, loadSource: suspend (String) -> EvidenceSource?, openSource: (String?, String?) -> Unit,
     kept: KeptPage? = null,
+    /** 这一轮用了多少 token(结束后、读到运行小结时才有)。 */
+    tokens: Long? = null,
 ) {
     if (ex.goal.isNotEmpty()) item("u$index") { UserBubble(ex.goal, conversationId, key = "u$index") }
     val active = ex.status.isActive()
@@ -480,7 +528,7 @@ private fun LazyListScope.exchange(
     if (active) {
         if (!answering) item("s$index") { WorkBlock(ex, reduceMotion, backgroundNote, openRun) }
     } else if (ex.steps.isNotEmpty() || ex.runId != null) {
-        item("s$index") { DoneLine(ex, reduceMotion, openRun) }
+        item("s$index") { DoneLine(ex, reduceMotion, openRun, tokens) }
     }
     // 任务进行中插的话:用户的原话,下面一行小字说它的去向。
     // 插话之前已经说完的回复照常显示;插话打断的那段留在原处(淡色、标「被你的新消息打断」);接着才是插话。
@@ -824,10 +872,12 @@ internal fun Spinner(modifier: Modifier, spinning: Boolean, track: Color, head: 
 }
 
 /**
- * 结束后过程收成一行:「做了 N 步 · 用时」(点了在下面展开步骤)和「查看过程」(进时间线)。
+ * 结束后过程收成一行:「做了 N 步 · 用时 · 1.2 万 Token」(点了在下面展开步骤)和「查看过程」(进时间线)。
+ * 没做步骤的(只聊了几句)只写 token;[tokens] 为 null(还没读到小结、服务商没报用量)时不写。
  */
 @Composable
-private fun DoneLine(ex: Exchange, reduceMotion: Boolean, openRun: (String) -> Unit) {
+private fun DoneLine(ex: Exchange, reduceMotion: Boolean, openRun: (String) -> Unit, tokens: Long? = null) {
+    val tokenText = tokens?.let(ChatTokensCopy::amount)
     val c = MikaTheme.colors
     var open by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
@@ -838,10 +888,12 @@ private fun DoneLine(ex: Exchange, reduceMotion: Boolean, openRun: (String) -> U
             if (ex.status is ExchangeStatus.Done) Icon(MikaIcons.Check, null, Modifier.size(16.dp), tint = c.ink3)
             if (ex.steps.isNotEmpty()) {
                 Text(
-                    stepsSummary(ex),
+                    stepsSummary(ex) + tokenText?.let { " · $it" }.orEmpty(),
                     Modifier.clickable(onClickLabel = if (open) stringResource(R.string.chat_collapse_steps) else stringResource(R.string.chat_expand_steps)) { open = !open },
                     style = DoneText, color = c.ink3,
                 )
+            } else if (tokenText != null) {
+                Text(tokenText, style = DoneText, color = c.ink3)
             }
             ex.runId?.let { id ->
                 Text(

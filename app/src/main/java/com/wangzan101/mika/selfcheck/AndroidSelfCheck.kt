@@ -169,7 +169,7 @@ class AndroidSelfCheck(context: Context, private val status: () -> SystemStatus)
         val m = metrics()
         // 建屏不中途打断:建好的一定记下,收尾时放掉
         val made = withContext(NonCancellable + Dispatchers.IO) {
-            runCatching { AgentDisplay(sh, m.widthPixels, m.heightPixels, m.densityDpi) }.onSuccess { display = it }
+            runCatching { AgentDisplay(sh, m.widthPixels, m.heightPixels, m.densityDpi, app.getSystemService(DisplayManager::class.java)) }.onSuccess { display = it }
         }
         val d = made.getOrElse { return CheckOutcome.fail("could not be created (${it.javaClass.simpleName})", Advice.DisplayFailed) }
         val flags = runCatching { app.getSystemService(DisplayManager::class.java).getDisplay(d.displayId)?.flags }.getOrNull()

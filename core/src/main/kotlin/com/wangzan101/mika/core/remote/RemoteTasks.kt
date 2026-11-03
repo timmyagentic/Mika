@@ -33,7 +33,7 @@ sealed interface StartOutcome {
  */
 interface RemoteTasks {
     val fileAccess: RemoteTaskFiles? get() = null
-    fun start(goal: String, conversation: String?): StartOutcome
+    fun start(goal: String, conversation: String?, requestId: String? = null, attachments: List<String> = emptyList()): StartOutcome
     fun get(id: String): RemoteTask?
     /** 新的在前。 */
     fun list(limit: Int): List<RemoteTask>

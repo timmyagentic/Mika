@@ -133,6 +133,14 @@
     <string name="chat_quote">引用</string>
     <string name="chat_select_text">选择文字</string>
     <string name="chat_copied">已复制</string>
+    <string name="chat_branch">从这里分支</string>
+    <string name="chat_branch_done">已创建分支</string>
+    <string name="chat_branch_failed">没能创建分支</string>
+    <string name="chat_branch_title_suffix">" · 分支"</string>
+    <string name="chat_branch_origin">从另一个对话分支</string>
+    <string name="chat_branch_attachments_skipped">附件没有全部复制</string>
+    <string name="chat_branch_retry">从这里重新问</string>
+    <string name="chat_branch_attachments_readd">附件需要重新添加</string>
     <string name="chat_select_hint">长按文字就能选择</string>
     <string name="chat_quote_remove">去掉引用</string>
     <string name="chat_quoting_mika">引用 Mika:%1$s</string>
@@ -143,4 +151,6 @@
     <string name="pip_reopen">显示画面</string>
     <string name="pip_closed_needs_you">等你处理</string>
     <string name="pip_closed_hint">这个任务不再浮出小画面。点右下角「显示画面」，或在侧栏「后台屏」里看。</string>
+    <string name="chat_conversation_tokens">本对话共 %1$s</string>
+    <string name="chat_conversation_tokens_partial">本对话至少 %1$s</string>
 </resources>

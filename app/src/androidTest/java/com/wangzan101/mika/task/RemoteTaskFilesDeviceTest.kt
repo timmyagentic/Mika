@@ -52,13 +52,14 @@ class RemoteTaskFilesDeviceTest {
             if (!usb) ui.runOnIdle { app.mcp.setUsbEnabled(true) }
             ui.waitUntil(20_000) { app.mcp.state.value is McpServerState.Listening }
             val port = (app.mcp.state.value as McpServerState.Listening).port
-            fun request(path: String, body: JSONObject? = null): JSONObject {
+            fun request(path: String, body: JSONObject? = null, status: Int? = null): JSONObject {
                 val builder = Request.Builder().url("http://127.0.0.1:$port/api/v1$path")
                     .header("Authorization", "Bearer " + app.mcp.usb.token()!!)
                 if (body != null) builder.post(body.toString().toRequestBody("application/json".toMediaType()))
                 return client.newCall(builder.build()).execute().use { response ->
                     val json = JSONObject(response.body!!.string())
-                    assertTrue("$path -> $json", response.isSuccessful)
+                    if (status == null) assertTrue("$path -> $json", response.isSuccessful)
+                    else assertEquals("$path -> $json", status, response.code)
                     json
                 }
             }
@@ -75,8 +76,19 @@ class RemoteTaskFilesDeviceTest {
                     val part = csv.copyOfRange(pos, minOf(csv.size, pos + PendingUploads.CHUNK_BYTES))
                     request("/uploads/$id", JSONObject().put("offset", pos).put("data", Base64.getEncoder().encodeToString(part)))
                 }
-                request("/tasks", JSONObject().put("goal", "请导出附件").put("conversation", conversation)
-                    .put("attachments", JSONArray().put(id))).getString("task_id")
+                val requestId = UUID.randomUUID().toString()
+                val body = JSONObject().put("goal", "请导出附件").put("conversation", conversation)
+                    .put("request_id", requestId).put("attachments", JSONArray().put(id))
+                val pool = java.util.concurrent.Executors.newFixedThreadPool(2)
+                try {
+                    val results = pool.invokeAll(List(2) {
+                        java.util.concurrent.Callable { request("/tasks", body).getString("task_id") }
+                    })
+                    assertEquals(listOf(requestId, requestId), results.map { it.get() })
+                } finally { pool.shutdownNow() }
+                request("/tasks", JSONObject(body.toString()).put("attachments", JSONArray()), 409)
+                request("/tasks", JSONObject(body.toString()).put("attachments", JSONArray().put(UUID.randomUUID().toString())), 409)
+                requestId
             }
             val inputs = AttachmentLines.parse(app.remoteTasks.get(task)!!.goal).files
             val input = inputs.first().first

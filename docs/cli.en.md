@@ -84,7 +84,9 @@ Queued, paused, question-waiting, phone-handoff and terminal tasks reject steeri
 | 4 | Write outcome unknown; the phone may have accepted it, and it was not retried. |
 | 130 | A local read/wait was interrupted; no phone task cancellation was requested. |
 
-A lost write response, server-side write error or Ctrl-C during a write can leave its outcome unknown. Query the known task ID, or inspect recent tasks when no ID was received. Report uncertainty if it cannot be resolved. Reads also have no automatic retries. The phone's remote task index remains in memory, so an app process restart can make old IDs unavailable. This PR does not add task persistence or idempotent submission guarantees.
+On a phone advertising `task_recovery`, the CLI generates a lowercase UUID before submitting and the phone records it before starting the task. For automation, save your own UUID first and pass it to `task run --request-id UUID --goal ...`. A lost receipt returns exit 4 with the `task_id`. Reconnect to the same phone and run `mika task status UUID`. If the phone still returns 404 and you intend to retry, use the same ID, goal and conversation argument. A replay returns the existing task. Reusing the ID for a different request returns 409. The CLI never automatically resends a write.
+
+After an app process restart the same ID retrieves the answer and verification fields, failure reason or cancellation. An unfinished task returns `failed` with `failure_kind=interrupted`. Deleting a conversation clears its remote task contents. Its used IDs return 410 and cannot start tasks again. Finished task records are kept for 30 days, up to the latest 1000; after that the same ID counts as a new request. IDs held only in memory before upgrading cannot be reconstructed. Ordinary submissions still work on older phones with the previous recent-task lookup. An explicit `--request-id` requires a compatible phone.
 
 `doctor` checks connectivity/API and available device state; it explicitly reports model configuration as unverified. It neither invokes a model nor starts a task, and cannot establish real-device task acceptance. Missing `verified` means unknown. Payment confirmations, phone handoff and access to phone-local tasks retain the same boundaries as MCP.
 
@@ -98,7 +100,7 @@ mika task status TASK_ID --json
 mika task download TASK_ID FILE_ID --output checked.csv
 ```
 
-Use the file ID, name, size and export digest in the task’s `files` field. The CLI stages the download in the destination directory and creates the requested file only after verification. An existing file is preserved. On macOS and Linux volumes without hard links, such as exFAT, it copies the verified file into an exclusively created destination. Check that file if the final local write is interrupted. Files can be downloaded while the phone retains the remote task ID. The original export remains in the phone’s Downloads if a restart clears the task index.
+Use the file ID, name, size and export digest in the task’s `files` field. The CLI stages the download in the destination directory and creates the requested file only after verification. An existing file is preserved. On macOS and Linux volumes without hard links, such as exFAT, it copies the verified file into an exclusively created destination. Check that file if the final local write is interrupted. Files can be downloaded while the phone retains the remote task ID. The original export remains in the phone’s Downloads after the task receipt expires. If a submission with attachments loses its receipt, look up the original request ID. The desk retries with the same upload IDs in their original order. Running the CLI again with local paths creates new upload IDs. If the original request was accepted, the phone returns 409 and you can retrieve the task by its original request ID.
 
 ## Browser task desk
 
@@ -120,7 +122,7 @@ All paths below are relative to `/api/v1` and use the same Bearer authentication
 | POST /uploads | Send `name` and byte count `size` to obtain a single-use `upload_id`. |
 | POST /uploads/ID | Send the next `offset` and Base64 `data` (up to 128 KiB raw). The phone acknowledges `next_offset`. |
 | POST /uploads/ID/discard | An empty object discards a pending upload. Unused IDs expire after 30 idle minutes. |
-| POST /tasks | `goal`, optional `conversation` and an optional `attachments` array of upload IDs. Returns 201 with task ID and state. |
+| POST /tasks | A goal, optional conversation, request_id and an ordered attachments array of upload IDs. With a request ID, the returned task_id equals that ID. |
 | GET /tasks/ID/files/FILE_ID?offset=N | Read a chunk of a file exported by that task. Returns the byte `offset` and Base64 `data`. |
 | GET /tasks?limit=10 | Recent remote tasks; limit 1–50. |
 | GET /tasks/ID | Current task state. |

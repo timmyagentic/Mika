@@ -25,6 +25,41 @@ class DeskFilesTest(unittest.TestCase):
             expect(page.locator("#submit-goal")).to_be_enabled()
             self.assertFalse(any(method == "POST" and path == "/api/v1/tasks" for method, path, _ in phone.calls))
 
+    def test_missing_receipt_retries_the_same_upload_and_request_after_reload(self):
+        requests, tasks = [], []
+
+        def respond(method, path, body):
+            if path == "/api/v1":
+                return 200, {**DISCOVERY, "capabilities": ["tasks", "task_files", "task_recovery"]}, {}
+            if path == "/api/v1/uploads":
+                return 201, {"upload_id": "staged-csv"}, {}
+            if path == "/api/v1/uploads/staged-csv":
+                return 200, {"next_offset": 1}, {}
+            if method == "POST" and path == "/api/v1/tasks":
+                requests.append(body)
+                if len(requests) == 1:
+                    return "drop"
+                tasks.append(snapshot(body["request_id"], "mcp-files", body["goal"], answer="Recovered file"))
+                return 201, tasks[0], {}
+            if requests and path == "/api/v1/tasks/" + requests[0]["request_id"] and not tasks:
+                return 404, {"error": {"code": "not_found"}}, {}
+            return read_tasks(tasks, path)
+
+        with browser_desk(respond) as (page, phone):
+            expect(page.locator("#attach-file")).to_be_visible()
+            page.locator("#file-picker").set_input_files({"name": "sample.csv", "mimeType": "text/csv", "buffer": b"1"})
+            page.locator("#submit-goal").click()
+            expect(page.locator("#pending-run")).to_be_visible()
+            page.reload()
+            page.locator("#lookup-run").click()
+            expect(page.locator("#notice")).to_contain_text("暂未查到")
+            page.locator("#retry-run").click()
+            expect(page.locator(".answer")).to_have_text("Recovered file")
+            self.assertEqual(["staged-csv"], requests[0]["attachments"])
+            self.assertEqual([requests[0], requests[0]], requests)
+            self.assertEqual(1, sum(path == "/api/v1/uploads" for _, path, _ in phone.calls))
+            self.assertFalse(any(path.endswith("/discard") for _, path, _ in phone.calls))
+
     def test_selection_paste_attachment_only_and_round_scoped_download(self):
         data = bytes(range(256)) * 1600
         image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNwyzvxHwAE9gJ8c7jPEgAAAABJRU5ErkJggg==")

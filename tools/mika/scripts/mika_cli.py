@@ -21,6 +21,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 
 VERSION = "0.1.0"
 API = "/api/v1"
@@ -325,6 +326,8 @@ def task_snapshot(result, client, *, mutation=False, task_id=None):
             client.unknown(task_id)
         raise CliError("protocol", "Mika returned an invalid task snapshot.")
     if task_id is not None and result["task_id"] != task_id:
+        if mutation:
+            client.unknown(task_id)
         raise CliError("protocol", "Mika returned a different task ID.")
     return result
 
@@ -404,16 +407,24 @@ def file_chunks(client, task_id, item):
             return
 
 
-def submit_task(client, goal, conversation, upload_ids):
+def submit_task(client, goal, conversation, upload_ids, request_id):
     body = {"goal": goal}
     if conversation is not None:
         body["conversation"] = conversation
     if upload_ids:
         body["attachments"] = upload_ids
-    return task_snapshot(client.request("POST", "/tasks", body, mutation=True), client, mutation=True)
+    if request_id is not None:
+        body["request_id"] = request_id
+    result = client.request("POST", "/tasks", body, mutation=True, task_id=request_id)
+    return task_snapshot(result, client, mutation=True, task_id=request_id)
 
 
 def run_with_files(client, args, info):
+    request_id = args.request_id
+    if "task_recovery" in info["capabilities"]:
+        request_id = request_id or str(uuid.uuid4())
+    elif request_id is not None:
+        raise CliError("incompatible_api", "Update the phone app to submit a recoverable request.")
     ids = list(getattr(args, "attachments", []))  # The local desk has already staged these.
     paths = [Path(name) for name in getattr(args, "attach", [])]
     if ids or paths:
@@ -425,7 +436,7 @@ def run_with_files(client, args, info):
             for path in paths:
                 with path.open("rb") as stream:
                     ids.append(upload_file(client, path.name, os.fstat(stream.fileno()).st_size, stream))
-        task = submit_task(client, args.goal, args.conversation, ids)
+        task = submit_task(client, args.goal, args.conversation, ids, request_id)
         ids.clear()  # The phone consumed these in the accepted submission.
         return task
     except CliError as exc:
@@ -490,6 +501,12 @@ def execute(args, secrets):
                 args.goal = ""
             else:
                 args.goal = text_input(args.goal, args.goal_file, "goal")
+            if args.request_id is not None:
+                try:
+                    if str(uuid.UUID(args.request_id)) != args.request_id:
+                        raise ValueError
+                except ValueError:
+                    raise CliError("arguments", "request_id must be a canonical lowercase UUID.") from None
         if args.action in {"answer", "steer"}:
             args.text = text_input(args.text, args.text_file, args.action)
         if hasattr(args, "task_id") and not re.fullmatch(r"[A-Za-z0-9_-]+", args.task_id):
@@ -592,6 +609,7 @@ def parser():
     download.add_argument("file_id", help="ID in the task's files list")
     download.add_argument("--output", required=True, help="New file path on this computer")
     run.add_argument("--conversation", help="Continue a conversation returned by a previous remote task")
+    run.add_argument("--request-id", help="A lowercase UUID chosen before submission. Query it as the task ID after a lost receipt.")
     for name in ["status", "wait", "answer", "steer", "cancel"]:
         cmd = actions.add_parser(name, parents=[common])
         cmd.add_argument("task_id")

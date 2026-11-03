@@ -187,6 +187,33 @@ else:
             self.assertEqual("outcome_unknown", body["error"]["code"])
             self.assertEqual(1, len([c for c in server.calls if c[0] == "POST"]))
 
+    def test_lost_run_returns_the_preassigned_queryable_task_id(self):
+        accepted = {}
+        def respond(method, path, body):
+            if path == "/api/v1":
+                return 200, {**DISCOVERY, "capabilities": ["tasks", "task_recovery"]}, {}
+            if method == "POST":
+                accepted[body["request_id"]] = {**SNAPSHOT, "task_id": body["request_id"], "goal": body["goal"]}
+                return "drop"
+            return 200, accepted[path.split("/")[-1]], {}
+        with api(respond) as server:
+            result, body = self.invoke("task", "run", "--goal", "once", server=server)
+            self.assertEqual(4, result.returncode)
+            key = body["error"]["task_id"]
+            self.assertEqual("outcome_unknown", body["error"]["code"])
+            result, task = self.invoke("task", "status", key, server=server)
+            self.assertEqual(0, result.returncode)
+            self.assertEqual(key, task["task_id"])
+            self.assertEqual(1, sum(m == "POST" for m, _, _ in server.calls))
+
+    def test_explicit_request_id_never_downgrades_on_an_old_phone(self):
+        with api() as server:
+            result, body = self.invoke("task", "run", "--goal", "once", "--request-id",
+                                       "00000000-0000-4000-8000-000000000001", server=server)
+            self.assertNotEqual(0, result.returncode)
+            self.assertEqual("incompatible_api", body["error"]["code"])
+            self.assertFalse(any(m == "POST" for m, _, _ in server.calls))
+
     def test_unknown_answer_preserves_known_task_id(self):
         with api(lambda method, path, body: "drop" if method == "POST" else None) as server:
             result, body = self.invoke("task", "answer", "t1", "--text", "answer", server=server)

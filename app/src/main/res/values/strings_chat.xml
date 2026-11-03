@@ -138,6 +138,14 @@
     <string name="chat_quote">Quote</string>
     <string name="chat_select_text">Select text</string>
     <string name="chat_copied">Copied</string>
+    <string name="chat_branch">Branch from here</string>
+    <string name="chat_branch_done">Branch created</string>
+    <string name="chat_branch_failed">Couldn’t create branch</string>
+    <string name="chat_branch_title_suffix">" · branch"</string>
+    <string name="chat_branch_origin">Branched from another chat</string>
+    <string name="chat_branch_attachments_skipped">Not all attachments were copied</string>
+    <string name="chat_branch_retry">Ask again from here</string>
+    <string name="chat_branch_attachments_readd">Re-add the attachments you want to include</string>
     <string name="chat_select_hint">Press and hold the text to select it</string>
     <string name="chat_quote_remove">Remove quote</string>
     <string name="chat_quoting_mika">Quoting Mika: %1$s</string>
@@ -148,4 +156,6 @@
     <string name="pip_reopen">Show screen</string>
     <string name="pip_closed_needs_you">Needs you</string>
     <string name="pip_closed_hint">Closed for this task. Tap “Show screen” at the bottom right, or open “Background screens” in the side menu.</string>
+    <string name="chat_conversation_tokens">This chat: %1$s</string>
+    <string name="chat_conversation_tokens_partial">This chat: at least %1$s</string>
 </resources>

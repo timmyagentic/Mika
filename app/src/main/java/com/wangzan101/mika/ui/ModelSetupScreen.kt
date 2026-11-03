@@ -73,6 +73,7 @@ import com.wangzan101.mika.ui.components.GroupCard
 import com.wangzan101.mika.ui.components.GroupLabel
 import com.wangzan101.mika.ui.components.InputRow
 import com.wangzan101.mika.ui.components.ListRow
+import com.wangzan101.mika.ui.components.RowChevron
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.PageBackground
 import com.wangzan101.mika.ui.components.ProgressDots
@@ -94,6 +95,8 @@ fun ModelSetupScreen(
     store: ProviderStore, onboarding: Boolean, onBack: () -> Unit, onDone: () -> Unit,
     /** 设置里点「语音转文字」卡片去选择页;上手流程不传,卡片就不出现。 */
     onOpenSpeech: (() -> Unit)? = null,
+    /** 设置里查看 Token 用量;上手流程不传。 */
+    onOpenUsage: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -195,6 +198,7 @@ fun ModelSetupScreen(
                     testAndSave = vm::testAndSave, saveUntested = vm::saveWithoutTest,
                     openForm = vm::openForm, closeForm = vm::closeForm,
                     openProvider = { openProvider = it; allModels = false }, pickRole = { picking = it }, next = onDone, openSpeech = onOpenSpeech,
+                    openUsage = onOpenUsage,
                     openSignIn = { signInSheet = it },
                     setReasoningEffort = vm::setReasoningEffort,
                     setModelContext = vm::setModelContext,
@@ -246,6 +250,8 @@ class ModelSetupActions(
     val pickRole: (ModelRole) -> Unit = {},
     /** 打开「语音转文字」的选择页;为 null 时不显示这张卡(上手流程)。 */
     val openSpeech: (() -> Unit)? = null,
+    /** 打开 Token 用量;为 null 时不显示入口(上手流程)。 */
+    val openUsage: (() -> Unit)? = null,
     val next: () -> Unit = {},
     /** 打开一家账号登录的说明面板。 */
     val openSignIn: (SignInKind) -> Unit = {},
@@ -280,6 +286,11 @@ fun ModelSetupContent(ui: ModelSetupUi, onboarding: Boolean, actions: ModelSetup
                 } else {
                     RolesSection(ui, onPick, actions.setReasoningEffort, actions.openSpeech, actions.setModelContext)
                     ProvidersSection(ui, actions)
+                    actions.openUsage?.let { openUsage ->
+                        GroupCard {
+                            ListRow(MikaIcons.Chart, UsageCopy.TITLE, first = true, onClick = openUsage) { RowChevron() }
+                        }
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
             }

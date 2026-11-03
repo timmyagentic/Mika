@@ -143,6 +143,14 @@
     <string name="chat_quote">Citar</string>
     <string name="chat_select_text">Seleccionar texto</string>
     <string name="chat_copied">Copiado</string>
+    <string name="chat_branch">Bifurcar desde aquí</string>
+    <string name="chat_branch_done">Bifurcación creada</string>
+    <string name="chat_branch_failed">No se pudo crear la bifurcación</string>
+    <string name="chat_branch_title_suffix">" · rama"</string>
+    <string name="chat_branch_origin">Bifurcada de otro chat</string>
+    <string name="chat_branch_attachments_skipped">No se copiaron todos los adjuntos</string>
+    <string name="chat_branch_retry">Volver a preguntar desde aquí</string>
+    <string name="chat_branch_attachments_readd">Vuelve a adjuntar los archivos que quieras incluir</string>
     <string name="chat_select_hint">Mantén pulsado el texto para seleccionarlo</string>
     <string name="chat_quote_remove">Quitar cita</string>
     <string name="chat_quoting_mika">Citando a Mika: %1$s</string>
@@ -153,4 +161,6 @@
     <string name="pip_reopen">Mostrar pantalla</string>
     <string name="pip_closed_needs_you">Te necesita</string>
     <string name="pip_closed_hint">Cerrada para esta tarea. Toca “Mostrar pantalla” abajo a la derecha, o abre “Pantallas en segundo plano” en el menú lateral.</string>
+    <string name="chat_conversation_tokens">Esta conversación: %1$s</string>
+    <string name="chat_conversation_tokens_partial">Esta conversación: al menos %1$s</string>
 </resources>

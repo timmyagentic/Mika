@@ -46,6 +46,21 @@ object ChatCopy {
     fun plainTitle(text: String): String =
         ScreenCopy.plain(AttachmentMessage.plain(QuoteMessage.words(AttachedPage.words(text)))).lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
 
+    /**
+     * 分支的标题:源标题(或第一句话)后面加本地化后缀,总长不超过 [max] 字。
+     * 截的是源标题,后缀留着;按码点截,不会把 emoji 截成半个。
+     */
+    fun branchTitle(base: String, suffix: String, max: Int = 24): String {
+        val room = (max - suffix.length).coerceAtLeast(0)
+        var end = 0
+        var taken = 0
+        while (end < base.length && taken < room) {
+            end += Character.charCount(base.codePointAt(end))
+            taken++
+        }
+        return base.substring(0, end).trimEnd() + suffix
+    }
+
     enum class Tone { Accent, Warn, Ok }
 
     /** 顶栏副标题:这个对话留着一页在后台运行(没有任务在跑时)。 */

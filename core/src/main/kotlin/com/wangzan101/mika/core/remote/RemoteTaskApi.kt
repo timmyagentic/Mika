@@ -36,6 +36,7 @@ class RemoteTaskApi(
         val status = when (e.code) {
             RemoteTaskError.Code.INVALID_ARGUMENT -> 400
             RemoteTaskError.Code.NOT_FOUND -> 404
+            RemoteTaskError.Code.GONE -> 410
             RemoteTaskError.Code.CONFLICT -> 409
             RemoteTaskError.Code.UNAVAILABLE -> 503
         }
@@ -68,7 +69,7 @@ class RemoteTaskApi(
             return ok(buildJsonObject {
                 put("api_version", 1); put("server_version", serverVersion)
                 putJsonArray("capabilities") {
-                    add("tasks"); add("task_steer")
+                    add("tasks"); add("task_steer"); add("task_recovery")
                     if (device != null) add("device_state")
                     if (service.fileAccess != null) add("task_files")
                 }
@@ -97,13 +98,14 @@ class RemoteTaskApi(
                 }
                 "POST" -> {
                     if (query.isNotEmpty()) invalid("Task submission accepts no query parameters")
-                    val b = body(req, setOf("goal", "conversation", "attachments"))
+                    val b = body(req, setOf("goal", "conversation", "attachments", "request_id"))
                     val ids = b["attachments"]?.let { value ->
                         (value as? JsonArray)?.map {
                             (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content ?: invalid("Expected upload IDs")
                         } ?: invalid("attachments must be an array")
                     }.orEmpty()
-                    val task = fileIO { service.start(string(b, "goal").orEmpty(), string(b, "conversation"), ids) }
+                    val requestId = if ("request_id" in b) string(b, "request_id").orEmpty() else null
+                    val task = fileIO { service.start(string(b, "goal").orEmpty(), string(b, "conversation"), requestId, ids) }
                     ok(RemoteStatus.describe(task), 201)
                 }
                 else -> wrongMethod("GET, POST")

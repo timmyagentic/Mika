@@ -133,6 +133,14 @@
     <string name="chat_quote">引用</string>
     <string name="chat_select_text">テキストを選択</string>
     <string name="chat_copied">コピーしました</string>
+    <string name="chat_branch">ここから分岐</string>
+    <string name="chat_branch_done">分岐を作成しました</string>
+    <string name="chat_branch_failed">分岐を作成できませんでした</string>
+    <string name="chat_branch_title_suffix">" · 分岐"</string>
+    <string name="chat_branch_origin">別の会話から分岐</string>
+    <string name="chat_branch_attachments_skipped">添付ファイルをすべてコピーできませんでした</string>
+    <string name="chat_branch_retry">ここから聞き直す</string>
+    <string name="chat_branch_attachments_readd">添付ファイルは追加し直してください</string>
     <string name="chat_select_hint">テキストを長押しして選択します</string>
     <string name="chat_quote_remove">引用を削除</string>
     <string name="chat_quoting_mika">Mika を引用: %1$s</string>
@@ -143,4 +151,6 @@
     <string name="pip_reopen">画面を表示</string>
     <string name="pip_closed_needs_you">あなたの対応が必要</string>
     <string name="pip_closed_hint">このタスクでは閉じました。右下の「画面を表示」をタップするか、サイドメニューの「バックグラウンドの画面」を開いてください。</string>
+    <string name="chat_conversation_tokens">この会話: %1$s</string>
+    <string name="chat_conversation_tokens_partial">この会話: %1$s 以上</string>
 </resources>
