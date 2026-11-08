@@ -26,7 +26,10 @@ internal object RemoteTaskRecord {
     /** 盘上读不懂的终态一律报成这个。 */
     val UNREADABLE: TaskState.Terminal = TaskState.Failed("The saved result of this task could not be read.", FailKind.Environment)
 
-    fun encode(state: TaskState.Terminal): String = buildJsonObject {
+    data class Result(val state: TaskState.Terminal, val runId: String? = null)
+
+    fun encode(state: TaskState.Terminal, runId: String? = null): String = buildJsonObject {
+        runId?.let { put("run_id", it) }
         when (state) {
             is TaskState.Succeeded -> {
                 put("type", "done"); put("answer", state.answer); put("verified", state.verified)
@@ -39,11 +42,11 @@ internal object RemoteTaskRecord {
         }
     }.toString()
 
-    fun decode(text: String): TaskState.Terminal = runCatching {
+    fun decode(text: String): Result = runCatching {
         val o = json.parseToJsonElement(text) as JsonObject
-        when (o.str("type")) {
+        val state = when (o.str("type")) {
             "done" -> TaskState.Succeeded(
-                answer = o.str("answer") ?: return UNREADABLE,
+                answer = o.str("answer") ?: return Result(UNREADABLE),
                 verified = o.bool("verified") ?: true, note = o.str("note"),
                 unconfirmed = (o["unconfirmed"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty(),
                 reviewed = o.bool("reviewed") ?: true,
@@ -52,7 +55,8 @@ internal object RemoteTaskRecord {
             "cancelled" -> TaskState.Cancelled
             else -> UNREADABLE
         }
-    }.getOrDefault(UNREADABLE)
+        Result(state, o.str("run_id"))
+    }.getOrDefault(Result(UNREADABLE))
 
     fun encodeSteers(steers: List<RemoteSteer>): String = buildJsonArray {
         steers.forEach { s -> addJsonObject { put("messageId", s.messageId); put("state", s.state) } }

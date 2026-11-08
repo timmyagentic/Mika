@@ -17,6 +17,8 @@ import android.util.Log
 internal class DisplayOrientationWatch(
     private val taskManager: Any,
     private val active: () -> Boolean,
+    private val onRequestedOrientation: (taskId: Int, orientation: Int) -> Unit = { _, _ -> },
+    private val onTaskRemoved: (taskId: Int) -> Unit = {},
     private val sync: () -> Unit,
 ) {
     private val thread = HandlerThread("mika-display-orientation").apply { start() }
@@ -27,9 +29,30 @@ internal class DisplayOrientationWatch(
         cancel = { handler.removeCallbacks(it) },
         scan = { runCatching(sync).onFailure { Log.w("MikaShell", "display orientation scan failed", it) } },
     )
+    private val requestedOrientationTransactions = setOfNotNull(
+        transactionCode("onActivityRequestedOrientationChanged"),
+        transactionCode("onTaskRequestedOrientationChanged"),
+    )
+    private val taskRemovedTransaction = transactionCode("onTaskRemoved")
     private val signal = object : Binder() {
-        init { attachInterface(null, "android.app.ITaskStackListener") }
+        init { attachInterface(null, TASK_LISTENER) }
         override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+            if (code in requestedOrientationTransactions) {
+                runCatching {
+                    data.enforceInterface(TASK_LISTENER)
+                    onRequestedOrientation(data.readInt(), data.readInt())
+                }.onFailure { Log.w("MikaShell", "display orientation callback rejected", it) }
+                scan.request()
+                return true
+            }
+            if (code == taskRemovedTransaction) {
+                runCatching {
+                    data.enforceInterface(TASK_LISTENER)
+                    onTaskRemoved(data.readInt())
+                }.onFailure { Log.w("MikaShell", "task removal callback rejected", it) }
+                scan.request()
+                return true
+            }
             if (code in FIRST_CALL_TRANSACTION..LAST_CALL_TRANSACTION) {
                 scan.request()
                 return true
@@ -66,5 +89,11 @@ internal class DisplayOrientationWatch(
 
     private companion object {
         const val POLL_MS = 500L
+        const val TASK_LISTENER = "android.app.ITaskStackListener"
+
+        fun transactionCode(callback: String): Int? = runCatching {
+            Class.forName("android.app.ITaskStackListener\$Stub")
+                .getDeclaredField("TRANSACTION_$callback").apply { isAccessible = true }.getInt(null)
+        }.getOrNull()
     }
 }

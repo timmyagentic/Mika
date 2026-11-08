@@ -163,5 +163,13 @@ class ChatCopyTest {
         assertEquals("继续说点什么…", ChatCopy.placeholder(ComposerMode.Idle, hasHistory = true))
         assertEquals("回答 Mika 的问题", ChatCopy.placeholder(ComposerMode.Answer, hasHistory = true))
         assertEquals("补充或改要求…", ChatCopy.placeholder(ComposerMode.Busy, hasHistory = true))
+        assertEquals("写下下一件事…", ChatCopy.placeholder(ComposerMode.Busy, hasHistory = true, followUp = FollowUpMode.Queue))
+    }
+
+    @Test fun followUpHintExplainsWhenItTakesEffect() {
+        assertEquals("下一步就按这句话调整", followUpHint(FollowUpMode.Steer, ExchangeStatus.Working))
+        assertEquals("任务暂停中，继续后生效", followUpHint(FollowUpMode.Steer, ExchangeStatus.Paused("等解锁")))
+        assertEquals("任务暂停中，继续后生效", followUpHint(FollowUpMode.Steer, ExchangeStatus.NeedsTakeover("login", "登录")))
+        assertEquals("当前任务结束后自动开始", followUpHint(FollowUpMode.Queue, ExchangeStatus.Working))
     }
 }

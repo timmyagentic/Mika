@@ -79,6 +79,8 @@
     <string name="capsule_mode_off_detail">알림만 사용</string>
     <string name="capsule_mode_tasks_detail">작업이 실행되거나 내 차례를 기다리는 동안 표시되고, 끝나고 몇 초 뒤에 사라져요</string>
     <string name="capsule_mode_always_detail">작업이 없어도 화면에 Mika 아이콘을 계속 표시해요</string>
+    <string name="capsule_idle_opacity">대기 중 불투명도</string>
+    <string name="capsule_idle_opacity_detail">몇 초 동안 만지지 않았을 때의 농도이며, 처리가 필요한 상태는 항상 완전히 보여요</string>
     <string name="routes_saved">저장된 경로</string>
     <string name="loading">불러오는 중</string>
     <plurals name="routes_count">
@@ -161,4 +163,8 @@
     <string name="mcp_servers_status_fail">연결 실패: %1$s</string>
     <string name="mcp_servers_refresh_all">모두 테스트</string>
     <string name="mcp_servers_allowlist">허용할 도구(쉼표로 구분, 비우면 전체)</string>
+    <string name="quit_title">Mika 완전히 종료</string>
+    <string name="quit_row_sub">백그라운드 작업을 중지하고 플로팅 캡슐을 숨깁니다</string>
+    <string name="quit_confirm_body">실행 중인 작업이 중지되고 플로팅 캡슐과 알림이 사라집니다. Mika를 다시 열면 모두 돌아옵니다.</string>
+    <string name="quit_confirm_action">종료</string>
 </resources>

@@ -2,6 +2,7 @@ package com.wangzan101.mika.ui
 
 import com.wangzan101.mika.R
 import com.wangzan101.mika.i18n.tr
+import com.wangzan101.mika.ui.components.DirectionalIcon
 import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.geometry.Offset
@@ -13,6 +14,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.ExperimentalFoundationApi
+import com.wangzan101.mika.ui.components.MikaDialog
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
@@ -149,7 +151,7 @@ fun drawerSections(
     zone: ZoneId = ZoneId.systemDefault(),
 ): DrawerSections {
     val byId = all.associateBy { it.id }
-    fun timeOf(id: String?) = byId[id]?.let { conversationTime(it.updatedAt, now, zone) }.orEmpty()
+    fun timeOf(id: String?) = byId[id]?.takeIf { it.updatedAt != 0L }?.let { conversationTime(it.updatedAt, now, zone) }.orEmpty()
     fun pinned(id: String?) = byId[id]?.pinnedAt != null
     val running = buildList {
         if (current.running) add(DrawerConversation(current.id, current.title.ifBlank { tr(R.string.chat_new) }, current.subtitle, true, true, true, time = timeOf(current.id), pinned = pinned(current.id), site = byId[current.id]?.page?.host, branch = byId[current.id]?.branchOf != null))
@@ -161,7 +163,7 @@ fun drawerSections(
     val runningIds = running.mapNotNull { it.id }.toSet()
     fun entry(s: ConversationSummary): DrawerConversation {
         val isCurrent = s.id == current.id
-        return DrawerConversation(s.id, ChatCopy.plainTitle(s.title), "", false, isCurrent, canSwitch || isCurrent, conversationTime(s.updatedAt, now, zone), pinned = s.pinnedAt != null,
+        return DrawerConversation(s.id, ChatCopy.plainTitle(s.title), "", false, isCurrent, canSwitch || isCurrent, timeOf(s.id), pinned = s.pinnedAt != null,
             site = s.page?.host, branch = s.branchOf != null)
     }
     val rest = all.filter { it.id !in runningIds }
@@ -211,6 +213,8 @@ fun ChatDrawer(
     onSettings: () -> Unit,
     onOpen: (DrawerConversation) -> Unit,
     onAbout: () -> Unit = {},
+    /** 完全退出 Mika(先问一句)。 */
+    onQuit: () -> Unit = {},
     /** 有新版本:「关于 Mika」带小红点。 */
     aboutDot: Boolean = false,
     /** 长按一条存过的对话:在它原地弹出操作菜单(置顶、改名、删除);带上那一行在窗口里的位置和大小。 */
@@ -243,6 +247,10 @@ fun ChatDrawer(
             NavEntry(MikaIcons.Clock, stringResource(R.string.drawer_plans), onClick = onPlans)
             NavEntry(MikaIcons.Heart, stringResource(R.string.memory_and_skills), onClick = onMemory)
             NavEntry(MikaIcons.Globe, stringResource(R.string.drawer_browser), onClick = onBrowser)
+            // 和上面几项隔开一点:这是把 Mika 整个停下来,不是换一页
+            Box(Modifier.padding(top = 4.dp)) {
+                NavEntry(MikaIcons.Power, stringResource(R.string.quit_title), onClick = onQuit)
+            }
         }
         // 侧栏关着时列表只剩末尾那一项;打开时对话插在它前面,列表会按原来那一项停在最底下。最上面一项变了就回到顶上
         val list = rememberLazyListState()
@@ -330,7 +338,7 @@ private fun RunningLabel(onScreens: () -> Unit) {
         ) {
             Icon(MikaIcons.Screens, null, Modifier.size(14.dp), tint = c.ink3)
             Text(stringResource(R.string.drawer_screens), style = MikaType.Hint, color = c.ink2)
-            Icon(MikaIcons.Chevron, null, Modifier.size(10.dp), tint = c.ink3)
+            DirectionalIcon(MikaIcons.Chevron, null, Modifier.size(10.dp), tint = c.ink3)
         }
     }
 }
@@ -412,7 +420,7 @@ internal fun RenameConversationDialog(title: String, onSave: (String) -> Unit, o
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     val ok = value.text.isNotBlank()
-    AlertDialog(
+    MikaDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.drawer_rename_title)) },
         text = {
@@ -435,7 +443,7 @@ internal fun RenameConversationDialog(title: String, onSave: (String) -> Unit, o
 }
 
 /**
- * 删对话前的确认:写明删的是哪个对话;有任务在跑、绑着定时任务时也写明会停掉、一起删掉。
+ * 删对话前的确认:写明删的是哪个对话;有任务在跑会停掉,绑着定时任务则写明计划会保留。
  * 和别处删东西的确认一样:右边红字「删除」,左边「取消」。
  */
 @Composable
@@ -445,7 +453,7 @@ internal fun DeleteConversationDialog(title: String, impact: DeleteImpact, onCon
         if (impact.runningTask) stringResource(R.string.drawer_delete_running) else null,
         if (impact.schedules > 0) trPlural(R.plurals.drawer_delete_schedules, impact.schedules) else null,
     ).joinToString("\n")
-    AlertDialog(
+    MikaDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.drawer_delete_title)) },
         text = { Text(body, Modifier.testTag("delete-conversation-body")) },
@@ -520,6 +528,7 @@ fun ChatWithDrawer(
     // 对话页上返回(侧滑)先打开侧栏;侧栏开着时再返回才离开 App(退到后台,和桌面返回一样)。
     // 对话页里面板、画中画等自己的返回在内层,先于这里处理
     val activity = LocalContext.current.findActivity()
+    val context = LocalContext.current
     BackHandler {
         if (open) activity?.moveTaskToBack(true)
         else scope.launch { if (reduceMotion) drawer.snapTo(DrawerValue.Open) else drawer.open() }
@@ -548,6 +557,8 @@ fun ChatWithDrawer(
     var renaming by remember { mutableStateOf<DrawerConversation?>(null) }
     /** 要删的那条和删它会连带什么;确认弹窗开着。 */
     var confirming by remember { mutableStateOf<Pair<DrawerConversation, DeleteImpact>?>(null) }
+    /** 「完全退出」的确认弹窗开着。 */
+    var confirmingQuit by remember { mutableStateOf(false) }
     val menuOpen = acting != null
     Box(Modifier.fillMaxSize()) {
         ModalNavigationDrawer(
@@ -562,7 +573,9 @@ fun ChatWithDrawer(
                 .clearAndSetSemantics {},
             drawerContent = {
                 // 只在打开时读盘;每次打开、开着时存储里有对话改过都重读一次
-                val all = remember(open, revision) { if (open) conversations() else emptyList() }
+                val history = remember(open, revision) { if (open) conversations() else emptyList() }
+                val drafts by vm.draftConversations.collectAsState()
+                val all = remember(open, history, drafts, revision) { if (open) vm.withDrafts(history) else emptyList() }
                 val stored = remember(open, revision, ui.conversationId) { if (open) ui.conversationId?.let(conversationTitle) else null }
                 val last = ui.exchanges.lastOrNull()
                 val running = vm.busy()
@@ -585,6 +598,7 @@ fun ChatWithDrawer(
                     onBrowser = { leave(onBrowser) },
                     onScreens = { leave(onScreens) },
                     onAbout = { leave(onAbout) },
+                    onQuit = { leave { confirmingQuit = true } },
                     aboutDot = updateAvailable,
                     onActions = { item, bounds -> if (item.id != null) acting = item to bounds },
                     onOpen = { item ->
@@ -636,6 +650,19 @@ fun ChatWithDrawer(
                 item.id?.let(vm::deleteConversation)
             },
             onDismiss = { confirming = null },
+        )
+    }
+    if (confirmingQuit) {
+        AlertDialog(
+            onDismissRequest = { confirmingQuit = false },
+            title = { Text(stringResource(R.string.quit_title)) },
+            text = { Text(stringResource(R.string.quit_confirm_body)) },
+            confirmButton = {
+                TextButton({ confirmingQuit = false; com.wangzan101.mika.quit.MikaQuit.quit(context) }) {
+                    Text(stringResource(R.string.quit_confirm_action), color = MikaTheme.colors.bad)
+                }
+            },
+            dismissButton = { TextButton({ confirmingQuit = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }

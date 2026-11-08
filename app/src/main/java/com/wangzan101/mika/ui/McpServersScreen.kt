@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import com.wangzan101.mika.ui.components.MikaDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -164,7 +164,7 @@ private fun McpServerDialog(
         return cfg
     }
 
-    AlertDialog(
+    MikaDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (initial == null) R.string.mcp_servers_add else R.string.mcp_servers_edit)) },
         text = {

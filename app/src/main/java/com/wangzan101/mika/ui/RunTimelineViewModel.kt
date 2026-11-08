@@ -294,6 +294,7 @@ class RunTimelineViewModel(
             "verification_failed" to tr(R.string.verify_failed),
             "parallel_tool_call_skipped" to tr(R.string.err_parallel_skipped),
             "screenshot_unavailable" to tr(R.string.err_no_screenshot),
+            "display_capture_unavailable" to tr(R.string.err_no_screenshot),
             "vision_unavailable" to tr(R.string.err_vision),
             "payment_requires_takeover" to tr(R.string.err_payment),
             "finish_missing_evidence" to tr(R.string.err_no_evidence),

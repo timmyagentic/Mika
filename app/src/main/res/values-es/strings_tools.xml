@@ -7,6 +7,7 @@
     <string name="tool_set_timer">Poner temporizador</string>
     <string name="tool_show_alarms">Mostrar alarmas</string>
     <string name="tool_add_calendar_event">Añadir evento al calendario</string>
+    <string name="tool_calendar_bulk_insert">Añadir eventos al calendario en lote</string>
     <string name="tool_set_wheel">Girar selector de rueda</string>
     <string name="tool_scroll_find">Desplazarse para buscar</string>
     <string name="tool_wait_condition">Esperar una condición de la pantalla</string>
@@ -15,6 +16,7 @@
     <string name="tool_check_dialog">Comprobar si hay diálogos</string>
     <string name="tool_gesture">Gesto multitáctil</string>
     <string name="tool_shell">Comando del sistema</string>
+    <string name="tool_root">Comando root</string>
     <string name="tool_find_element">Buscar en la pantalla</string>
     <string name="tool_collect">Recopilar de varias pantallas</string>
     <string name="tool_phone_run">Varias acciones en el teléfono</string>

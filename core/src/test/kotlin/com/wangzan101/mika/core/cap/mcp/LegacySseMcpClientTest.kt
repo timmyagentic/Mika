@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.cap.mcp
 
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -23,12 +24,13 @@ import java.util.concurrent.Executors
 
 class LegacySseMcpClientTest {
     /** 极简的 2024-11-05 服务:GET 开 SSE,POST 回 202,响应从 SSE 推回来。 */
-    private class SseServer : Closeable {
+    private class SseServer(private val strictIds: Boolean = false) : Closeable {
         private val server = ServerSocket(0, 8, InetAddress.getByName("127.0.0.1"))
         private val pool = Executors.newCachedThreadPool()
         @Volatile private var sseOut: OutputStream? = null
         @Volatile private var sseSocket: Socket? = null
         private val json = Json { ignoreUnknownKeys = true }
+        private val seen = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
         val port: Int get() = server.localPort
 
         init {
@@ -104,7 +106,9 @@ class LegacySseMcpClientTest {
                 val response = buildJsonObject {
                     put("jsonrpc", "2.0")
                     put("id", id.toLong())
-                    put("result", result)
+                    if (strictIds && !seen.add(id)) put("error", buildJsonObject {
+                        put("code", -32600); put("message", "request ID reused")
+                    }) else put("result", result)
                 }
                 synchronized(this) {
                     sseOut?.let { stream ->
@@ -151,6 +155,20 @@ class LegacySseMcpClientTest {
             assertFalse(result.isError)
             assertEquals("found", result.text)
             endpoint.close()
+        }
+    }
+
+    @Test(timeout = 20_000) fun requestIdsRemainUniqueAfterHandshake() = runBlocking {
+        SseServer(strictIds = true).use { server ->
+            val endpoint = LegacySseMcpEndpoint.connect("strict", server.url("/mcp"),
+                OkHttpClient(), timeoutSec = 5).getOrThrow()
+            try {
+                kotlinx.coroutines.coroutineScope {
+                    (1..8).map { async {
+                        endpoint.call("search", buildJsonObject {})
+                    } }.forEach { assertEquals("found", it.await().text) }
+                }
+            } finally { endpoint.close() }
         }
     }
 

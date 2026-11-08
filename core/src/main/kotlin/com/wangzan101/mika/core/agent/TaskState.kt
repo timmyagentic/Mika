@@ -9,6 +9,14 @@ sealed interface RunProgress {
     data class Replay(val step: Int, val total: Int) : RunProgress
     /** 一次执行模型给的 [steps] 步(do_steps)。 */
     data class Batch(val steps: Int) : RunProgress
+    /** 主模型随工作回报的任务数量/边界进度;[name] 与 [boundary] 已按用户语言书写。 */
+    data class Task(val name: String, val done: Int?, val total: Int?, val boundary: String?) : RunProgress {
+        val display: String get() = listOfNotNull(
+            name.ifBlank { null },
+            done?.let { d -> total?.let { "$d/$it" } ?: d.toString() },
+            boundary?.ifBlank { null },
+        ).joinToString(" · ")
+    }
     /**
      * 另一个任务正用着 [app](界面上的名字),这一步停下来等它放开(打开 App 时模型要了等)。
      * 只是在等别的任务,不要用户做什么:界面上照样算在干活,不算「要你处理」。

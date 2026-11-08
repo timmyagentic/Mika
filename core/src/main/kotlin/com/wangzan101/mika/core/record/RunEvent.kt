@@ -27,7 +27,14 @@ sealed interface RunEvent {
     @Serializable @SerialName("prompt_version")
     data class PromptVersion(override val atMs: Long, val hash: String) : RunEvent
 
-    /** [fallback] 表示没能列出标准,[criteria] 只是用户原话。 */
+    /** 数量或边界进度;总数未知时 [total] 为 null,[boundary] 是最新确认的位置、日期或条目。 */
+    @Serializable
+    data class Progress(val name: String, val done: Int? = null, val total: Int? = null, val boundary: String? = null)
+
+    /**
+     * [fallback] 表示没能列出标准,[criteria] 只是用户原话。执行中的进度更新也复用这个事件:
+     * [progress] 是最近确认的数量/边界,[complete] 表示全部判据已满足或数量到达,主循环据此收尾。
+     */
     @Serializable @SerialName("criteria")
     data class Criteria(
         override val atMs: Long,
@@ -35,6 +42,8 @@ sealed interface RunEvent {
         val ambiguities: List<String>,
         val kind: String = "",
         val fallback: Boolean = false,
+        val progress: Progress? = null,
+        val complete: Boolean = false,
     ) : RunEvent
 
     /** [tool]/[argsJson] 是本轮实际执行的那一个调用;参数已脱敏。 */
@@ -233,13 +242,16 @@ sealed interface RunEvent {
     data class TaskEnded(override val atMs: Long, val outcome: String, val answerOrReason: String, val kind: String? = null) : RunEvent
 
     /**
-     * 本次运行期间经计量的全部模型请求合计(见 [com.wangzan101.mika.core.usage.RunUsageTally]):主循环之外,意图判断、核查、
-     * 看图、压缩等旁路调用和失败重试的每一次都算;[unreported] 是服务商没报用量(或调用失败)的次数。
-     * 收尾时记一条,在 [TaskEnded] 之后;交出回答后的结局判定、记忆提取不在其中(Token 用量页都算)。旧记录没有。
+     * 本次运行期间经计量的模型调用合计(见 [com.wangzan101.mika.core.usage.RunUsageTally])。
+     * [calls] 是外层逻辑调用数,包含意图判断、核查、看图、压缩等旁路调用和外层失败重试;
+     * [httpCalls] 是实际交给 HTTP 客户端的推理请求数,另含适配器内部的兼容重发。旧记录没有这项,不能由 [calls] 反推。
+     * [unreported] / [httpUnreported] 分别是没报用量的逻辑调用数、没有对应最终用量的实际请求数,不估算失败请求的 token。
+     * 收尾时记一条,在 [TaskEnded] 之后;交出回答后的结局判定、记忆提取不在其中(Token 用量页都算)。
      */
     @Serializable @SerialName("model_calls")
     data class ModelCalls(
         override val atMs: Long, val calls: Int, val unreported: Int, val inputTokens: Long, val outputTokens: Long, val cachedTokens: Long,
+        val httpCalls: Int? = null, val httpUnreported: Int? = null,
     ) : RunEvent
 
     /**

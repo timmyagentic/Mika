@@ -85,6 +85,8 @@
     <string name="capsule_mode_off_detail">Somente notificações</string>
     <string name="capsule_mode_tasks_detail">Aparece enquanto uma tarefa roda ou espera por você e some alguns segundos depois</string>
     <string name="capsule_mode_always_detail">Mantém um ícone do Mika na tela mesmo sem tarefas</string>
+    <string name="capsule_idle_opacity">Opacidade em repouso</string>
+    <string name="capsule_idle_opacity_detail">Após alguns segundos sem toque; o que precisar da sua atenção continua totalmente visível</string>
     <string name="routes_saved">Roteiros salvos</string>
     <string name="loading">Carregando</string>
     <plurals name="routes_count">
@@ -169,4 +171,8 @@
     <string name="mcp_servers_status_fail">Falha na conexão: %1$s</string>
     <string name="mcp_servers_refresh_all">Testar tudo</string>
     <string name="mcp_servers_allowlist">Ferramentas permitidas (separadas por vírgulas, vazio = todas)</string>
+    <string name="quit_title">Sair do Mika completamente</string>
+    <string name="quit_row_sub">Interrompe as tarefas em segundo plano e oculta a cápsula flutuante</string>
+    <string name="quit_confirm_body">As tarefas em andamento serão interrompidas, e a cápsula flutuante e as notificações desaparecerão. Ao abrir o Mika de novo, tudo volta.</string>
+    <string name="quit_confirm_action">Sair</string>
 </resources>

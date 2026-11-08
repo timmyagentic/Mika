@@ -48,6 +48,7 @@ class StdioMcpEndpoint private constructor(
     override val serverId: String,
     private val process: McpStdioProcess,
     private val pending: ConcurrentHashMap<Long, CompletableDeferred<JsonObject>>,
+    private val ids: AtomicLong,
     private val scope: CoroutineScope,
     private val tools: List<McpToolDescriptor>,
     private val resources: List<McpResourceDescriptor>,
@@ -56,7 +57,6 @@ class StdioMcpEndpoint private constructor(
     val serverName: String?,
     val instructions: String?,
 ) : McpEndpoint, Closeable {
-    private val ids = AtomicLong(0)
 
     override fun tools(): List<McpToolDescriptor> = tools
     override fun resources(): List<McpResourceDescriptor> = resources
@@ -232,6 +232,7 @@ class StdioMcpEndpoint private constructor(
                     serverId = serverId,
                     process = process,
                     pending = pending,
+                    ids = ids,
                     scope = scope,
                     tools = handshake.tools,
                     resources = handshake.resources,

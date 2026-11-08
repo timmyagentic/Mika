@@ -23,7 +23,7 @@ class RemoteAccess(
     private val loopbackToken: () -> String? = { null },
 ) {
     sealed interface Verdict {
-        data object Pass : Verdict
+        data class Pass(val owner: String) : Verdict
         data class Reject(val status: Int, val message: String, val headers: Map<String, String> = emptyMap()) : Verdict
     }
 
@@ -42,18 +42,18 @@ class RemoteAccess(
                 return Verdict.Reject(429, "Too many failed attempts", mapOf("Retry-After" to wait.toString()))
             }
         }
-        val given = req.header("authorization")?.let { h ->
-            if (h.length > 7 && h.substring(0, 7).equals("Bearer ", ignoreCase = true)) h.substring(7).trim() else null
-        }
+        val given = presented(req)
         val loopback = if (req.remote.isLoopbackAddress) loopbackToken() else null
         // 两个都比,不因对上了第一个就少比一次。
-        if (given == null || !(matches(given, token()) or matches(given, loopback))) {
+        val networkMatch = given != null && matches(given, token())
+        val usbMatch = given != null && matches(given, loopback)
+        if (given == null || !(networkMatch || usbMatch)) {
             fail(who, now)
             return Verdict.Reject(401, "Missing or wrong access token", mapOf("WWW-Authenticate" to "Bearer"))
         }
         synchronized(failures) { failures.remove(who) }
 
-        return Verdict.Pass
+        return Verdict.Pass(if (networkMatch) RemoteOwnership.of(given) else RemoteOwnership.USB)
     }
 
     /** 本地监听与远程转发共用鉴权和协议错误;只有通过后才进入任务层。 */
@@ -61,7 +61,11 @@ class RemoteAccess(
         is Verdict.Reject -> if (req.path == McpRpc.PATH)
             McpRpc.transportError(verdict.status, verdict.message, verdict.headers)
         else RemoteTaskApi.error(verdict.status, "access_denied", verdict.message, verdict.headers)
-        Verdict.Pass -> next(req)
+        is Verdict.Pass -> next(req.ownedBy(verdict.owner))
+    }
+
+    private fun presented(req: HttpRequest) = req.header("authorization")?.let { h ->
+        if (h.length > 7 && h.substring(0, 7).equals("Bearer ", ignoreCase = true)) h.substring(7).trim() else null
     }
 
     private fun matches(given: String, expected: String?) = !expected.isNullOrEmpty() && same(given, expected)

@@ -79,6 +79,8 @@
     <string name="capsule_mode_off_detail">通知のみ</string>
     <string name="capsule_mode_tasks_detail">タスクの実行中や対応待ちの間だけ表示し、終わって数秒後に消えます</string>
     <string name="capsule_mode_always_detail">タスクがないときも、Mika のアイコンを画面に表示し続けます</string>
+    <string name="capsule_idle_opacity">待機時の不透明度</string>
+    <string name="capsule_idle_opacity_detail">数秒間操作しないときの表示の濃さ。対応が必要な状態は常に完全不透明で表示します</string>
     <string name="routes_saved">保存した手順</string>
     <string name="loading">読み込み中</string>
     <plurals name="routes_count">
@@ -161,4 +163,8 @@
     <string name="mcp_servers_status_fail">接続に失敗:%1$s</string>
     <string name="mcp_servers_refresh_all">すべてテスト</string>
     <string name="mcp_servers_allowlist">許可するツール(カンマ区切り、空欄はすべて)</string>
+    <string name="quit_title">Mika を完全に終了</string>
+    <string name="quit_row_sub">バックグラウンドのタスクを停止し、フローティングカプセルを閉じます</string>
+    <string name="quit_confirm_body">実行中のタスクは停止し、フローティングカプセルと通知は消えます。次に Mika を開くと元に戻ります。</string>
+    <string name="quit_confirm_action">終了</string>
 </resources>

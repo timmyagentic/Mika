@@ -79,6 +79,8 @@
     <string name="capsule_mode_off_detail">Hanya notifikasi</string>
     <string name="capsule_mode_tasks_detail">Muncul saat tugas berjalan atau menunggu Anda, dan hilang beberapa detik setelahnya</string>
     <string name="capsule_mode_always_detail">Menampilkan ikon Mika di layar walau tidak ada tugas</string>
+    <string name="capsule_idle_opacity">Opasitas saat diam</string>
+    <string name="capsule_idle_opacity_detail">Setelah beberapa detik tidak disentuh; hal yang memerlukan perhatian Anda tetap terlihat penuh</string>
     <string name="routes_saved">Rute tersimpan</string>
     <string name="loading">Memuat</string>
     <plurals name="routes_count">
@@ -161,4 +163,8 @@
     <string name="mcp_servers_status_fail">Gagal terhubung: %1$s</string>
     <string name="mcp_servers_refresh_all">Uji semua</string>
     <string name="mcp_servers_allowlist">Alat yang diizinkan (dipisah koma, kosong = semua)</string>
+    <string name="quit_title">Keluar dari Mika sepenuhnya</string>
+    <string name="quit_row_sub">Menghentikan tugas latar belakang dan menyembunyikan kapsul mengambang</string>
+    <string name="quit_confirm_body">Tugas yang sedang berjalan akan berhenti, kapsul mengambang dan notifikasi akan hilang. Saat Mika dibuka lagi, semuanya kembali.</string>
+    <string name="quit_confirm_action">Keluar</string>
 </resources>

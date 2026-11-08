@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicLong
 class LegacySseMcpEndpoint private constructor(
     override val serverId: String,
     private val pending: ConcurrentHashMap<Long, CompletableDeferred<JsonObject>>,
+    private val ids: AtomicLong,
     private val timeoutSec: Int,
     private val sseCall: Call,
     private val scope: CoroutineScope,
@@ -53,7 +54,6 @@ class LegacySseMcpEndpoint private constructor(
     val serverName: String?,
     val instructions: String?,
 ) : McpEndpoint, Closeable {
-    private val ids = AtomicLong(0)
 
     override fun tools(): List<McpToolDescriptor> = tools
     override fun resources(): List<McpResourceDescriptor> = resources
@@ -215,6 +215,7 @@ class LegacySseMcpEndpoint private constructor(
                 LegacySseMcpEndpoint(
                     serverId = serverId,
                     pending = pending,
+                    ids = ids,
                     timeoutSec = timeoutSec,
                     sseCall = sseCall,
                     scope = scope,

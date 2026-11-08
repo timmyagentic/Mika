@@ -13,6 +13,7 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
@@ -30,10 +31,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -111,6 +115,7 @@ fun AgentPip(
     onAttention: () -> Unit,
     onClose: () -> Unit = {},
     onReopen: () -> Unit = {},
+    onUnmute: () -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val fade = if (reduceMotion) tween<Float>(150) else tween(300)
@@ -131,6 +136,7 @@ fun AgentPip(
                 areaWidth = constraints.maxWidth.toFloat(), areaHeight = constraints.maxHeight.toFloat(),
                 topInset = topInset, bottomInset = bottomInset, onExpand = onExpand, onCollapse = onCollapse, onAttention = onAttention,
                 onClose = onClose,
+                onUnmute = onUnmute,
             )
         }
     }
@@ -180,6 +186,7 @@ private fun PipWindow(
     onCollapse: () -> Unit,
     onAttention: () -> Unit,
     onClose: () -> Unit,
+    onUnmute: () -> Unit,
 ) {
     val density = LocalDensity.current
     val sizeSpec = if (reduceMotion) snap() else tween<androidx.compose.ui.unit.Dp>(350, easing = Ease)
@@ -206,7 +213,21 @@ private fun PipWindow(
     val h by animateDpAsState(target.second, sizeSpec, label = "pipH")
     val wPx = with(density) { w.toPx() }
     val hPx = with(density) { h.toPx() }
-    val bounds = PipPhysics.Bounds(areaWidth, areaHeight, wPx, hPx, with(density) { 12.dp.toPx() }, topInset, bottomInset)
+    // 收起的小窗让开顶栏和输入栏(别挡住打字和顶栏的按钮);展开时整块背景已经压暗、它们本来也点不到,
+    // 小窗改放到整屏、只让开系统栏,不再挤在中间一小块里挪。展开收起途中按同一个时长插值,跟着大小一起挪,不跳。
+    val collapsedShare by animateFloatAsState(
+        if (pip.expanded) 0f else 1f,
+        if (reduceMotion) snap() else tween<Float>(350, easing = Ease),
+        label = "pipInset",
+    )
+    val (restTop, restBottom) = PipPhysics.restingInsets(
+        collapsedTop = topInset,
+        collapsedBottom = bottomInset,
+        safeTop = WindowInsets.statusBars.getTop(density).toFloat(),
+        safeBottom = WindowInsets.navigationBars.getBottom(density).toFloat(),
+        collapsedShare = collapsedShare,
+    )
+    val bounds = PipPhysics.Bounds(areaWidth, areaHeight, wPx, hPx, with(density) { 12.dp.toPx() }, restTop, restBottom)
     val currentBounds by rememberUpdatedState(bounds)
     val motionOff by rememberUpdatedState(reduceMotion)
     val expanded by rememberUpdatedState(pip.expanded)
@@ -325,14 +346,21 @@ private fun PipWindow(
                 }
             }
             if (pip.expanded) {
-                // 左上角:关掉这个任务的小画面(只剩右下角的小按钮);右上角 × 只是收起
-                Box(
-                    Modifier.align(Alignment.TopStart).padding(6.dp).size(26.dp)
-                        .floatShadow(MikaTheme.colors, CircleShape).background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
-                        .clickable(onClickLabel = stringResource(R.string.pip_close), onClick = onClose)
-                        .testTag("pip-close"),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(MikaIcons.EyeOff, stringResource(R.string.pip_close), Modifier.size(13.dp), tint = MikaTheme.colors.ink) }
+                // 左上角:一次性恢复当前 App 声音,再关掉小画面;不伪造与真实音频无关的开关状态
+                Row(Modifier.align(Alignment.TopStart).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PipButton(
+                        icon = MikaIcons.Sound,
+                        label = stringResource(R.string.pip_unmute),
+                        onClick = onUnmute,
+                        tag = "pip-unmute",
+                    )
+                    PipButton(
+                        icon = MikaIcons.EyeOff,
+                        label = stringResource(R.string.pip_close),
+                        onClick = onClose,
+                        tag = "pip-close",
+                    )
+                }
                 Box(
                     Modifier.align(Alignment.TopEnd).padding(6.dp).size(26.dp)
                         .floatShadow(MikaTheme.colors, CircleShape).background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
@@ -349,4 +377,15 @@ private fun PipWindow(
         }
         if (glow != null) Box(Modifier.size(w, h).border(glow.second, glow.first, outer))
     }
+}
+
+@Composable
+private fun PipButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit, tag: String) {
+    Box(
+        Modifier.size(26.dp)
+            .floatShadow(MikaTheme.colors, CircleShape).background(MikaTheme.colors.glass, CircleShape).clip(CircleShape)
+            .clickable(onClickLabel = label, onClick = onClick)
+            .testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, label, Modifier.size(13.dp), tint = MikaTheme.colors.ink) }
 }

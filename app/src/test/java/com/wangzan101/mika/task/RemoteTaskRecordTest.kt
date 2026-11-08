@@ -14,7 +14,7 @@ class RemoteTaskRecordTest {
             TaskState.Succeeded("answer", verified = false, reviewed = false),
             TaskState.Cancelled,
         ) + FailKind.entries.map { TaskState.Failed("why $it", it) }
-        for (s in states) assertEquals(s, RemoteTaskRecord.decode(RemoteTaskRecord.encode(s)))
+        for (s in states) assertEquals(s, RemoteTaskRecord.decode(RemoteTaskRecord.encode(s)).state)
     }
 
     // 盘上的字自己定,不随枚举名;存下来的格式改了要改这里
@@ -27,20 +27,20 @@ class RemoteTaskRecordTest {
     // 回答的证据账本不进远程收件
     @Test fun sourcesAreNotStored() {
         val s = TaskState.Succeeded("a", sources = listOf(com.wangzan101.mika.core.verify.AnswerSource(1, "screen", null, null, 1)))
-        assertEquals(s.copy(sources = emptyList()), RemoteTaskRecord.decode(RemoteTaskRecord.encode(s)))
+        assertEquals(s.copy(sources = emptyList()), RemoteTaskRecord.decode(RemoteTaskRecord.encode(s)).state)
     }
 
     @Test fun legacyAndUnknownValuesDecodeSafely() {
         // 合入前直接序列化领域类型写下的样子:类别是枚举名
         assertEquals(TaskState.Failed("stopped", FailKind.Interrupted),
-            RemoteTaskRecord.decode("""{"type":"failed","reason":"stopped","kind":"Interrupted"}"""))
+            RemoteTaskRecord.decode("""{"type":"failed","reason":"stopped","kind":"Interrupted"}""").state)
         assertEquals(TaskState.Succeeded("a", verified = false, note = "n", unconfirmed = listOf("x")),
-            RemoteTaskRecord.decode("""{"type":"done","answer":"a","verified":false,"note":"n","sources":[],"unconfirmed":["x"]}"""))
+            RemoteTaskRecord.decode("""{"type":"done","answer":"a","verified":false,"note":"n","sources":[],"unconfirmed":["x"]}""").state)
         // 更新的版本写的类别、多出来的字段
         assertEquals(TaskState.Failed("r", FailKind.Environment),
-            RemoteTaskRecord.decode("""{"type":"failed","reason":"r","kind":"something_new","extra":1}"""))
+            RemoteTaskRecord.decode("""{"type":"failed","reason":"r","kind":"something_new","extra":1}""").state)
         for (bad in listOf("", "not json", "[]", "{}", """{"type":"paused"}""", """{"type":"done"}""", """{"type":"done","answer":3}"""))
-            assertEquals(bad, RemoteTaskRecord.UNREADABLE, RemoteTaskRecord.decode(bad))
+            assertEquals(bad, RemoteTaskRecord.UNREADABLE, RemoteTaskRecord.decode(bad).state)
     }
 
     @Test fun steersRoundTripAndSkipBrokenEntries() {

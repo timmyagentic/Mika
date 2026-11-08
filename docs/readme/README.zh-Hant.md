@@ -1,4 +1,4 @@
-<!-- translated-from: README.md @ 960f4051ce73 -->
+<!-- translated-from: README.md @ 46f11aa3f1a8 -->
 <div align="center">
 
 <img src="../media/logo.png" alt="Mika" width="88" />
@@ -15,6 +15,14 @@
 <a href="https://github.com/wangzan101/Mika/releases"><img src="https://img.shields.io/github/downloads/wangzan101/Mika/total?label=%E4%B8%8B%E8%BC%89&color=2ea043" alt="downloads" /></a>
 <a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=%E7%89%88%E6%9C%AC" alt="version" /></a>
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
+
+<br/>
+
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/daily?language=Kotlin" alt="#1 Kotlin Repository of the Day" width="250" height="55" /></a>
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/weekly?language=Kotlin" alt="#1 Kotlin Repository of the Week" width="250" height="55" /></a>
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/daily" alt="#5 Repository of the Day" width="250" height="55" /></a>
+
+<br/>
 
 [English](../../README.md) · [简体中文](README.zh-CN.md) · 繁體中文 · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md)
 
@@ -138,7 +146,7 @@
 
 **能用自己電腦上跑的模型嗎？** 可以，服務商選「自定義」，填區域網路位址即可。
 
-**App 有繁體中文介面嗎？** 有。介面有繁體中文、簡體中文、英文、日文、韓文、西班牙文、葡萄牙文、俄文和印尼文，跟隨系統語言，也可以在 設定 › 語言 裡切換。
+**App 有繁體中文介面嗎？** 有。介面有繁體中文、簡體中文、英文、阿拉伯語、日文、韓文、西班牙文、葡萄牙文、俄文和印尼文，跟隨系統語言，也可以在 設定 › 語言 裡切換。
 
 **更新從哪裡來？** 只從本倉庫的 [Releases](https://github.com/wangzan101/Mika/releases) 發布；App 裡「關於 › 檢查更新」也能直接升級。
 
@@ -158,8 +166,8 @@
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-1623" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-1623" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261107-2304" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261107-2304" width="600" />
   </picture>
 </a>
 

@@ -1,4 +1,4 @@
-<!-- translated-from: README.md @ 960f4051ce73 -->
+<!-- translated-from: README.md @ 46f11aa3f1a8 -->
 <div align="center">
 
 <img src="../media/logo.png" alt="Mika" width="88" />
@@ -15,6 +15,14 @@
 <a href="https://github.com/wangzan101/Mika/releases"><img src="https://img.shields.io/github/downloads/wangzan101/Mika/total?label=%E4%B8%8B%E8%BD%BD&color=2ea043" alt="downloads" /></a>
 <a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=%E7%89%88%E6%9C%AC" alt="version" /></a>
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
+
+<br/>
+
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/daily?language=Kotlin" alt="#1 Kotlin Repository of the Day" width="250" height="55" /></a>
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/weekly?language=Kotlin" alt="#1 Kotlin Repository of the Week" width="250" height="55" /></a>
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/daily" alt="#5 Repository of the Day" width="250" height="55" /></a>
+
+<br/>
 
 [English](../../README.md) · 简体中文 · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md)
 
@@ -100,7 +108,7 @@
 <!-- 这一段由 ./gradlew updateReadme 生成，不要手改 -->
 | 类别 | 内置 |
 |---|---|
-| **App** | Android 设置、百家号、哔哩哔哩、BOSS直聘、Chrome、得到、抖音、飞书、Gmail、即刻、快手、领英、QQ邮箱、Telegram、今日头条、Uber、Uber Eats、微信、微博、WhatsApp、闲鱼、小红书、知乎 |
+| **App** | Android 设置、百家号、哔哩哔哩、BOSS直聘、Chrome、得到、抖音、飞书、Gmail、即刻、快手、领英、QQ邮箱、Telegram、今日头条、Uber、Uber Eats、微信、微博、WhatsApp、X、闲鱼、小红书、知乎 |
 | **网站** | Amazon、哔哩哔哩、Google Calendar、豆瓣、抖音、Instagram、Gmail、Google Maps、Telegram、百度贴吧、微博、搜狗微信、WhatsApp、小红书、小宇宙、YouTube、知乎、BOSS直聘 |
 | **通用做法**（技能） | 改 Mika 自己的设置、把内容整理成文字、处理 PDF 文档、查清一件事、消息与邮件、写技能 |
 <!-- generated:knowledge:end -->
@@ -112,7 +120,7 @@
 
 <!-- generated:providers:start -->
 <!-- 这一段由 ./gradlew updateReadme 生成，不要手改 -->
-内置 DeepSeek、通义千问、Kimi、智谱、智谱 Coding Plan、硅基流动、火山方舟、MiniMax、阶跃星辰、腾讯混元、百度千帆、OpenRouter、OpenCode Go、Anthropic、Gemini、OpenAI、xAI、Mistral、Groq、Ollama、LM Studio 等服务商预设；其他服务商选「自定义」，OpenAI 兼容、Anthropic、Gemini、OpenAI Responses 接口都能接。
+内置 DeepSeek、通义千问、Kimi、智谱、智谱 Coding Plan、硅基流动、火山方舟、MiniMax、阶跃星辰、腾讯混元、百度千帆、OpenRouter、Requesty、OpenCode Go、Anthropic、Gemini、OpenAI、xAI、Mistral、Groq、Ollama、LM Studio 等服务商预设；其他服务商选「自定义」，OpenAI 兼容、Anthropic、Gemini、OpenAI Responses 接口都能接。
 <!-- generated:providers:end -->
 
 也可以不填 Key：ChatGPT（Plus / Pro）、xAI / Grok、OpenRouter 账号登录。添加模型的步骤和各家登录的注意事项见[模型与登录](../models.md)。
@@ -164,8 +172,8 @@
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-1623" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-1623" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261107-2304" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261107-2304" width="600" />
   </picture>
 </a>
 

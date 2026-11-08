@@ -88,6 +88,8 @@
     <string name="capsule_mode_off_detail">Только уведомления</string>
     <string name="capsule_mode_tasks_detail">Появляется, пока выполняется задача или ждёт вас, и исчезает через несколько секунд после</string>
     <string name="capsule_mode_always_detail">Значок Mika остаётся на экране, даже когда задач нет</string>
+    <string name="capsule_idle_opacity">Непрозрачность в покое</string>
+    <string name="capsule_idle_opacity_detail">Через несколько секунд без касания; всё, что требует внимания, остаётся полностью видимым</string>
     <string name="routes_saved">Сохранённые маршруты</string>
     <string name="loading">Загрузка</string>
     <plurals name="routes_count">
@@ -173,4 +175,8 @@
     <string name="mcp_servers_status_fail">Ошибка подключения: %1$s</string>
     <string name="mcp_servers_refresh_all">Проверить все</string>
     <string name="mcp_servers_allowlist">Разрешённые инструменты (через запятую, пусто — все)</string>
+    <string name="quit_title">Полностью выйти из Mika</string>
+    <string name="quit_row_sub">Останавливает фоновые задачи и скрывает плавающую капсулу</string>
+    <string name="quit_confirm_body">Выполняющиеся задачи остановятся, плавающая капсула и уведомления исчезнут. При следующем запуске Mika всё вернётся.</string>
+    <string name="quit_confirm_action">Выйти</string>
 </resources>

@@ -7,6 +7,7 @@
     <string name="tool_set_timer">Pasang timer</string>
     <string name="tool_show_alarms">Tampilkan alarm</string>
     <string name="tool_add_calendar_event">Tambah acara kalender</string>
+    <string name="tool_calendar_bulk_insert">Tambah acara kalender secara massal</string>
     <string name="tool_set_wheel">Putar pemilih roda</string>
     <string name="tool_scroll_find">Gulir untuk mencari</string>
     <string name="tool_wait_condition">Tunggu kondisi layar</string>
@@ -15,6 +16,7 @@
     <string name="tool_check_dialog">Periksa dialog</string>
     <string name="tool_gesture">Gestur multisentuh</string>
     <string name="tool_shell">Perintah sistem</string>
+    <string name="tool_root">Perintah root</string>
     <string name="tool_find_element">Cari di layar</string>
     <string name="tool_collect">Kumpulkan dari beberapa layar</string>
     <string name="tool_phone_run">Beberapa tindakan ponsel</string>

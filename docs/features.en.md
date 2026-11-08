@@ -27,12 +27,13 @@ Any app installed on your phone works, with no per-app integration: Mika looks a
 
 ## The screen you are looking at
 
-- While you are in another app, a floating Mika capsule at the screen edge shows background task progress, things that need you, and results. Tap it to add a message, answer, approve or stop.
+- While you are in another app, a floating Mika capsule at the screen edge shows background task progress, things that need you, and results. Tap it to add a message, answer, approve or stop. If you don't want it, open it and tap "Turn off capsule" at the bottom; you can turn it back on in Settings › Floating capsule.
 - **Double-tap the capsule** to send the screen you are looking at to Mika, e.g. "how should I reply to this" or "note this down". You can also take a screenshot from the card and add a line before sending.
 
 ## Scheduled and conditional tasks
 
 - "Remind me at 9 tomorrow morning", "check the weather every morning and tell me only if it will rain", "do X every Friday".
+- Conditions can compare with last time: "tell me when it drops by more than 50" compares with the price from the last time the condition started the task; "tell me every time it rains" speaks up on each rainy day; you can also say "at most once a day".
 - Runs at the scheduled time in the original conversation and sends the result back. The scheduled tasks page lets you pause, reschedule, run now or delete.
 
 ## Interrupt or stop anytime
@@ -45,7 +46,7 @@ Any app installed on your phone works, with no per-app integration: Mika looks a
 
 ## Hold to talk
 
-- When you are not typing, hold the chat input to speak. When you let go the words land in the input for you to edit; nothing is sent by itself. While a task runs, sending it adds to the task. Slide up until it says "Let go to cancel" and let go to throw that take away.
+- When you are not typing, hold the chat input to speak. When you let go the words land in the input for you to edit; nothing is sent by itself. While a task runs, sending it adds to the task. To send right away, slide up into the "Listening" card; when it turns green and says "Let go to send", let go and the words are sent together with anything already in the input. Slide further up past the card until it says "Let go to cancel" and let go to throw that take away.
 - In other apps, long-press the floating capsule to speak and let go to send it straight to Mika (it adds to a running task, or answers when Mika is asking you). Let go on "Edit" to open the card with the words in its input.
 - By default it uses the phone's built-in speech recognition, which shows words as you speak and costs nothing. If the phone has none, or it is not accurate enough, pick a provider's speech model under Settings › Models › Speech to text; see [models and sign-in](models.en.md#speech-to-text).
 

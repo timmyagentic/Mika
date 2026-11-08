@@ -3,8 +3,10 @@ package com.wangzan101.mika.core.cap.mcp
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -142,6 +144,75 @@ class McpOAuthTest {
             assertEquals("$base/authorize", meta.authorizationEndpoint.toString())
         } finally {
             server.shutdown()
+        }
+    }
+
+    @Test fun discoversAuthServerWhoseIssuerHasPath() = runBlocking {
+        val server = MockWebServer().also { it.start() }
+        try {
+            val base = server.url("/").newBuilder().host("127.0.0.1").build().toString().trimEnd('/')
+            // 主机根上那份是另一个 issuer 的,不能拿来用
+            server.dispatcher = authServers(base, "$base/tenant1", mapOf(
+                "/.well-known/oauth-authorization-server/tenant1" to "$base/tenant1",
+                "/.well-known/oauth-authorization-server" to "$base/other",
+            ))
+            val meta = runCatching { McpOAuth(OkHttpClient()).discover(serverUrl(server)) }.getOrNull()
+            assertEquals("$base/tenant1/authorize", meta?.authorizationEndpoint?.toString())
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test fun discoversOpenIdConfigurationAppendedToIssuerPath() = runBlocking {
+        val server = MockWebServer().also { it.start() }
+        try {
+            val base = server.url("/").newBuilder().host("127.0.0.1").build().toString().trimEnd('/')
+            server.dispatcher = authServers(base, "$base/realms/demo/", mapOf(
+                "/realms/demo/.well-known/openid-configuration" to "$base/realms/demo",
+            ))
+            val meta = runCatching { McpOAuth(OkHttpClient()).discover(serverUrl(server)) }.getOrNull()
+            assertEquals("$base/realms/demo/token", meta?.tokenEndpoint?.toString())
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test fun authServerMetadataUrlsFollowSpecOrder() = runBlocking {
+        for ((issuerPath, expected) in listOf(
+            "/tenant1/" to listOf(
+                "/.well-known/oauth-authorization-server/tenant1",
+                "/.well-known/openid-configuration/tenant1",
+                "/tenant1/.well-known/openid-configuration",
+            ),
+            "/org/a%2Fb" to listOf(
+                "/.well-known/oauth-authorization-server/org/a%2Fb",
+                "/.well-known/openid-configuration/org/a%2Fb",
+                "/org/a%2Fb/.well-known/openid-configuration",
+            ),
+            "" to listOf("/.well-known/oauth-authorization-server", "/.well-known/openid-configuration"),
+        )) {
+            val server = MockWebServer().also { it.start() }
+            try {
+                val base = server.url("/").newBuilder().host("127.0.0.1").build().toString().trimEnd('/')
+                server.dispatcher = authServers(base, base + issuerPath, emptyMap())
+                runCatching { McpOAuth(OkHttpClient()).discover(serverUrl(server)) }
+                val paths = (1..server.requestCount).map { server.takeRequest().path }
+                assertEquals(expected, paths.filterNot { it!!.contains("oauth-protected-resource") })
+            } finally {
+                server.shutdown()
+            }
+        }
+    }
+
+    /** 资源元数据指向 [issuer];[metadata] 是授权服务器元数据的路径 → 其中端点所在的 issuer,别的路径一律 404。 */
+    private fun authServers(base: String, issuer: String, metadata: Map<String, String>) = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val path = request.path.orEmpty()
+            if (path == "/.well-known/oauth-protected-resource") {
+                return json("""{"resource":"$base/mcp","authorization_servers":["$issuer"]}""")
+            }
+            val at = metadata[path] ?: return MockResponse().setResponseCode(404)
+            return json("""{"issuer":"$at","authorization_endpoint":"$at/authorize","token_endpoint":"$at/token"}""")
         }
     }
 

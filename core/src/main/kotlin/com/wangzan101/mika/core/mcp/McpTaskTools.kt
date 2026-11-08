@@ -139,6 +139,7 @@ class McpTaskTools(
         // 按错误类型换回原 MCP 客户端看到的说法(带 MCP 工具名);共用服务不包含 MCP 命令名。
         throw ToolError(when (e) {
             is RemoteTaskError.NoSuchTask -> "No MCP task with id ${e.id}"
+            is RemoteTaskError.NoSuchRecord -> e.message.orEmpty()
             is RemoteTaskError.BadConversation -> "conversation must be one returned by an earlier MCP task (looks like mcp-<uuid>)"
             is RemoteTaskError.NeedsPhone -> ON_PHONE_NOTE
             is RemoteTaskError.QuestionClosed -> "The question is no longer open; check mika_task_status."

@@ -6,6 +6,8 @@ import androidx.compose.ui.res.stringResource
 import com.wangzan101.mika.settings.ProviderConnection
 import android.app.ActivityManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
+import com.wangzan101.mika.ui.components.MikaDialog
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,6 +38,8 @@ import com.wangzan101.mika.settings.Prerequisites
 import com.wangzan101.mika.settings.Problem
 import com.wangzan101.mika.settings.ProviderStore
 import com.wangzan101.mika.settings.NetProxyStore
+import com.wangzan101.mika.settings.WebSearchConfig
+import com.wangzan101.mika.settings.WebSearchSettings
 import com.wangzan101.mika.cap.web.WebProxy
 import com.wangzan101.mika.settings.SystemStatus
 import com.wangzan101.mika.settings.notificationOverview
@@ -54,13 +58,15 @@ import com.wangzan101.mika.ui.components.StateCard
 import com.wangzan101.mika.ui.components.StatusPill
 import com.wangzan101.mika.ui.components.TileTone
 import com.wangzan101.mika.ui.theme.MikaIcons
+import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.i18n.AppLanguage
+import com.wangzan101.mika.wechat.WechatConnectionState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** 设置里能进入的子页面;[Home] 是设置首页,[Advanced] 集中放置连接、维护和工程能力。 */
-private enum class SettingsPage { Home, Advanced, AppAccess, PhoneOps, DuringWork, Capsule, Language, Notifications, Sandbox, Recovery, SelfCheck, ComputerAccess, McpServers, Developer, RunStats }
+private enum class SettingsPage { Home, Advanced, AppAccess, PhoneOps, Wechat, DuringWork, Capsule, Language, Notifications, Sandbox, Recovery, SelfCheck, ComputerAccess, McpServers, Root, Developer, RunStats }
 
 /**
  * 设置页:总状态卡 + 常用 / 我的数据 / 其他。高级与其他只增加一层,各子页返回来时的页面。
@@ -91,12 +97,19 @@ fun SettingsScreen(
     val visionConfig = remember(configs, roles) { store.configFor(ModelRole.Vision) }
     var page by rememberSaveable { mutableStateOf(SettingsPage.Home) }
     var explaining by remember { mutableStateOf<Problem?>(null) }
+    // 「完全退出」先问一句:任务、胶囊和通知都会停
+    var confirmingQuit by remember { mutableStateOf(false) }
 
     fun fix(f: Fix) = if (f == Fix.AddModel) onOpenModels() else onFix(f)
     val onProblem: (Problem) -> Unit = { p -> StatusCopy.directFix(p)?.let(::fix) ?: run { explaining = p } }
 
     // 并行任务的上限只在实验开关 parallelTasks 打开时出现;设备能力按此刻算,第二块屏建失败过就按失败算
     val context = LocalContext.current
+    val root = remember { com.wangzan101.mika.cap.phone.PhoneServices.of(context).shellManager.root }
+    val rootState by root.state.collectAsState()
+    LaunchedEffect(Unit) { root.refresh() }
+    val wechat = remember { (context.applicationContext as com.wangzan101.mika.MikaApp).wechat }
+    val wechatState by wechat.state.collectAsState()
     val flags = remember { FeatureFlags.get(context) }
     var parallelMax by remember { mutableIntStateOf(flags.parallelMax()) }
     var keepScreenOn by remember { mutableStateOf(flags.keepScreenOn()) }
@@ -105,6 +118,7 @@ fun SettingsScreen(
     var stepLimit by remember { mutableStateOf(flags.taskStepLimit()) }
     var selfConfig by remember { mutableStateOf(flags.selfConfig()) }
     var capsuleMode by remember { mutableStateOf(flags.capsuleMode()) }
+    var capsuleIdleOpacity by remember { mutableStateOf(flags.capsuleIdleOpacity()) }
     // 换语言时界面会重建,这里每次进来读一次即可
     val language = remember { AppLanguage.current(context) }
     val runtimeLimit by (context.applicationContext as com.wangzan101.mika.MikaApp).taskState.parallelLimit.collectAsState()
@@ -120,6 +134,10 @@ fun SettingsScreen(
         if (proxy == null) proxy = withContext(Dispatchers.IO) { proxies.get() }
         browserProxy = withContext(Dispatchers.IO) { WebProxy.mode() }
     }
+    val searchSettings = remember { WebSearchSettings.get(context) }
+    var webSearch by remember { mutableStateOf<WebSearchConfig?>(null) }
+    var editingSearch by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { webSearch = withContext(Dispatchers.IO) { searchSettings.get() } }
     val mcp = remember { (context.applicationContext as com.wangzan101.mika.MikaApp).mcp }
     val mcpNetworkOn by mcp.settings.enabled.collectAsState()
     val mcpUsbOn by mcp.usb.enabled.collectAsState()
@@ -140,20 +158,26 @@ fun SettingsScreen(
             SettingsPage.RunStats -> SettingsPage.Developer
             SettingsPage.SelfCheck -> SettingsPage.Recovery
             SettingsPage.Sandbox, SettingsPage.Recovery, SettingsPage.ComputerAccess,
-            SettingsPage.McpServers, SettingsPage.Developer -> SettingsPage.Advanced
+            SettingsPage.McpServers, SettingsPage.Root, SettingsPage.Developer -> SettingsPage.Advanced
             else -> SettingsPage.Home
         }
     }
 
     if (page != SettingsPage.Home) BackHandler { back() }
 
-    val visiblePage = if (!showDeveloper && (page == SettingsPage.Developer || page == SettingsPage.RunStats)) SettingsPage.Home else page
+    val visiblePage = when {
+        !showDeveloper && (page == SettingsPage.Developer || page == SettingsPage.RunStats) -> SettingsPage.Home
+        page == SettingsPage.Root && !rootState.suPresent -> SettingsPage.Advanced
+        else -> page
+    }
     when (visiblePage) {
         SettingsPage.Home -> SettingsContent(
             status = status, androidRelease = androidRelease,
             mainModel = roles.main?.let { id -> configs.firstOrNull { it.id == id } }?.let(ProviderConnection::displayName),
             onBack = onBack, onProblem = onProblem, onOpenModels = onOpenModels,
             onOpenPhoneOps = { page = SettingsPage.PhoneOps },
+            wechatState = wechatState, wechatBound = wechat.store.account() != null,
+            onOpenWechat = { page = SettingsPage.Wechat },
             onOpenAppAccess = { page = SettingsPage.AppAccess },
             onOpenDuringWork = { page = SettingsPage.DuringWork },
             capsuleMode = capsuleMode, onOpenCapsule = { page = SettingsPage.Capsule },
@@ -165,14 +189,18 @@ fun SettingsScreen(
         )
         SettingsPage.Advanced -> AdvancedSettingsContent(
             proxy = proxy, proxyNote = proxy?.let { NetProxyCopy.subtitle(it, browserProxy) }, onOpenProxy = { editingProxy = true },
+            webSearch = webSearch, onOpenWebSearch = { editingSearch = true },
             sandbox = sandboxStatus, onOpenSandbox = { page = SettingsPage.Sandbox },
             showRecovery = status.sdkInt >= Prerequisites.MIN_SDK, onOpenRecovery = { page = SettingsPage.Recovery },
             computerAccess = mcpOn, onOpenComputerAccess = { page = SettingsPage.ComputerAccess },
             mcpServersCount = mcpServers?.servers?.value?.size, onOpenMcpServers = { page = SettingsPage.McpServers },
+            showRoot = rootState.suPresent, rootCommands = rootState.commands, onOpenRoot = { page = SettingsPage.Root },
             showDeveloper = showDeveloper, onOpenDeveloper = { page = SettingsPage.Developer },
             onBack = toHome,
+            onQuit = { confirmingQuit = true },
         )
         SettingsPage.AppAccess -> AppAccessScreen(onBack = toHome)
+        SettingsPage.Wechat -> WechatSettingsScreen(wechat, onBack = toHome)
         SettingsPage.PhoneOps -> PhoneOpsScreen(
             status, androidRelease, onProblem,
             onRepair = { onFix(Fix.RepairPhoneHelper) }, onUnpair = { onFix(Fix.UnpairPhoneHelper) }, onBack = toHome,
@@ -188,12 +216,17 @@ fun SettingsScreen(
             selfConfig = selfConfig, onSelfConfig = { flags.setSelfConfig(it); selfConfig = it },
         )
         SettingsPage.Language -> LanguageScreen(language, onLanguage = { AppLanguage.set(context, it) }, onBack = toHome)
-        SettingsPage.Capsule -> CapsuleScreen(capsuleMode, onMode = { flags.setCapsuleMode(it); capsuleMode = it }, onBack = toHome)
+        SettingsPage.Capsule -> CapsuleScreen(
+            capsuleMode, onMode = { flags.setCapsuleMode(it); capsuleMode = it }, onBack = toHome,
+            idleOpacity = capsuleIdleOpacity,
+            onIdleOpacity = { flags.setCapsuleIdleOpacity(it); capsuleIdleOpacity = it },
+        )
         SettingsPage.Sandbox -> SandboxScreen(onBack = toAdvanced)
         SettingsPage.Recovery -> RecoveryScreen(onBack = toAdvanced, onOpenSelfCheck = { page = SettingsPage.SelfCheck })
         SettingsPage.SelfCheck -> SelfCheckScreen(status, onBack = back)
         SettingsPage.ComputerAccess -> McpScreen(mcp, onBack = toAdvanced)
         SettingsPage.McpServers -> mcpServers?.let { McpServersScreen(it, onBack = toAdvanced) }
+        SettingsPage.Root -> RootScreen(helperRow = status.sdkInt >= Prerequisites.MIN_SDK, onBack = toAdvanced)
         SettingsPage.Developer -> DeveloperOptionsScreen(
             speed, onSpeed = { flags.setSpeed(it); speed = it }, onBack = toAdvanced,
             grounding = visionConfig?.let { GroundingSetting(it.model, it.capabilities.groundingVerified) },
@@ -215,12 +248,34 @@ fun SettingsScreen(
         },
     )
 
+    if (editingSearch) WebSearchDialog(
+        initial = webSearch ?: WebSearchConfig(),
+        onDismiss = { editingSearch = false },
+        onSave = { config ->
+            scope.launch {
+                withContext(Dispatchers.IO) { searchSettings.set(config) }
+                webSearch = searchSettings.get()
+                editingSearch = false
+            }
+        },
+    )
+
     explaining?.let { p ->
         val e = StatusCopy.explain(p, androidRelease)
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { explaining = null },
             title = { Text(e.title) },
-            text = { Text(e.body) },
+            text = {
+                Column {
+                    Text(e.body)
+                    e.secondaryAction?.let { (label, destination) ->
+                        TextButton(onClick = {
+                            explaining = null
+                            fix(destination)
+                        }) { Text(label) }
+                    }
+                }
+            },
             confirmButton = {
                 if (e.action != null && e.fix != null) {
                     TextButton({ explaining = null; fix(e.fix) }) { Text(e.action) }
@@ -229,6 +284,20 @@ fun SettingsScreen(
                 }
             },
             dismissButton = if (e.fix != null) ({ TextButton({ explaining = null }) { Text(stringResource(R.string.cancel)) } }) else null,
+        )
+    }
+
+    if (confirmingQuit) {
+        AlertDialog(
+            onDismissRequest = { confirmingQuit = false },
+            title = { Text(stringResource(R.string.quit_title)) },
+            text = { Text(stringResource(R.string.quit_confirm_body)) },
+            confirmButton = {
+                TextButton({ confirmingQuit = false; com.wangzan101.mika.quit.MikaQuit.quit(context) }) {
+                    Text(stringResource(R.string.quit_confirm_action), color = MikaTheme.colors.bad)
+                }
+            },
+            dismissButton = { TextButton({ confirmingQuit = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -244,6 +313,9 @@ fun SettingsContent(
     onProblem: (Problem) -> Unit,
     onOpenModels: () -> Unit,
     onOpenPhoneOps: () -> Unit = {},
+    wechatState: WechatConnectionState = WechatConnectionState.NeedsBinding,
+    wechatBound: Boolean = false,
+    onOpenWechat: () -> Unit = {},
     onOpenAppAccess: () -> Unit = {},
     onOpenDuringWork: () -> Unit = {},
     /** 悬浮胶囊此刻的选择,写在「悬浮胶囊」一行的右边。 */
@@ -271,6 +343,10 @@ fun SettingsContent(
             }
             ListRow(MikaIcons.Phone, stringResource(R.string.settings_phone_ops), onClick = onOpenPhoneOps) {
                 PhoneOpsPill(status)
+                RowChevron()
+            }
+            ListRow(MikaIcons.Chats, stringResource(R.string.wechat_title), stringResource(R.string.wechat_settings_sub), onClick = onOpenWechat) {
+                WechatEntryStatus(wechatState, wechatBound)
                 RowChevron()
             }
             ListRow(MikaIcons.Moon, stringResource(R.string.settings_during_work), stringResource(R.string.settings_during_work_sub), onClick = onOpenDuringWork) { RowChevron() }
@@ -317,6 +393,8 @@ fun AdvancedSettingsContent(
     proxy: String? = null,
     proxyNote: String? = null,
     onOpenProxy: () -> Unit = {},
+    webSearch: WebSearchConfig? = null,
+    onOpenWebSearch: () -> Unit = {},
     sandbox: SandboxStatus? = null,
     onOpenSandbox: () -> Unit = {},
     showRecovery: Boolean = true,
@@ -325,12 +403,16 @@ fun AdvancedSettingsContent(
     onOpenComputerAccess: () -> Unit = {},
     mcpServersCount: Int? = null,
     onOpenMcpServers: () -> Unit = {},
+    showRoot: Boolean = false,
+    rootCommands: Boolean = false,
+    onOpenRoot: () -> Unit = {},
     showDeveloper: Boolean = false,
     onOpenDeveloper: () -> Unit = {},
+    onQuit: () -> Unit = {},
 ) {
     PageScaffold(stringResource(R.string.settings_advanced), onBack) {
         val sandboxRow = sandbox?.takeIf { it !is SandboxStatus.Unsupported }
-        if (proxy != null || sandboxRow != null || computerAccess != null || mcpServersCount != null) {
+        if (proxy != null || webSearch != null || sandboxRow != null || computerAccess != null || mcpServersCount != null || showRoot) {
             GroupLabel(stringResource(R.string.settings_connections))
             GroupCard {
                 var first = true
@@ -339,6 +421,11 @@ fun AdvancedSettingsContent(
                     ListRow(MikaIcons.Link, NetProxyCopy.TITLE, proxyNote, first = take(), onClick = onOpenProxy) {
                         RowValue(NetProxyCopy.value(it))
                         RowChevron()
+                    }
+                }
+                webSearch?.let { config ->
+                    ListRow(MikaIcons.Globe, stringResource(R.string.web_search_title), stringResource(R.string.web_search_row_sub), first = take(), onClick = onOpenWebSearch) {
+                        RowValue(WebSearchCopy.value(config)); RowChevron()
                     }
                 }
                 if (sandboxRow != null) {
@@ -356,6 +443,11 @@ fun AdvancedSettingsContent(
                         RowValue(stringResource(R.string.mcp_servers_count, count)); RowChevron()
                     }
                 }
+                if (showRoot) {
+                    ListRow(MikaIcons.Key, PhoneSetupCopy.ROOT_GROUP, PhoneSetupCopy.rootEntryLine(rootCommands), first = take(), onClick = onOpenRoot) {
+                        RowChevron()
+                    }
+                }
             }
         }
         if (showRecovery) {
@@ -369,6 +461,14 @@ fun AdvancedSettingsContent(
             GroupCard {
                 ListRow(MikaIcons.Code, stringResource(R.string.settings_developer), first = true, onClick = onOpenDeveloper) { RowChevron() }
             }
+        }
+
+        // 完全退出:和无障碍服务不同,它只是让 Mika 安静下来;下次打开 App 就回来
+        GroupCard {
+            ListRow(
+                MikaIcons.Power, stringResource(R.string.quit_title), stringResource(R.string.quit_row_sub),
+                first = true, titleColor = MikaTheme.colors.bad, onClick = onQuit,
+            ) { RowChevron() }
         }
     }
 }

@@ -7,6 +7,7 @@
     <string name="tool_set_timer">Поставить таймер</string>
     <string name="tool_show_alarms">Показать будильники</string>
     <string name="tool_add_calendar_event">Добавить событие в календарь</string>
+    <string name="tool_calendar_bulk_insert">Добавить события в календарь пакетно</string>
     <string name="tool_set_wheel">Покрутить барабан выбора</string>
     <string name="tool_scroll_find">Прокрутить и найти</string>
     <string name="tool_wait_condition">Ждать условия на экране</string>
@@ -15,6 +16,7 @@
     <string name="tool_check_dialog">Проверить наличие диалогов</string>
     <string name="tool_gesture">Мультитач-жест</string>
     <string name="tool_shell">Системная команда</string>
+    <string name="tool_root">Команда root</string>
     <string name="tool_find_element">Найти на экране</string>
     <string name="tool_collect">Собрать данные с нескольких экранов</string>
     <string name="tool_phone_run">Несколько действий на телефоне</string>

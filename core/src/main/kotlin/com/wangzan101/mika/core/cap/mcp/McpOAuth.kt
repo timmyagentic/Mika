@@ -89,12 +89,7 @@ class McpOAuth(
             ?.firstOrNull()?.jsonPrimitive?.contentOrNull
             ?.toHttpUrlOrNull()
             ?: serverUrl.newBuilder().encodedPath("/").query(null).build()
-        val metadata = fetchMetadata(
-            listOfNotNull(
-                authServer.newBuilder().encodedPath("/.well-known/oauth-authorization-server").query(null).build(),
-                authServer.newBuilder().encodedPath("/.well-known/openid-configuration").query(null).build(),
-            ),
-        ) ?: throw McpOAuthException("oauth_server_metadata_missing")
+        val metadata = fetchMetadata(authServerMetadataUrls(authServer)) ?: throw McpOAuthException("oauth_server_metadata_missing")
         val authorization = metadata["authorization_endpoint"]?.jsonPrimitive?.contentOrNull?.toHttpUrlOrNull()
             ?: throw McpOAuthException("oauth_authorization_endpoint_missing")
         val token = metadata["token_endpoint"]?.jsonPrimitive?.contentOrNull?.toHttpUrlOrNull()
@@ -225,6 +220,21 @@ class McpOAuth(
             clientSecret = registration.clientSecret,
             tokenEndpoint = tokenEndpoint.toString(),
             resource = resource?.toString(),
+        )
+    }
+
+    /**
+     * 授权服务器元数据的地址,按 MCP 规范的先后试。issuer 带路径(如 `https://auth.example.com/tenant1`)时,
+     * RFC 8414 把 well-known 插在主机和路径之间,OpenID 先同样插入、再按 OIDC Discovery 接在路径后面;
+     * 不带路径时就是根上的两处。
+     */
+    private fun authServerMetadataUrls(issuer: HttpUrl): List<HttpUrl> {
+        val path = issuer.encodedPath.trimEnd('/')
+        fun at(p: String) = issuer.newBuilder().encodedPath(p).query(null).build()
+        return listOfNotNull(
+            at("/.well-known/oauth-authorization-server$path"),
+            at("/.well-known/openid-configuration$path"),
+            if (path.isEmpty()) null else at("$path/.well-known/openid-configuration"),
         )
     }
 

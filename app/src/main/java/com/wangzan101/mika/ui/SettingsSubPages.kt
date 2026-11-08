@@ -13,8 +13,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import com.wangzan101.mika.ui.components.MikaDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wangzan101.mika.capsule.CapsuleIdleOpacity
 import com.wangzan101.mika.capsule.CapsuleMode
 import com.wangzan101.mika.core.shell.BuiltinShellStatus
 import com.wangzan101.mika.settings.ChannelRow
@@ -49,10 +51,11 @@ import com.wangzan101.mika.ui.theme.MikaIcons
 import com.wangzan101.mika.ui.theme.MikaTheme
 import com.wangzan101.mika.ui.theme.MikaType
 import com.wangzan101.mika.core.cap.phone.OperatingPace
+import kotlin.math.roundToInt
 
 // ---------- 手机操作 ----------
 
-/** 设置 › 手机操作:权限与配对的状态,以及重新配对、解除配对。点哪一项的处理方式和从前一样,交给 [onProblem]。 */
+/** 设置 › 手机操作:权限与配对的状态,重新配对、解除配对。Root 能力集中在高级与其他的独立页面。 */
 @Composable
 fun PhoneOpsScreen(
     status: SystemStatus,
@@ -80,7 +83,7 @@ fun PhoneOpsScreen(
                 ListRow(
                     MikaIcons.Link, PhoneSetupCopy.ROW_TITLE,
                     if (reconnect && helper is BuiltinShellStatus.Failed) PhoneSetupCopy.failure(helper.reason).title
-                    else PhoneSetupCopy.statusLine(helper, status.usbDebugging),
+                    else PhoneSetupCopy.statusLine(helper, status.usbDebugging, status.rootStart),
                     onClick = { onProblem(Problem.PhoneHelper(helper)) },
                 ) { if (reconnect) RowValue(PhoneSetupCopy.RECONNECT, ValueTone.Link) else RowValue(hText, hTone) }
             }
@@ -120,7 +123,7 @@ fun PhoneOpsScreen(
         }
     }
     if (confirmUnpair) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { confirmUnpair = false },
             title = { Text(PhoneSetupCopy.UNPAIR_TITLE) },
             text = { Text(PhoneSetupCopy.UNPAIR_BODY) },
@@ -259,7 +262,7 @@ private fun StepLimitDialog(
     onDismiss: () -> Unit,
 ) {
     val customValue = custom.toIntOrNull()?.takeIf { it in 1..FeatureFlags.MAX_TASK_STEP_LIMIT }
-    AlertDialog(
+    MikaDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_step_limit)) },
         text = {
@@ -341,6 +344,8 @@ object CapsuleSettingsCopy {
     val FOOTNOTE: String get() = tr(R.string.capsule_settings_foot)
     /** 系统可能关掉后台的 App,胶囊跟着不见:请用户在系统设置里放行。 */
     val BACKGROUND: String get() = tr(R.string.capsule_settings_background)
+    val IDLE_OPACITY: String get() = tr(R.string.capsule_idle_opacity)
+    val IDLE_OPACITY_DETAIL: String get() = tr(R.string.capsule_idle_opacity_detail)
 
     fun label(mode: CapsuleMode): String = when (mode) {
         CapsuleMode.Off -> tr(R.string.capsule_mode_off)
@@ -357,13 +362,39 @@ object CapsuleSettingsCopy {
 
 /** 设置 › 悬浮胶囊:关闭 / 有任务时显示(默认) / 一直显示,选了当场生效。 */
 @Composable
-fun CapsuleScreen(mode: CapsuleMode, onMode: (CapsuleMode) -> Unit, onBack: () -> Unit) {
+fun CapsuleScreen(
+    mode: CapsuleMode,
+    onMode: (CapsuleMode) -> Unit,
+    onBack: () -> Unit,
+    idleOpacity: CapsuleIdleOpacity = CapsuleIdleOpacity.DEFAULT,
+    onIdleOpacity: (CapsuleIdleOpacity) -> Unit = {},
+) {
     PageScaffold(CapsuleSettingsCopy.TITLE, onBack) {
         GroupCard {
             CapsuleMode.entries.forEachIndexed { i, m ->
                 RadioRow(
                     CapsuleSettingsCopy.label(m), selected = m == mode, onClick = { onMode(m) },
                     subtitle = CapsuleSettingsCopy.detail(m), first = i == 0,
+                )
+            }
+        }
+        GroupLabel(CapsuleSettingsCopy.IDLE_OPACITY)
+        GroupCard {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                ListRow(
+                    MikaIcons.Photo, CapsuleSettingsCopy.IDLE_OPACITY, CapsuleSettingsCopy.IDLE_OPACITY_DETAIL,
+                    first = true, titleColor = if (mode == CapsuleMode.Off) MikaTheme.colors.ink3 else androidx.compose.ui.graphics.Color.Unspecified,
+                ) { RowValue("${idleOpacity.percent}%") }
+                Slider(
+                    value = CapsuleIdleOpacity.entries.indexOf(idleOpacity).toFloat(),
+                    onValueChange = {
+                        val index = it.roundToInt().coerceIn(CapsuleIdleOpacity.entries.indices)
+                        onIdleOpacity(CapsuleIdleOpacity.entries[index])
+                    },
+                    valueRange = 0f..3f,
+                    steps = 2,
+                    enabled = mode != CapsuleMode.Off,
+                    modifier = Modifier.testTag("capsule-idle-opacity"),
                 )
             }
         }
@@ -413,6 +444,7 @@ fun languageLabel(l: AppLanguage): String = stringResource(
         AppLanguage.System -> R.string.language_system
         AppLanguage.SimplifiedChinese -> R.string.language_simplified_chinese
         AppLanguage.TraditionalChinese -> R.string.language_traditional_chinese
+        AppLanguage.Arabic -> R.string.language_arabic
         AppLanguage.English -> R.string.language_english
         AppLanguage.Japanese -> R.string.language_japanese
         AppLanguage.Korean -> R.string.language_korean
@@ -457,7 +489,7 @@ fun RoutesScreen(count: Int?, onClear: () -> Unit, onBack: () -> Unit) {
         }
     }
     if (confirmClear) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { confirmClear = false },
             title = { Text(stringResource(R.string.routes_clear_title)) },
             text = { Text(stringResource(R.string.routes_clear_body)) },

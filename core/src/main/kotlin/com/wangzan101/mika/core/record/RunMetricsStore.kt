@@ -3,6 +3,8 @@ package com.wangzan101.mika.core.record
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * 每次运行一份小结([RunMetrics]),一行一份存在 [file](JSON Lines),只留最近 [keep] 份;运行记录只留最近 30 次,
@@ -57,7 +59,7 @@ class RunMetricsStore(private val file: File, private val keep: Int = DEFAULT_KE
             file.parentFile?.mkdirs()
             val tmp = File(file.path + ".tmp")
             tmp.writeText(list.takeLast(keep).joinToString("") { JSON.encodeToString(RunMetrics.serializer(), it) + "\n" })
-            if (!tmp.renameTo(file)) error("rename failed")
+            Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
         }
     }
 

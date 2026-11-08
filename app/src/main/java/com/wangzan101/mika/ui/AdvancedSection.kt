@@ -5,7 +5,7 @@ import com.wangzan101.mika.i18n.tr
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import com.wangzan101.mika.ui.components.MikaDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -168,7 +168,7 @@ fun AdvancedSection(
     usage?.let { u -> UsageGroup(u, onClear = { clearing = it }, onClearAll = { clearingAll = true }) }
 
     clearing?.let { w ->
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { clearing = null },
             title = { Text(SandboxCopy.CLEAR_TITLE) },
             text = { Text(SandboxCopy.clearBody(w)) },
@@ -177,7 +177,7 @@ fun AdvancedSection(
         )
     }
     if (clearingAll) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { clearingAll = false },
             title = { Text(SandboxCopy.CLEAR_ALL_TITLE) },
             text = { Text(SandboxCopy.CLEAR_ALL_BODY) },
@@ -187,7 +187,7 @@ fun AdvancedSection(
     }
 
     if (confirming) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { confirming = false },
             title = { Text(SandboxCopy.RESET_TITLE) },
             text = { Text(SandboxCopy.RESET_BODY) },

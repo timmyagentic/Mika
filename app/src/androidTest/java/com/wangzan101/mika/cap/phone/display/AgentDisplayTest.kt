@@ -17,6 +17,12 @@ import com.wangzan101.mika.shell.IMikaShell
 import com.wangzan101.mika.cap.phone.PhoneServices
 import com.wangzan101.mika.cap.phone.shell.BuiltinShellConnection
 import com.wangzan101.mika.cap.phone.shell.ShellService
+import com.wangzan101.mika.task.AppMuter
+import com.wangzan101.mika.task.AudioMute
+import com.wangzan101.mika.task.MarkerStore
+import com.wangzan101.mika.task.PrefsMarker
+import com.wangzan101.mika.task.ShellAudio
+import com.wangzan101.mika.core.uistate.ActionResult
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -25,6 +31,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.AfterClass
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -120,6 +127,62 @@ class AgentDisplayTest {
     }
 
     @Test
+    fun screenshotIsIsolatedFromDifferentMainDisplayContent() {
+        shellCommand("am start -W -a android.settings.SETTINGS --display 0")
+        try {
+            val d = newDisplay()
+            val screen = AndroidScreen(DeviceSupport.service(), shell, DeviceSupport.ready(d))
+            val testPackage = InstrumentationRegistry.getInstrumentation().context.packageName
+            shellCommand("am start -W --display ${d.displayId} -n $testPackage/${RotationTestActivity::class.java.name} --ei orientation ${ActivityInfo.SCREEN_ORIENTATION_PORTRAIT}")
+            assertNotNull("settings did not open on main", pollUntil(5_000) {
+                shell.topTaskId(Display.DEFAULT_DISPLAY).takeIf { it != -1 }
+            })
+            val mainState = DeviceSupport.mainScreenState(shell)
+            val image = pollUntil(5_000) {
+                val png = runBlocking { screen.screenshotPng() } ?: return@pollUntil null
+                val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
+                if (bitmap.width == 720 && bitmap.height == 1600 && uprightCorners(bitmap)) bitmap
+                else {
+                    bitmap.recycle()
+                    null
+                }
+            }
+            assertNotNull("task screenshot did not contain the task display's color markers", image)
+            image!!.recycle()
+            assertEquals("capturing the task display changed main-screen focus", mainState, DeviceSupport.mainScreenState(shell))
+        } finally {
+            shellCommand("input -d 0 keyevent KEYCODE_HOME")
+            shellCommand("am force-stop $SETTINGS")
+        }
+    }
+
+    @Test
+    fun openingAnotherAppNeverScreenshotsThePreviousAppsFrame() {
+        val d = newDisplay()
+        val screen = AndroidScreen(DeviceSupport.service(), shell, DeviceSupport.ready(d))
+        val testPackage = InstrumentationRegistry.getInstrumentation().context.packageName
+        // 先留一张带四个明确色块的旧帧,再通过生产入口冷启动另一个 App。
+        shellCommand("am start -W --display ${d.displayId} -n $testPackage/${RotationTestActivity::class.java.name} --ei orientation ${ActivityInfo.SCREEN_ORIENTATION_PORTRAIT}")
+        val previous = pollUntil(5_000) {
+            d.latestFramePng()?.takeIf { png ->
+                val image = BitmapFactory.decodeByteArray(png, 0, png.size)
+                try { uprightCorners(image) } finally { image.recycle() }
+            }
+        }
+        assertNotNull("the previous app's frame never arrived", previous)
+
+        val opened = runBlocking { screen.openApp(SETTINGS, cold = true) }
+        assertTrue("openApp: $opened", opened is ActionResult.Ok)
+        // 不等另一帧:生产入口返回后,第一次截图就不能还是启动前的色块页。
+        val png = runBlocking { screen.screenshotPng() }
+        assertNotNull("the newly opened app has no servable frame", png)
+        val image = BitmapFactory.decodeByteArray(png, 0, png!!.size)
+        try {
+            assertFalse("screenshot still contains the previous app's color markers", uprightCorners(image))
+        } finally { image.recycle() }
+    }
+
+    @Test
     fun framesFlowEmits() = runBlocking {
         val d = newDisplay()
         shell.startApp(d.displayId, SETTINGS)
@@ -188,6 +251,8 @@ class AgentDisplayTest {
             nearColor(frame.getPixel(frame.width / 4, frame.height * 3 / 4), Color.BLUE) &&
             nearColor(frame.getPixel(frame.width * 3 / 4, frame.height * 3 / 4), Color.YELLOW)
 
+    private fun normalizedAudioMode(mode: String?): String? = if (mode == "default") "allow" else mode
+
     // Surface 合成和 GPU 转屏可能把通道的 255 变为 254;容许量化误差,仍严格区分四个象限。
     private fun nearColor(actual: Int, expected: Int): Boolean =
         kotlin.math.abs(Color.red(actual) - Color.red(expected)) <= 4 &&
@@ -250,11 +315,72 @@ class AgentDisplayTest {
 
     @Test
     fun mutesAndRestoresAudio() {
-        val before = shellCommand("appops get $SETTINGS PLAY_AUDIO").trim()
+        val before = shell.getAudioMode(SETTINGS)
+        assertNotNull(before)
         assertTrue(shell.setAudioMuted(SETTINGS, true))
-        assertTrue(shellCommand("appops get $SETTINGS PLAY_AUDIO").contains("PLAY_AUDIO: ignore"))
+        assertEquals("ignore", shell.getAudioMode(SETTINGS))
         assertTrue(shell.setAudioMuted(SETTINGS, false))
-        assertEquals(before, shellCommand("appops get $SETTINGS PLAY_AUDIO").trim())
+        assertEquals(normalizedAudioMode(before), normalizedAudioMode(shell.getAudioMode(SETTINGS)))
+    }
+
+    @Test
+    fun appMuterLeavesAnUnrelatedPackageUntouchedAcrossTasks() {
+        val other = DeviceSupport.TEST_PACKAGE
+        val targetBefore = shell.getAudioMode(SETTINGS)
+        val otherBefore = shell.getAudioMode(other)
+        assertNotNull(targetBefore)
+        assertNotNull(otherBefore)
+        try {
+            repeat(2) {
+                // 与真实任务一致:每一轮都有新的 AppMuter、AudioMute 和独立记录,不能跨任务复用内存里的 muted 集。
+                var values: Map<String, String?>? = null
+                val store = object : MarkerStore {
+                    override fun load() = values
+                    override fun save(v: Map<String, String?>) { values = v }
+                    override fun clear() { values = null }
+                }
+                val audio = AudioMute(ShellAudio(shell), store)
+                val muter = AppMuter(audio, enabled = { true }, mutable = { true }, onMainScreen = { _, _ -> false }, failed = {})
+                muter.beforeOpen(SETTINGS, null)
+                muter.opened(SETTINGS, null)
+                assertEquals("target was not muted", "ignore", shell.getAudioMode(SETTINGS))
+                assertEquals("unrelated package changed while target was muted", otherBefore, shell.getAudioMode(other))
+                assertTrue(audio.restoreAll())
+                assertEquals("target was not restored", normalizedAudioMode(targetBefore), normalizedAudioMode(shell.getAudioMode(SETTINGS)))
+                assertEquals("unrelated package changed after cleanup", otherBefore, shell.getAudioMode(other))
+            }
+        } finally {
+            if (targetBefore != null) shell.setAudioMode(SETTINGS, targetBefore)
+        }
+    }
+
+    /** 浮层动作最终经过的真实音频路径：恢复原值，而且本次任务不再自动静音。 */
+    @Test
+    fun manualUnmuteRestoresRealAudioAndSkipsLaterAutomaticMutes() {
+        val prefs = context.getSharedPreferences("manual-unmute-device-test", 0)
+        prefs.edit().clear().commit()
+        val record = AudioMute(ShellAudio(shell), PrefsMarker(prefs, "audio"))
+        val muter = AppMuter(
+            record,
+            enabled = { true },
+            mutable = { it == SETTINGS },
+            onMainScreen = { _, _ -> false },
+            failed = { error("unexpected audio mute failure for $it") },
+        )
+        val before = shell.getAudioMode(SETTINGS)
+        assertNotNull(before)
+        try {
+            muter.opened(SETTINGS, null)
+            assertEquals("ignore", shell.getAudioMode(SETTINGS))
+            assertTrue(muter.unmute(SETTINGS, null))
+            assertEquals(normalizedAudioMode(before), normalizedAudioMode(shell.getAudioMode(SETTINGS)))
+            muter.opened(SETTINGS, null)
+            assertEquals(normalizedAudioMode(before), normalizedAudioMode(shell.getAudioMode(SETTINGS)))
+        } finally {
+            record.restoreAll()
+            shell.setAudioMode(SETTINGS, before)
+            prefs.edit().clear().commit()
+        }
     }
 
     /** 助手进程被杀后,看门狗重起助手,连接拿到可用的新服务。 */

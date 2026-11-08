@@ -1,4 +1,4 @@
-<!-- translated-from: README.md @ 960f4051ce73 -->
+<!-- translated-from: README.md @ 46f11aa3f1a8 -->
 <div align="center">
 
 <img src="../media/logo.png" alt="Mika" width="88" />
@@ -15,6 +15,14 @@ Trabaja en una pantalla en segundo plano que no ves, así que puedes seguir usan
 <a href="https://github.com/wangzan101/Mika/releases"><img src="https://img.shields.io/github/downloads/wangzan101/Mika/total?label=descargas&color=2ea043" alt="downloads" /></a>
 <a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=versi%C3%B3n" alt="version" /></a>
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
+
+<br/>
+
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/daily?language=Kotlin" alt="#1 Kotlin Repository of the Day" width="250" height="55" /></a>
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/weekly?language=Kotlin" alt="#1 Kotlin Repository of the Week" width="250" height="55" /></a>
+<a href="https://trendshift.io/repositories/326940#achievements"><img src="https://trendshift.io/api/badge/trendshift/repositories/326940/daily" alt="#5 Repository of the Day" width="250" height="55" /></a>
+
+<br/>
 
 [English](../../README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · Español
 
@@ -140,7 +148,7 @@ También puedes prescindir de la clave e iniciar sesión con una cuenta de ChatG
 
 **¿Puedo usar un modelo que se ejecuta en mi propio ordenador?** Sí: elige «Custom» como proveedor e introduce su dirección en tu red local.
 
-**¿La app está en español?** Sí. La interfaz está en español, inglés, chino simplificado, chino tradicional, japonés, coreano, portugués, ruso e indonesio, sigue el idioma del sistema y se puede cambiar en Ajustes › Idioma. Puedes hablarle a Mika en español sin problema. El conocimiento integrado sobre apps y sitios web está escrito en chino, y el modelo lo entiende sin dificultad.
+**¿La app está en español?** Sí. La interfaz está en español, inglés, árabe, chino simplificado, chino tradicional, japonés, coreano, portugués, ruso e indonesio, sigue el idioma del sistema y se puede cambiar en Ajustes › Idioma. Puedes hablarle a Mika en español sin problema. El conocimiento integrado sobre apps y sitios web está escrito en chino, y el modelo lo entiende sin dificultad.
 
 **¿De dónde vienen las actualizaciones?** Solo de los [Releases](https://github.com/wangzan101/Mika/releases) de este repositorio; también puedes actualizar desde la app en Acerca de Mika › Buscar actualizaciones.
 
@@ -160,8 +168,8 @@ Hay más respuestas en las [preguntas frecuentes](../faq.en.md).
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261101-1623" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261101-1623" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261107-2304" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261107-2304" width="600" />
   </picture>
 </a>
 

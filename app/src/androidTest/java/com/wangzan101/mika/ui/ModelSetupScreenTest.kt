@@ -119,6 +119,7 @@ class ModelSetupScreenTest {
     @Test fun settingsPageShowsAllThreeRolesWithoutBottomButton() {
         show(connected(RoleChoices(main = "c1", vision = RoleChoice.Off, light = RoleChoice.SameAsMain)), onboarding = false)
         compose.onNodeWithText(ModelsCopy.TITLE).assertIsDisplayed()
+        compose.onNodeWithText(ModelsCopy.LEAD).assertDoesNotExist()
         // 改动当场生效,左上角返回就行
         compose.onNodeWithTag("setup-next").assertDoesNotExist()
         ModelRole.entries.forEach { compose.onNodeWithText(ModelsCopy.roleLabel(it)).assertIsDisplayed() }
@@ -146,6 +147,7 @@ class ModelSetupScreenTest {
         val open = compose.onNodeWithTag("context-main")
         val window = compose.onNodeWithTag("context-window")
         val trigger = compose.onNodeWithTag("context-trigger")
+        val readTimeout = compose.onNodeWithTag("context-read-timeout")
         val save = compose.onNodeWithTag("context-save")
         val preview = compose.onNodeWithTag("context-effective")
         compose.onNodeWithTag("context-light").assertDoesNotExist()
@@ -162,6 +164,11 @@ class ModelSetupScreenTest {
             save.assertIsNotEnabled()
         }
         trigger.performTextReplacement("600000")
+        for (invalid in listOf("0", "-1", "1e6", "2147484", "2147483648")) {
+            readTimeout.performTextReplacement(invalid)
+            save.assertIsNotEnabled()
+        }
+        readTimeout.performTextReplacement("600")
         save.assertIsEnabled().performClick()
         compose.runOnIdle {
             assertEquals(1_000_000, store.modelFor(ModelRole.Main)!!.capabilities.contextTokens)
@@ -169,10 +176,11 @@ class ModelSetupScreenTest {
         }
         open.performScrollTo().performClick()
         trigger.assertTextContains("600000")
+        readTimeout.assertTextContains("600")
         compose.onNodeWithText("重置").performScrollTo().performClick()
         preview.assertTextContains("18000", substring = true)
         compose.onNodeWithText("取消").performClick()
-        assertEquals(ModelContextSettings(1_000_000, 600_000), store.provider(provider.id)!!.contextSettings["m"])
+        assertEquals(ModelContextSettings(1_000_000, 600_000, 600), store.provider(provider.id)!!.contextSettings["m"])
         open.performScrollTo().performClick()
         compose.onNodeWithText("重置").performScrollTo().performClick()
         save.performClick()

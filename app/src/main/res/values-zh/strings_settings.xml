@@ -79,6 +79,8 @@
     <string name="capsule_mode_off_detail">只用通知</string>
     <string name="capsule_mode_tasks_detail">有任务在跑或等你时出现，做完几秒后消失</string>
     <string name="capsule_mode_always_detail">没有任务时也留一颗 Mika 图标</string>
+    <string name="capsule_idle_opacity">静置不透明度</string>
+    <string name="capsule_idle_opacity_detail">几秒没碰后的显示程度；需要你处理时始终完整显示</string>
     <string name="routes_saved">已记住的操作路线</string>
     <string name="loading">正在读取</string>
     <plurals name="routes_count">
@@ -161,4 +163,8 @@
     <string name="mcp_servers_status_fail">连接失败:%1$s</string>
     <string name="mcp_servers_refresh_all">测试全部</string>
     <string name="mcp_servers_allowlist">允许的工具(英文逗号分隔,留空为全部)</string>
+    <string name="quit_title">完全退出 Mika</string>
+    <string name="quit_row_sub">停止后台任务，收起悬浮胶囊</string>
+    <string name="quit_confirm_body">正在进行的任务会停止，悬浮胶囊和通知都会收起。下次打开 Mika 就回来。</string>
+    <string name="quit_confirm_action">退出</string>
 </resources>

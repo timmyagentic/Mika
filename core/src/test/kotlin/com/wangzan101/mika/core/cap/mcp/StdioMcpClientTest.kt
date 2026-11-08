@@ -1,5 +1,6 @@
 package com.wangzan101.mika.core.cap.mcp
 
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -19,12 +20,13 @@ import java.io.PipedOutputStream
 import kotlin.concurrent.thread
 
 class StdioMcpClientTest {
-    private class FakeProcess : McpStdioProcess, Closeable {
+    private class FakeProcess(private val strictIds: Boolean = false) : McpStdioProcess, Closeable {
         private val toServer = PipedOutputStream()
         private val fromClient = PipedInputStream(toServer)
         private val fromServer = PipedOutputStream()
         private val toClient = PipedInputStream(fromServer)
         private val json = Json { ignoreUnknownKeys = true }
+        private val seen = HashSet<String>()
 
         override val stdin = toServer
         override val stdout = toClient
@@ -92,7 +94,9 @@ class StdioMcpClientTest {
                         val response = buildJsonObject {
                             put("jsonrpc", "2.0")
                             put("id", id.toLong())
-                            put("result", result)
+                            if (strictIds && !seen.add(id)) put("error", buildJsonObject {
+                                put("code", -32600); put("message", "request ID reused")
+                            }) else put("result", result)
                         }
                         synchronized(fromServer) {
                             fromServer.write((response.toString() + "\n").toByteArray())
@@ -136,6 +140,21 @@ class StdioMcpClientTest {
         } finally {
             endpoint.close()
         }
+    }
+
+    @Test(timeout = 20_000) fun requestIdsRemainUniqueAfterHandshake() = runBlocking {
+        val process = FakeProcess(strictIds = true)
+        val endpoint = StdioMcpEndpoint.connect("strict", listOf("fake-server"),
+            McpStdioLauncher { _, _ -> process }, "test", timeoutSec = 5).getOrThrow()
+        try {
+            assertEquals("resource body", endpoint.readResource("file://a").text)
+            assertEquals("user: do it", endpoint.getPrompt("summarize", buildJsonObject {}).text)
+            kotlinx.coroutines.coroutineScope {
+                (1..8).map { async {
+                    endpoint.call("search", buildJsonObject {})
+                } }.forEach { assertEquals("found", it.await().text) }
+            }
+        } finally { endpoint.close() }
     }
 
     @Test fun parsesCommandLineWithoutShell() {

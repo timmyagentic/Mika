@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import com.wangzan101.mika.core.agent.QuoteMessage
 import com.wangzan101.mika.core.record.ConversationTokens
 import com.wangzan101.mika.core.cap.web.AttachedPage
+import com.wangzan101.mika.ui.components.DirectionalIcon
 import com.wangzan101.mika.ui.components.keepsKeyboard
 import android.content.Context
 import android.graphics.Bitmap
@@ -61,6 +62,7 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -95,6 +97,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -108,6 +111,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wangzan101.mika.R
@@ -127,6 +131,7 @@ import com.wangzan101.mika.ui.components.GlassBackdrop
 import com.wangzan101.mika.ui.components.GlassBar
 import com.wangzan101.mika.ui.components.MikaButton
 import com.wangzan101.mika.ui.components.MikaCard
+import com.wangzan101.mika.ui.components.MikaDialog
 import com.wangzan101.mika.ui.components.PageBackground
 import com.wangzan101.mika.ui.components.TopBar
 import com.wangzan101.mika.ui.components.cardSurface
@@ -176,6 +181,8 @@ fun ChatScreen(
     voice: VoiceSource? = null,
     /** 「还不能语音输入」里的「去选」。 */
     openSpeechModel: () -> Unit = {},
+    /** 输入框里还没发出的字，交给「教 Mika」预填，不会自己开始。 */
+    onOpenTeach: (String) -> Unit = {},
 ) {
     val ui by vm.ui.collectAsState()
     val others by vm.otherRunning.collectAsState()
@@ -196,7 +203,14 @@ fun ChatScreen(
     }
     val frame = live ?: lastFrame.takeIf { ui.pip.visible && ui.pip.mode == PipMode.Done }
     val webContent = if (ui.pip.mode == PipMode.Done) lastFrameWasWeb else webLive
-    var input by rememberSaveable { mutableStateOf("") }
+    // 注册文字的 Android 状态保存;平时由进程内的 ViewModel 管理完整会话草稿。
+    rememberSaveable(vm, saver = androidx.compose.runtime.saveable.listSaver(
+        save = { model: ChatViewModel -> model.saveDraftTexts() },
+        restore = { saved -> vm.also { it.restoreDraftTexts(saved) } },
+    )) { vm }
+    val input = ui.input
+    // 推荐任务可以直接填进空输入框;已有内容时先确认,不能因误触把草稿换掉。
+    var pendingExample by remember { mutableStateOf<String?>(null) }
     var voiceHolding by remember { mutableStateOf(false) }
     var editRequest by remember { mutableIntStateOf(0) }
     var composerHeight by rememberSaveable { mutableIntStateOf(0) }
@@ -219,7 +233,9 @@ fun ChatScreen(
     }
 
     // 返回聊天时同一条内容不重新滚动；新进展仅在跟随末尾时滚动。
+    // 目标行直接由当前 UI 状态计算:layoutInfo 还是上一帧的测量结果,发送后立即读它会滚到旧的末尾。
     val last = ui.exchanges.lastOrNull()
+    val rowCount = chatItemCount(ui.exchanges, kept, phoneSetupNeeded, hasBlocked = ui.blocked != null)
     val scrollMarker = "${ui.conversationId}:${ui.exchanges.size}:${last?.steps?.size}:${last?.steers?.size}:${last?.status?.hashCode()}:${ui.blocked?.hashCode()}"
     LaunchedEffect(scrollMarker) {
         if (previousScrollMarker == scrollMarker) return@LaunchedEffect
@@ -229,10 +245,9 @@ fun ChatScreen(
         previousConversation = ui.conversationId
         if (changedConversation) followingTail = true
         if (!firstEntry && !changedConversation && !followingTail) return@LaunchedEffect
-        val count = listState.layoutInfo.totalItemsCount
-        if (count > 0) {
-            if (firstEntry || changedConversation || reduceMotion) listState.scrollToItem(count - 1)
-            else listState.animateScrollToItem(count - 1)
+        if (rowCount > 0) {
+            if (firstEntry || changedConversation || reduceMotion) listState.scrollToItem(rowCount - 1)
+            else listState.animateScrollToItem(rowCount - 1)
         }
     }
     // 流式文字增长时跟住底部；用户主动向上翻看过程时不拉回去。
@@ -297,13 +312,21 @@ fun ChatScreen(
                 },
             ) {
                 if (ui.exchanges.isEmpty() && ui.blocked == null) {
-                    item("empty") { EmptyState(ui.conversationId) { input = it } }
+                    item("empty") {
+                        EmptyState(ui.conversationId) { example ->
+                            if (input.isEmpty()) vm.input(example) else pendingExample = example
+                        }
+                    }
                 }
                 ui.exchanges.forEachIndexed { i, ex ->
                     val backgroundNote = i == ui.exchanges.lastIndex && ui.operatingPhone
                     exchange(
                         i, ex, ui.conversationId, ui.takeoverStage, vm, reduceMotion, backgroundNote, openRun, loadSource, openSource, kept,
                         tokens = ConversationTokens.turn(ex.runId?.let(runMetrics::get)),
+                        recover = { resume ->
+                            val label = if (resume) R.string.chat_resume_request else R.string.chat_restart_request
+                            vm.send(context.getString(label, ex.goal), check)
+                        },
                     )
                 }
                 if (phoneSetupNeeded && ui.exchanges.isNotEmpty()) item("phone-setup") { PhoneSetupLine(openPhoneSetup) }
@@ -347,13 +370,27 @@ fun ChatScreen(
             Modifier.align(Alignment.BottomCenter).behindMenu(menuOpen) { lift.value }.onSizeChanged { composerHeight = it.height },
             backdrop = backdrop,
             text = input,
-            onText = { input = it },
+            draftKey = ui.conversationId,
+            onText = vm::input,
             mode = ui.composer,
             hasHistory = ui.exchanges.isNotEmpty(),
-            onSend = { if (vm.send(input, check)) input = "" },
+            onSend = { vm.send(input, check) },
+            onTeach = if (ui.composer == ComposerMode.Idle) ({ onOpenTeach(input.trim()) }) else null,
             onStop = vm::cancel,
-            attachPanel = if (ui.attachEnabled && ui.composer == ComposerMode.Idle) ({
-                AttachPanelHost(ui.attachments, onPicked = vm::attach, onToggle = vm::toggleAttachment)
+            followUpMode = ui.followUpMode,
+            queued = ui.queued,
+            onFollowUpMode = vm::setFollowUpMode,
+            onCancelQueued = { id ->
+                if (!vm.cancelQueued(id)) Toast.makeText(context, context.getString(R.string.follow_up_already_started), Toast.LENGTH_SHORT).show()
+            },
+            onEditQueued = { id -> vm.editQueued(id)?.let { editRequest++ } },
+            onStartQueued = vm::startQueued,
+            followUpStatus = last?.status?.takeIf { it.isActive() },
+            attachPanel = if (ui.attachEnabled && (ui.composer == ComposerMode.Idle ||
+                    (ui.composer == ComposerMode.Busy && ui.followUpMode == FollowUpMode.Queue))) ({
+                androidx.compose.runtime.key(ui.conversationId) {
+                    AttachPanelHost(ui.attachments, onPicked = { vm.attach(it, ui.conversationId) }, onToggle = vm::toggleAttachment)
+                }
             }) else null,
             attachments = ui.attachments,
             importing = ui.importing,
@@ -366,9 +403,15 @@ fun ChatScreen(
             onRemoveQuote = vm::clearQuote,
             voice = voice,
             // 说的话接在已有的字后面;任务在跑时发出去就是插话
-            onVoiceText = { input = HoldToTalk.join(input, it) },
+            onVoiceText = { vm.input(HoldToTalk.join(vm.ui.value.input, it)) },
+            // 松开在「在听」卡片里:接上已有的字直接发出;发不出去(比如还在导入附件)就留在输入框里
+            onVoiceSend = {
+                val text = HoldToTalk.join(vm.ui.value.input, it)
+                vm.input(text)
+                vm.send(text, check)
+            },
             onPickSpeech = openSpeechModel,
-            steerTarget = last?.goal?.let(ChatCopy::plainTitle),
+            steerTarget = if (ui.followUpMode == FollowUpMode.Steer) last?.goal?.let(ChatCopy::plainTitle) else null,
             onVoiceHolding = { voiceHolding = it },
             editRequest = editRequest,
         )
@@ -388,6 +431,7 @@ fun ChatScreen(
                 Toast.makeText(context, context.getString(R.string.pip_closed_hint), Toast.LENGTH_SHORT).show()
             },
             onReopen = vm::reopenPip,
+            onUnmute = vm::unmutePip,
             // 要你处理时点小窗:收起,滚到要你处理的那张卡片(在最后一问一答里,它后面只可能还有文件卡片和去设置那一行)
             onAttention = {
                 vm.attendPip()
@@ -426,7 +470,6 @@ fun ChatScreen(
                                 copy?.truncated == true -> R.string.chat_branch_attachments_skipped
                                 else -> R.string.chat_branch_done
                             }
-                            if (id != null) input = ""
                             Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
                             vm.clearBranchCopy()
                         }
@@ -442,18 +485,33 @@ fun ChatScreen(
                                 vm.branchCopy.value?.truncated == true -> R.string.chat_branch_attachments_skipped
                                 else -> R.string.chat_branch_done
                             }
-                            if (result != null) input = result.prefill
+                            if (result != null && vm.ui.value.conversationId == result.conversationId) vm.input(result.prefill)
                             Toast.makeText(context, context.getString(message), Toast.LENGTH_SHORT).show()
                             vm.clearBranchCopy()
                         }
                     }
                 } },
                 onEdit = if (pending != null && canEdit && editableSteer(pending.text)) ({ closeMenu {
-                    vm.editSteer(pending.id)?.let { input = it; editRequest++ }
+                    vm.editSteer(pending.id)?.let { editRequest++ }
                 } }) else null,
                 onWithdraw = pending?.let { n -> ({ closeMenu { vm.withdrawSteer(n.id) } }) },
             )
         }
+    }
+
+    pendingExample?.let { example ->
+        MikaDialog(
+            onDismissRequest = { pendingExample = null },
+            title = { Text(stringResource(R.string.chat_example_replace_title)) },
+            text = { Text(stringResource(R.string.chat_example_replace_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { vm.input(example); pendingExample = null },
+                    Modifier.testTag("confirm-replace-draft"),
+                ) { Text(stringResource(R.string.chat_example_replace_action)) }
+            },
+            dismissButton = { TextButton({ pendingExample = null }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }
 
@@ -521,8 +579,13 @@ private fun LazyListScope.exchange(
     kept: KeptPage? = null,
     /** 这一轮用了多少 token(结束后、读到运行小结时才有)。 */
     tokens: Long? = null,
+    /** 终态后的两个新运行入口:true 从摘要断点继续,false 按原目标重新开始。 */
+    recover: (Boolean) -> Unit = {},
 ) {
     if (ex.goal.isNotEmpty()) item("u$index") { UserBubble(ex.goal, conversationId, key = "u$index") }
+    val paused = ex.status is ExchangeStatus.Paused || ex.status is ExchangeStatus.WaitingUnlock ||
+        ex.status is ExchangeStatus.NeedsTakeover || ex.status is ExchangeStatus.NeedsConfirmation ||
+        ex.status is ExchangeStatus.NeedsInput || ex.status is ExchangeStatus.Queued
     val active = ex.status.isActive()
     val answering = ex.status == ExchangeStatus.Working && !ex.draft.isNullOrBlank()
     if (active) {
@@ -536,13 +599,13 @@ private fun LazyListScope.exchange(
     fun steer(n: SteerNote) {
         n.finished?.takeIf(String::isNotBlank)?.let { done -> item("a$index-${n.id}") { FinishedReply(done, "a$index-${n.id}") } }
         n.interrupted?.takeIf(String::isNotBlank)?.let { cut -> item("i$index-${n.id}") { InterruptedReply(cut) } }
-        item("m$index-${n.id}") { UserBubble(n.text, conversationId, steerLabel(n.state), "m$index-${n.id}") }
+        item("m$index-${n.id}") { UserBubble(n.text, conversationId, steerLabel(n.state, paused), "m$index-${n.id}") }
     }
     val (joined, waiting) = steersAroundDraft(ex.steers)
     joined.forEach(::steer)
     ex.draft?.takeIf(String::isNotBlank)?.let { draft -> item("d$index") { DraftText(draft, ex.waitingForModel) } }
     waiting.forEach(::steer)
-    item("r$index") { StatusCard(ex.status, stage, vm, ex.runId, loadSource, openSource, "r$index") }
+    item("r$index") { StatusCard(ex.status, stage, vm, ex.runId, loadSource, openSource, "r$index", recover) }
     // 这一轮结束后留在后台运行的那一页:还开着是绿色一行(能关),关了是一句原因
     keptPageRow(index, ex, kept, vm::closeKeptPage)
     if (ex.files.isNotEmpty()) item("f$index") { FileCards(ex.files) }
@@ -567,7 +630,7 @@ internal fun withdrawableSteer(exchanges: List<Exchange>, key: String): SteerNot
     if (ex.status.isActive()) ex.steers.firstOrNull { key == "m$i-${it.id}" && it.state.unconsumed && !it.remote } else null
 }.firstOrNull()
 
-private fun ExchangeStatus.isActive() =
+internal fun ExchangeStatus.isActive() =
     this !is ExchangeStatus.Done && this !is ExchangeStatus.Failed && this !is ExchangeStatus.Cancelled
 
 /**
@@ -790,6 +853,7 @@ private fun StepItem(
     actions: List<StepAction> = emptyList(), open: Boolean = false,
 ) {
     val c = MikaTheme.colors
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Row(
         Modifier.fillMaxWidth()
             .then(
@@ -822,9 +886,9 @@ private fun StepItem(
             }
         }
         // 能点开的只有有动作的那些:右边一个小箭头,点开时朝下
-        if (actions.isNotEmpty()) Icon(
+        if (actions.isNotEmpty()) DirectionalIcon(
             MikaIcons.Chevron, null,
-            Modifier.padding(start = 6.dp).size(12.dp).graphicsLayer { rotationZ = if (open) 90f else 0f },
+            Modifier.padding(start = 6.dp).size(12.dp).graphicsLayer { rotationZ = if (open) if (rtl) -90f else 90f else 0f },
             tint = c.ink3,
         )
     }
@@ -936,6 +1000,7 @@ private fun StatusCard(
     loadSource: suspend (String) -> EvidenceSource?, openSource: (String?, String?) -> Unit,
     /** 回答的长按菜单认这一条用的(见 [MessageArea])。 */
     key: String,
+    recover: (Boolean) -> Unit = {},
 ) {
     when (status) {
         ExchangeStatus.Working -> Unit
@@ -1006,6 +1071,7 @@ private fun StatusCard(
                 Text(stringResource(R.string.chat_not_done), style = MikaType.BodyStrong, color = MikaTheme.colors.ink)
             }
             Text(status.reason, Modifier.padding(top = 4.dp), style = CardBody, color = MikaTheme.colors.ink2)
+            RecoveryActions(runId, recover)
         }
         // 停止后补上的交代当作这一轮的回答,排在「已停止」下面;还在写时一行小字
         is ExchangeStatus.Cancelled -> Column(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
@@ -1020,7 +1086,18 @@ private fun StatusCard(
                     }
                 }
             }
+            RecoveryActions(runId, recover)
         }
+    }
+}
+
+/** 终态后旧现场已经释放:两个按钮都开新运行,区别只是是否沿用摘要里的已确认进度。 */
+@Composable
+private fun RecoveryActions(runId: String?, recover: (Boolean) -> Unit) {
+    if (runId == null) return
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CardButton(stringResource(R.string.chat_restart_task), onClick = { recover(false) })
+        CardButton(stringResource(R.string.chat_resume_checkpoint), primary = true, onClick = { recover(true) })
     }
 }
 
@@ -1111,7 +1188,7 @@ private fun FileCards(files: List<SharedFile>) {
                         style = FileMeta, color = c.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Icon(MikaIcons.Chevron, null, Modifier.size(MikaSize.SmallIcon), tint = c.ink3)
+                DirectionalIcon(MikaIcons.Chevron, null, Modifier.size(MikaSize.SmallIcon), tint = c.ink3)
             }
         }
     }
@@ -1138,8 +1215,20 @@ internal fun Composer(
     hasHistory: Boolean,
     onSend: () -> Unit,
     onStop: () -> Unit,
+    /** 任务进行中补充消息交给谁;只影响下次发送。 */
+    followUpMode: FollowUpMode = FollowUpMode.Steer,
+    /** 这个对话明确排队、还没开始的下一件。 */
+    queued: List<com.wangzan101.mika.task.QueuedFollowUp> = emptyList(),
+    onFollowUpMode: (FollowUpMode) -> Unit = {},
+    onCancelQueued: (String) -> Unit = {},
+    onEditQueued: (String) -> Unit = {},
+    onStartQueued: () -> Unit = {},
+    /** 显示中的任务状态,选择器据此说「下一步生效」还是「继续后生效」。 */
+    followUpStatus: ExchangeStatus? = null,
     /** 沙箱就绪、没有任务在跑时才有「＋」;点开是这块面板。 */
     attachPanel: (@Composable () -> Unit)? = null,
+    /** 「＋」面板里的「教 Mika」。点了先收起面板。 */
+    onTeach: (() -> Unit)? = null,
     attachments: List<PendingAttachment> = emptyList(),
     importing: Boolean = false,
     rejected: List<String> = emptyList(),
@@ -1157,18 +1246,17 @@ internal fun Composer(
     voice: VoiceSource? = null,
     /** 说完的字;调用方把它接在已有的字后面,不自动发送。 */
     onVoiceText: (String) -> Unit = {},
+    /** 松开在「在听」卡片里(「松开 发送」)说完的字:调用方接上已有的字直接发出。没给时没有「松开 发送」。 */
+    onVoiceSend: ((String) -> Unit)? = null,
     /** 「还不能语音输入」里的「去选」:到设置里选转文字。 */
     onPickSpeech: () -> Unit = {},
     /** 任务在跑时说的话交给谁:卡片顶上写「插话给『…』」。 */
     steerTarget: String? = null,
     /** 按着说话时为 true:对话内容跟着虚化。 */
     onVoiceHolding: (Boolean) -> Unit = {},
+    draftKey: String? = null,
 ) {
     val c = MikaTheme.colors
-    val vh = rememberVoiceHold(voice, onVoiceText)
-    val vState = voiceState(vh)
-    val voiceHolding = vh?.holding == true
-    LaunchedEffect(voiceHolding) { onVoiceHolding(voiceHolding) }
     var fieldFocused by remember { mutableStateOf(false) }
     // 底部从页面底色淡出到透明,输入栏是浮在上面的玻璃
     val fade = remember(c) { Brush.verticalGradient(0f to c.bg.copy(alpha = 0f), 0.6f to c.bg, 1f to c.bg) }
@@ -1180,6 +1268,11 @@ internal fun Composer(
     val ime = WindowInsets.ime
     val nav = WindowInsets.navigationBars
     var panel by rememberSaveable { mutableStateOf(Panel.Closed) }
+    // 「松开 发送」和发送键一样先收起附件面板
+    val vh = androidx.compose.runtime.key(draftKey) { rememberVoiceHold(voice, onVoiceText, onVoiceSend?.let { send -> { text -> panel = Panel.Closed; send(text) } }) }
+    val vState = voiceState(vh)
+    val voiceHolding = vh?.holding == true
+    LaunchedEffect(voiceHolding) { onVoiceHolding(voiceHolding) }
     LaunchedEffect(editRequest) {
         if (editRequest > 0) {
             panel = Panel.Closed
@@ -1238,6 +1331,8 @@ internal fun Composer(
             .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 6.dp),
     ) {
         Column(Modifier.fillMaxWidth()) {
+            if (busy) FollowUpModeBar(followUpMode, onFollowUpMode, followUpStatus)
+            FollowUpTray(queued, active = mode != ComposerMode.Idle, onEdit = onEditQueued, onCancel = onCancelQueued, onStartNow = onStartQueued)
             quote?.let { QuoteChip(it, onRemoveQuote, Modifier.padding(bottom = 6.dp)) }
             if (attachments.isNotEmpty()) PendingTray(attachments, onRemove, Modifier.padding(bottom = 2.dp))
             if (importing || rejected.isNotEmpty() || overLimit > 0) {
@@ -1275,8 +1370,8 @@ internal fun Composer(
                 Box(Modifier.weight(1f).padding(start = if (attachPanel != null) 2.dp else 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp)) {
                     val converting = vState is HoldToTalk.State.Converting
                     if (text.isEmpty() && !converting) {
-                        if (vh != null) VoicePlaceholder(mode)
-                        else Text(ChatCopy.placeholder(mode, hasHistory), style = MikaType.Body, color = c.ink3, maxLines = 1)
+                        if (vh != null) VoicePlaceholder(mode, followUpMode)
+                        else Text(ChatCopy.placeholder(mode, hasHistory, followUpMode), style = MikaType.Body, color = c.ink3, maxLines = 1)
                     }
                     BasicTextField(
                         shownValue,
@@ -1344,7 +1439,17 @@ internal fun Composer(
                         layout(cons.maxWidth, shown) { p.place(0, 0) }
                     },
                 ) {
-                    Box(Modifier.fillMaxSize().padding(top = 4.dp)) { attachPanel() }
+                    Column(Modifier.fillMaxSize().padding(top = 4.dp)) {
+                        if (onTeach != null && panel == Panel.Open) {
+                            Text(
+                                stringResource(R.string.teach_menu),
+                                Modifier.fillMaxWidth().clickable { panel = Panel.Closed; onTeach() }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp).testTag("teach-mika"),
+                                color = c.accent, style = MikaType.Body,
+                            )
+                        }
+                        Box(Modifier.weight(1f)) { attachPanel() }
+                    }
                 }
             }
         }

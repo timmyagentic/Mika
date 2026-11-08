@@ -4,7 +4,13 @@ import com.wangzan101.mika.core.agent.Turn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
@@ -20,9 +26,47 @@ class ConversationStoreTest {
         a.append(id, Turn("查天气", "晴", "succeeded"))
         a.append(id, Turn("订票", "验证码\n\"过不去\"", "failed"))
         val b = ConversationStore(dir)
-        assertEquals(listOf(Turn("查天气", "晴", "succeeded"), Turn("订票", "验证码\n\"过不去\"", "failed")), b.turns(id))
+        assertEquals(listOf(Turn("查天气", "晴", "succeeded"), Turn("订票", "验证码\n\"过不去\"", "failed")), b.turns(id).map { it.copy(atMs = null) })
         assertEquals(emptyList<Turn>(), b.turns(b.newConversation()))
         assertNotEquals(id, b.newConversation())
+    }
+
+    @Test fun appendStampsNewTurnsAndPreservesExplicitTimes() {
+        val dir = tmp.newFolder("times")
+        var now = 1_000L
+        val store = ConversationStore(dir, clock = { now })
+        store.append("c", Turn("一", "甲", "succeeded"))
+        now = 2_000L
+        store.append("c", Turn("二", "乙", "succeeded", atMs = 42L))
+        now = 3_000L
+        store.append("c", Turn("三", "丙", "succeeded"))
+        assertEquals(listOf(1_000L, 42L, 3_000L), ConversationStore(dir).turns("c").map { it.atMs })
+        val saved = Json.parseToJsonElement(java.io.File(dir, "c.json").readText()) as JsonArray
+        assertEquals(listOf("1000", "42", "3000"), saved.map { (it as JsonObject).getValue("atMs").toString() })
+    }
+
+    @Test fun oldTurnKeepsUnknownTimeWhenANewTurnIsAppended() {
+        val dir = tmp.newFolder("old")
+        java.io.File(dir, "c.json").writeText("""[{"userText":"旧","outcome":"好","status":"succeeded"}]""")
+        val store = ConversationStore(dir, clock = { 99L })
+        assertNull(store.turns("c").single().atMs)
+        store.append("c", Turn("新", "也好", "succeeded"))
+        val read = ConversationStore(dir).turns("c")
+        assertEquals(listOf(null, 99L), read.map { it.atMs })
+        val saved = Json.parseToJsonElement(java.io.File(dir, "c.json").readText()) as JsonArray
+        assertFalse("atMs" in (saved[0] as JsonObject))
+        assertEquals("99", (saved[1] as JsonObject).getValue("atMs").toString())
+    }
+
+    @Serializable
+    private data class LegacyTurn(val userText: String, val outcome: String, val status: String)
+
+    @Test fun oldReaderIgnoresTheNewOptionalTimeField() {
+        val dir = tmp.newFolder("compat")
+        ConversationStore(dir).append("c", Turn("问题", "答案", "succeeded", atMs = 123L))
+        val raw = java.io.File(dir, "c.json").readText()
+        val old = Json { ignoreUnknownKeys = true }.decodeFromString<List<LegacyTurn>>(raw)
+        assertEquals(listOf(LegacyTurn("问题", "答案", "succeeded")), old)
     }
 
     /** 留在后台运行的那一页(站点)和它后来关掉的原因跟着那一轮存下;没留页的轮次不写这两个字段。 */
@@ -176,7 +220,7 @@ class ConversationStoreTest {
         val aside = dir.listFiles().orEmpty().filter { it.name.startsWith("x.json.corrupt-") }
         assertEquals(1, aside.size)
         assertEquals("{not json", aside.single().readText())
-        assertEquals(listOf(Turn("a", "b", "cancelled")), s.turns("x"))
+        assertEquals(listOf(Turn("a", "b", "cancelled")), s.turns("x").map { it.copy(atMs = null) })
         assertEquals(listOf("x"), s.list().map { it.id })
     }
 
@@ -197,7 +241,7 @@ class ConversationStoreTest {
     @Test fun unverifiedTurnKeepsItsNote() {
         val dir = tmp.newFolder()
         val id = ConversationStore(dir).let { s -> s.newConversation().also { s.append(it, Turn("查余额", "余额 10 元", "unverified", note = "防截屏")) } }
-        assertEquals(listOf(Turn("查余额", "余额 10 元", "unverified", note = "防截屏")), ConversationStore(dir).turns(id))
+        assertEquals(listOf(Turn("查余额", "余额 10 元", "unverified", note = "防截屏")), ConversationStore(dir).turns(id).map { it.copy(atMs = null) })
     }
 
     @Test fun turnKeepsItsRunId() {
@@ -330,13 +374,13 @@ class ConversationStoreTest {
         val dir = tmp.newFolder("c")
         val store = ConversationStore(dir)
         val source = store.newConversation()
-        store.append(source, Turn("一", "甲", "succeeded"))
-        store.append(source, Turn("二", "乙", "succeeded"))
-        store.append(source, Turn("三", "丙", "succeeded"))
+        store.append(source, Turn("一", "甲", "succeeded", atMs = 11L))
+        store.append(source, Turn("二", "乙", "succeeded", atMs = 22L))
+        store.append(source, Turn("三", "丙", "succeeded", atMs = 33L))
         val target = store.newConversation()
         assertTrue(store.branch(source, target, throughTurn = 1))
         assertEquals(
-            listOf(Turn("一", "甲", "succeeded"), Turn("二", "乙", "succeeded")),
+            listOf(Turn("一", "甲", "succeeded", atMs = 11L), Turn("二", "乙", "succeeded", atMs = 22L)),
             ConversationStore(dir).turns(target),
         )
         // 源对话仍是三轮

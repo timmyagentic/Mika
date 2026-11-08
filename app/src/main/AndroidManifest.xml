@@ -3,8 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 按住说话时录音，转成文字。 -->
+    <!-- 按住说话时录音，转成文字；用户浏览器里的网页要麦克风时也用它。 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 用户浏览器里的网页要摄像头（Mika 自己拍照走系统相机，不用这个权限）；网页请求时先弹框问用户。 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 用户浏览器里的网页要定位；网页请求时先弹框问用户。 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- 用户在关于页下载新版后，交给系统安装器确认覆盖安装。 -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- 沙箱联网时读当前网络的 DNS 服务器 -->
@@ -15,6 +20,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- 批量日程经安卓日历提供方一次写入；用户未授权时退回系统日历的新建页。 -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <!-- phone_set_alarm / phone_set_timer:经安卓标准接口请时钟 App 设闹钟、计时器(普通权限,安装即有) -->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- 「重启后自动恢复」:开机时重新打开无线调试。这个授权普通安装拿不到,只在用户打开那个开关后
@@ -40,6 +48,14 @@
     <!-- 语音输入要麦克风,但不是必需:没有麦克风的设备照常安装,只是用不了语音 -->
     <uses-feature
         android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <!-- 网页定位用到位置权限,但不是必需:没有定位硬件的设备照常安装,只是网页拿不到位置 -->
+    <uses-feature
+        android:name="android.hardware.location"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
         android:required="false" />
 
     <!-- list_apps 列出可启动的 App;解析系统权限框所在的包,用于判断「被切走」 -->
@@ -83,6 +99,7 @@
         android:name=".MikaApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -97,6 +114,17 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- 系统分享只进入现有对话页的草稿;文字、链接或一张内容图片都不会自动执行。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
 
@@ -157,6 +185,16 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Runs a user-requested phone task on the app's own virtual display and shows its progress; afterwards keeps the one web page the user asked to keep open running, for at most two hours" />
+        </service>
+
+        <!-- 用户绑定并打开微信渠道后保持长轮询；没有本地服务器，任务仍交给 TaskService。 -->
+        <service
+            android:name=".wechat.WechatService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the user-enabled WeChat bot connection available so private messages can be handed to the app's existing task service" />
         </service>
 
         <!--
@@ -251,6 +289,7 @@
             </intent-filter>
         </receiver>
         <receiver android:name=".task.TriggerAlarmReceiver" android:exported="false" />
+        <receiver android:name=".teach.TeachReceiver" android:exported="false" />
     </application>
 
 </manifest>

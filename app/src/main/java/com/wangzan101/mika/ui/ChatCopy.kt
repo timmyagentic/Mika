@@ -24,12 +24,12 @@ object ChatCopy {
     data class Example(val kind: ExampleKind, val text: String)
 
     val examples get() = listOf(
-        Example(ExampleKind.App, tr(R.string.chat_example_message)),
+        Example(ExampleKind.App, tr(R.string.chat_example_follow)),
         Example(ExampleKind.App, tr(R.string.chat_example_group_summary)),
         Example(ExampleKind.Web, tr(R.string.chat_example_jobs)),
-        Example(ExampleKind.App, tr(R.string.chat_example_music)),
+        Example(ExampleKind.App, tr(R.string.chat_example_multi_step)),
         Example(ExampleKind.Device, tr(R.string.chat_example_alarms)),
-        Example(ExampleKind.App, tr(R.string.chat_example_creator)),
+        Example(ExampleKind.App, tr(R.string.chat_example_ai_apps)),
     )
 
     /** 对话页顶栏的标题:固定是 App 名;副标题说此刻在做什么。 */
@@ -120,15 +120,15 @@ object ChatCopy {
     fun actionLine(a: StepAction): String =
         listOfNotNull(a.label, a.target?.takeIf(String::isNotBlank), effectLabel(a.effect).takeIf(String::isNotBlank)).joinToString(" · ")
 
-    fun placeholder(mode: ComposerMode, hasHistory: Boolean): String = when (mode) {
-        ComposerMode.Busy -> tr(R.string.chat_placeholder_busy)
+    fun placeholder(mode: ComposerMode, hasHistory: Boolean, followUp: FollowUpMode = FollowUpMode.Steer): String = when (mode) {
+        ComposerMode.Busy -> tr(if (followUp == FollowUpMode.Queue) R.string.chat_placeholder_queue else R.string.chat_placeholder_busy)
         ComposerMode.Answer -> tr(R.string.chat_placeholder_answer)
         ComposerMode.Idle -> if (hasHistory) tr(R.string.chat_placeholder_more) else EMPTY_PROMPT
     }
 
-    /** 能按住说话时的灰字(前面配一个小话筒):告诉人能按住说、点一下打字;任务在跑时说的就是插话。 */
-    fun voicePlaceholder(mode: ComposerMode): String = when (mode) {
-        ComposerMode.Busy -> tr(R.string.voice_placeholder_busy)
+    /** 能按住说话时的居中灰字:告诉人能按住说、点一下打字;任务在跑时说的就是插话或排队。 */
+    fun voicePlaceholder(mode: ComposerMode, followUp: FollowUpMode = FollowUpMode.Steer): String = when (mode) {
+        ComposerMode.Busy -> tr(if (followUp == FollowUpMode.Queue) R.string.voice_placeholder_queue else R.string.voice_placeholder_busy)
         ComposerMode.Answer -> tr(R.string.voice_placeholder_answer)
         ComposerMode.Idle -> tr(R.string.voice_placeholder_idle)
     }

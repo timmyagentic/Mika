@@ -68,7 +68,9 @@ object UiStates {
 
 /**
  * [changedDuringRead]:读这份列表的前后界面不一致(页面自己在动),列表可能和屏幕对不上。
- * [protected]:当前页面受系统防截屏保护,画面看不到。
+ * [protected]:有明确依据认定当前页面受系统防截屏保护,画面看不到。
+ * [captureError]:画面不能作为当前内容使用,但没有依据断言是防截屏;值是通用错误码。
+ * 此时仍可使用读到的无障碍元素,不能把黑帧或旧帧交给视觉模型。
  * [hasWindow]:屏上有 App 窗口(根节点读不读得到都算);为 false 且没有元素时才是真正的空屏。
  * [web]:网页读屏时的页面信息;手机读屏时为空。
  * [unreadableApp]:读不到窗口内容(安全窗口、启动画面、显示在别处),但端口按焦点窗口或最上面的任务知道前台是哪个 App 时,
@@ -89,6 +91,8 @@ data class ScreenSnapshot(
     val windows: List<UiWindowTree> = emptyList(),
     /** 上一个动作过后才开到用户主屏上、读这一屏前刚挪回来的 App(见 [OpenedElsewhere]);没有为 null。 */
     val opened: OpenedElsewhere? = null,
+    /** 画面不可用但不是已证实的防截屏;见上方 [captureError] 说明。 */
+    val captureError: String? = null,
 )
 
 /**
@@ -269,6 +273,13 @@ interface ScreenPort {
      * (第一次用时建屏,用户正在主屏用那个 App 时不打开)。不支持的端口返回 unsupported。
      */
     suspend fun systemAction(action: SystemAction): SystemActionResult = SystemActionResult(ActionResult.Failed("unsupported"))
+
+    /**
+     * 经安卓日历提供方一次写入一批日程，不打开日历界面。调用方已完整校验全部事件；
+     * 权限不足、没有可写日历或写入结果不确定时返回对应失败原因，不自动换路径重写。
+     */
+    suspend fun bulkCalendarInsert(events: List<SystemAction.AddCalendarEvent>): SystemActionResult =
+        SystemActionResult(ActionResult.Failed(SystemActionResult.NOT_SUPPORTED))
 
     /**
      * 把编号 [ref] 那个滚轮(或滚轮里的一项)转到显示 [value]:在端口里一次做完(能输入就输入,能无障碍滚就一格格滚,

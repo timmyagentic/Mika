@@ -2,6 +2,7 @@ package com.wangzan101.mika.takeover
 
 import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.core.tool.HandBackOutcome
+import com.wangzan101.mika.task.restorePipSound
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -96,13 +97,17 @@ class TakeoverWebTest {
     }
 
     @Test
-    fun putAsideStillTimesOutWhenNobodyComesBack() = test {
+    fun putAsideKeepsWaitingAndDoesNotTimeOut() = test {
         takeover.onState(waiting)
         takeover.handOver()
         takeover.putAside()
         advanceTimeBy(Takeover.TAKEOVER_WAIT_TIMEOUT_MS + 1)
         runCurrent()
-        assertEquals(HandBackOutcome.timeout, port.results.single().outcome)
+        assertTrue(port.results.isEmpty())
+        assertEquals(Takeover.Stage.Waiting, takeover.stage.value)
+        assertTrue(takeover.handOver())
+        assertTrue(takeover.handBack())
+        assertEquals(HandBackOutcome.complete, port.results.single().outcome)
     }
 
     @Test
@@ -112,6 +117,16 @@ class TakeoverWebTest {
         assertFalse(takeover.putAside())
         takeover.handOver()
         assertFalse(takeover.putAside(key = 99))
+    }
+
+    @Test
+    fun pipUnmuteDuringWebHandoverFallsBackToPhone() = test {
+        takeover.onState(waiting)
+        takeover.handOver()
+        var phoneCalls = 0
+        restorePipSound(takeover) { phoneCalls++ }
+        assertEquals(1, phoneCalls)
+        assertEquals(listOf("showWeb:login:1"), port.log)
     }
 
     @Test

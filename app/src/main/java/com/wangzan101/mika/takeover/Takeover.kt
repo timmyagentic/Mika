@@ -27,6 +27,8 @@ interface TakeoverPort {
     suspend fun moveBack(taskId: Int): Boolean
     /** 开或关该 App 的声音。 */
     fun setSound(packageName: String, on: Boolean)
+    /** 用户明确恢复声音;实现要连同本次任务的自动静音规则一起更新。 */
+    fun unmute(packageName: String) = setSound(packageName, true)
     /** 开始数用户在主屏上对该包的操作;App 交到用户手上时调用。 */
     fun watchInput(packageName: String)
     /** 此刻数到的操作和所在页面;没在数时为 null。 */
@@ -90,14 +92,15 @@ class TakeoverQueue {
  * 接管的状态机:Agent 请求接管 → 等待 →「我来处理」把虚拟屏最上面的任务挪到主屏 →
  * 「处理好了」/「我自己做完了」挪回并交还 Agent;「跳过」不处理直接交还(App 在主屏就先挪回);
  * 任何时候都可「取消任务」,取消时 App 留在原处。
- * 没人点「我来处理」时等 [TAKEOVER_WAIT_TIMEOUT_MS] 后交还超时,App 不挪动;接手之后不再计时。
- * 计时跑在 [scope] 上,[now] 量接手时长;测试换成虚拟时间。
+ * 没人点「我来处理」时保留任务和现场,每隔 [TAKEOVER_WAIT_TIMEOUT_MS] 提醒一次,不把等待变成失败;
+ * 接手之后不再计时。计时跑在 [scope] 上,[now] 量接手时长;测试换成虚拟时间。
  * 给了 [queue] 时和其他任务的接管排队,排在后面的不能「我来处理」。
  */
 class Takeover(
     private val port: TakeoverPort,
     private val scope: CoroutineScope,
     private val queue: TakeoverQueue? = null,
+    private val remind: () -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     enum class Stage { None, Waiting, HandedOver }
@@ -203,12 +206,24 @@ class Takeover(
     /** 「我自己做完了」:Agent 不再操作,只核实结果并结束。 */
     suspend fun finishedMyself(key: Int? = null): Boolean = giveBack(HandBack(HandBackOutcome.complete, userFinished = true), key)
 
+    /**
+     * 浮层恢复声音只接管真正交到用户手上的 App;等待接管、网页接管或没有目标包都返回 false,
+     * 让调用方走普通手机音频路径。返回 true 表示这条接管路径已处理,不代表 shell 写操作一定成功。
+     */
+    @Synchronized
+    fun unmute(): Boolean {
+        if (_stage.value != Stage.HandedOver || handedWeb) return false
+        val packageName = handedPackage ?: return false
+        port.unmute(packageName)
+        return true
+    }
+
     /** 「跳过」:不处理,告诉 Agent 没有发生交回;App 若在主屏先挪回,挪不回就保持原状。 */
     suspend fun skip(key: Int? = null): Boolean = giveBack(HandBack(HandBackOutcome.skipped), key)
 
     /**
      * 网页接管界面上按了系统返回键 =「先放着」:标签放回后台,任务回到等待接管(通知还在,可以再点「我来处理」),
-     * 等待照常计时。只在已经接手时有效。
+     * 等待会重新按间隔提醒。只在已经接手时有效。
      */
     suspend fun putAside(key: Int? = null): Boolean = mutex.withLock {
         if (_stage.value != Stage.HandedOver || !handedWeb || !keyMatches(key)) return false
@@ -280,7 +295,7 @@ class Takeover(
         return true
     }
 
-    /** 前面的接管处理完,轮到这一个:从现在起计等待时限。 */
+    /** 前面的接管处理完,轮到这一个:从现在起按间隔提醒。 */
     internal fun reachedFront() {
         val waiting = current
         if (_stage.value == Stage.Waiting && waiting != null && timer == null) armTimer(waiting)
@@ -289,13 +304,14 @@ class Takeover(
     private fun armTimer(state: TaskState.WaitingTakeover) {
         timer?.cancel()
         timer = scope.launch {
-            delay(TAKEOVER_WAIT_TIMEOUT_MS)
-            mutex.withLock {
-                // 挪到主屏失败退回等待时也照常超时;已经接手或换成了下一次等待就不算
-                if (_stage.value == Stage.Waiting && current === state) {
-                    timer = null // 交还时不能把正在交还的自己取消掉
-                    giveBackLocked(HandBack(HandBackOutcome.timeout))
+            while (true) {
+                delay(TAKEOVER_WAIT_TIMEOUT_MS)
+                val waiting = mutex.withLock {
+                    // 已经接手、交还或换成了下一次等待时不再提醒。
+                    _stage.value == Stage.Waiting && current === state
                 }
+                if (!waiting) break
+                remind()
             }
         }
     }
@@ -307,7 +323,7 @@ class Takeover(
 
     companion object {
         private const val MAIN_DISPLAY = 0
-        /** 等用户点「我来处理」的时限;接手之后不计时。 */
+        /** 还没点「我来处理」时重复提醒的间隔;接手之后不提醒,任务不会因等待而失败。 */
         const val TAKEOVER_WAIT_TIMEOUT_MS = 15 * 60_000L
     }
 }

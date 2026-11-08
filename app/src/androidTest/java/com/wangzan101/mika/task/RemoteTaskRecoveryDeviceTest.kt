@@ -9,10 +9,12 @@ import com.wangzan101.mika.core.agent.FailKind
 import com.wangzan101.mika.core.agent.TaskState
 import com.wangzan101.mika.core.mcp.McpTaskTools
 import com.wangzan101.mika.core.remote.RemoteSteer
+import com.wangzan101.mika.core.remote.RemoteOwnership
 import com.wangzan101.mika.core.remote.RemoteTask
 import com.wangzan101.mika.core.remote.RemoteTaskError
 import com.wangzan101.mika.core.remote.RemoteTaskService
 import com.wangzan101.mika.mcp.McpServerState
+import com.wangzan101.mika.settings.McpUsbSettings
 import com.wangzan101.mika.ui.MainActivity
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
@@ -32,6 +34,84 @@ class RemoteTaskRecoveryDeviceTest {
     @get:Rule val ui = createAndroidComposeRule<MainActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<MikaApp>()
 
+    @Test fun rebootMigratesReceiptsOwnedByThePreviouslySavedUsbToken() {
+        val name = "receipts-usb-" + UUID.randomUUID()
+        val settings = File(app.cacheDir, name)
+        val previousOwner = RemoteOwnership.of(McpUsbSettings(settings, { "1" }, { null }).enable())
+        val networkOwner = RemoteOwnership.of("network-token")
+        val now = System.currentTimeMillis()
+        try {
+            RemoteTaskReceipts(app, name).use { store ->
+                store.insert(RemoteTask("usb-task", "mcp-usb", "usb", now, null, owner = previousOwner), true)
+                store.insert(RemoteTask("network-task", "mcp-network", "network", now, null, owner = networkOwner), true)
+                val restarted = McpUsbSettings(settings, { "2" }, { null }, migrateTaskOwner = store::migrateUsbOwner)
+                assertNull(restarted.token())
+                assertNotNull(store.find("usb-task", owner = RemoteOwnership.USB))
+                assertNull(store.find("usb-task", owner = networkOwner))
+                assertNotNull(store.find("network-task", owner = networkOwner))
+            }
+        } finally {
+            app.deleteDatabase(name)
+            File(settings, "mcp-usb.json").delete()
+            settings.delete()
+        }
+    }
+
+    @Test fun versionOneReceiptsUpgradeWithoutLosingResultsOrSingleUseFileRequests() {
+        val name = "receipts-migration-" + UUID.randomUUID()
+        val now = System.currentTimeMillis()
+        val item = com.wangzan101.mika.chat.SharedFile("result.csv", 3, "Downloads/Mika", "content://exports/7")
+        val task = RemoteTask("files", "mcp-files", "original goal", now, null)
+        try {
+            app.openOrCreateDatabase(name, 0, null).use { db ->
+                db.execSQL("""CREATE TABLE receipts (id TEXT PRIMARY KEY NOT NULL, conversation TEXT, goal TEXT,
+                    started INTEGER NOT NULL, new_chat INTEGER NOT NULL, claimed INTEGER NOT NULL DEFAULT 0, result TEXT, steers TEXT)""")
+                db.execSQL("INSERT INTO receipts(id,conversation,goal,started,new_chat,result) VALUES(?,?,?,?,?,?)",
+                    arrayOf("legacy", "mcp-old", "old goal", now, 1, """{"type":"cancelled"}"""))
+                db.version = 1
+            }
+            RemoteTaskReceipts(app, name).use { store ->
+                assertEquals(TaskState.Cancelled, store.find("legacy", owner = "one")!!.state)
+                assertNull(store.find("legacy", owner = "two"))
+                store.insert(task.copy(owner = "one"), true, fileRequest = "original files")
+                store.finish(task.id, TaskState.Cancelled, emptyList(), runId = "saved-run")
+                store.saveFiles(task.id, listOf(item))
+            }
+            RemoteTaskReceipts(app, name).use { store ->
+                assertEquals(listOf(item.remoteFile()), store.find(task.id, "original goal", null, "original files")!!.files)
+                assertEquals("saved-run", store.runId(task.id, "one"))
+                assertEquals(task.id, store.taskIdForRun("saved-run", "one"))
+                assertNull(store.runId(task.id, "two"))
+                assertEquals(listOf(item), store.files(task.id))
+                val conflict = runCatching { store.find(task.id, "imported path") }.exceptionOrNull() as RemoteTaskError
+                assertEquals(RemoteTaskError.Code.CONFLICT, conflict.code)
+                store.forget(task.conversation)
+                assertTrue(store.files(task.id).isEmpty())
+            }
+        } finally { app.deleteDatabase(name) }
+    }
+
+    @Test fun rowIdPaginationIsStableForEqualTimesAndNewInserts() {
+        val db = "receipts-pages-" + UUID.randomUUID()
+        val now = System.currentTimeMillis()
+        fun task(id: String, owner: String = "one") = RemoteTask(id, "mcp-$id", "goal $id", now, null, owner = owner)
+        try {
+            RemoteTaskReceipts(app, db).use { store ->
+                for (id in listOf("a", "b", "c", "d", "e")) store.insert(task(id), false)
+                val first = store.page(2, null, "one")
+                assertEquals(listOf("e", "d"), first.tasks.map { it.id })
+                assertNotNull(first.nextBefore)
+                store.insert(task("new"), false)
+                val second = store.page(2, first.nextBefore, "one")
+                assertEquals(listOf("c", "b"), second.tasks.map { it.id })
+                val third = store.page(2, second.nextBefore, "one")
+                assertEquals(listOf("a"), third.tasks.map { it.id })
+                assertNull(third.nextBefore)
+                assertTrue(store.page(20, null, "two").tasks.isEmpty())
+            }
+        } finally { app.deleteDatabase(db) }
+    }
+
     @Test fun retainedIdsAndTerminalResultsSurviveReopening() {
         val db = "receipts-test-" + UUID.randomUUID()
         val done = RemoteTask("first", "mcp-first", "review", System.currentTimeMillis(), null)
@@ -42,13 +122,13 @@ class RemoteTaskRecoveryDeviceTest {
                 store.insert(done, true)
                 assertTrue(store.claimStart(done.id))
                 assertFalse(store.claimStart(done.id))
-                store.finish(done.id, result, notes)
+                store.finish(done.id, result, notes, runId = "saved-run")
                 store.insert(done.copy(id = "cancelled"), false)
                 store.finish("cancelled", TaskState.Cancelled, emptyList())
                 repeat(105) { store.insert(done.copy(id = "queued-$it", conversation = "another"), false) }
             }
             RemoteTaskReceipts(app, db).use { store ->
-                assertEquals(done.copy(state = result, steers = notes), store.find(done.id))
+                assertEquals(done.copy(state = result, steers = notes, runId = "saved-run"), store.find(done.id))
                 assertEquals(TaskState.Cancelled, store.find("cancelled")!!.state)
                 assertEquals(FailKind.Interrupted, (store.find("queued-0")!!.state as TaskState.Failed).kind)
                 assertFalse(store.claimStart("queued-0"))

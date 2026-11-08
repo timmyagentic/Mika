@@ -11,7 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import com.wangzan101.mika.ui.components.MikaDialog
+import com.wangzan101.mika.ui.components.MikaNoticeDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -212,10 +213,10 @@ fun MemoryScreen(
         EditDialog(stringResource(R.string.memory_add), "", emptyList(), onDismiss = { adding = false }, withKind = true) { content, keywords, kind -> vm.add(kind, content, keywords); adding = false }
     }
     ui.message?.let { m ->
-        AlertDialog(onDismissRequest = vm::dismissMessage, text = { Text(m) }, confirmButton = { TextButton(vm::dismissMessage) { Text(stringResource(R.string.ok_got_it)) } })
+        MikaNoticeDialog(m, onDismiss = vm::dismissMessage)
     }
     if (ui.clearStage > 0) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = vm::cancelClear,
             title = { Text(if (ui.clearStage == 1) stringResource(R.string.memory_clear_q) else stringResource(R.string.memory_clear_sure)) },
             text = { Text(if (ui.clearStage == 1) stringResource(R.string.memory_clear_body) else stringResource(R.string.memory_clear_final)) },
@@ -254,7 +255,7 @@ private fun EditDialog(
     var kind by remember { mutableIntStateOf(0) }
     var text by remember { mutableStateOf(content) }
     var words by remember { mutableStateOf(keywords.joinToString(" ")) }
-    AlertDialog(
+    MikaDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

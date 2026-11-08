@@ -30,7 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import com.wangzan101.mika.ui.components.MikaDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -380,7 +380,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
     using?.let { o -> UseAsSheet(ui, p, o.id, onUse = { role -> actions.use(role, o.id) }, onVision = { actions.setVision(o.id, it) }, onDismiss = { using = null }) }
     if (changingKey) {
         var key by remember { mutableStateOf("") }
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { changingKey = false },
             title = { Text(ModelsCopy.CHANGE_KEY) },
             text = {
@@ -405,7 +405,7 @@ fun ProviderDetailContent(ui: ModelSetupUi, p: Provider, actions: ProviderDetail
         )
     }
     if (confirmDelete) {
-        AlertDialog(
+        MikaDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text(ModelsCopy.deleteTitle(ModelsCopy.providerName(p))) },
             text = { Text(ModelsCopy.deleteBody(ui.rolesOf(p))) },
@@ -812,7 +812,7 @@ object ModelsCopy {
     fun speechLine(ui: ModelSetupUi): RoleLine {
         val s = SpeechOptions.summary(ui.speech, ui.systemSpeech, ui.providers)
         val unset = s.title == UNSET
-        return RoleLine(s.title, s.sub.orEmpty(), isModel = !unset && (ui.speech is SpeechChoice.Provider || ui.speech is SpeechChoice.Doubao), unset = unset, subtitleOk = s.subOk)
+        return RoleLine(s.title, s.sub.orEmpty(), isModel = !unset && (ui.speech is SpeechChoice.Provider || ui.speech is SpeechChoice.Doubao || ui.speech is SpeechChoice.FunAsr || ui.speech is SpeechChoice.Bailian), unset = unset, subtitleOk = s.subOk)
     }
 
     fun roleIcon(role: ModelRole): ImageVector = when (role) {
