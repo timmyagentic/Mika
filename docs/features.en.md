@@ -34,7 +34,7 @@ Any app installed on your phone works, with no per-app integration: Mika looks a
 
 - "Remind me at 9 tomorrow morning", "check the weather every morning and tell me only if it will rain", "do X every Friday".
 - Conditions can compare with last time: "tell me when it drops by more than 50" compares with the price from the last time the condition started the task; "tell me every time it rains" speaks up on each rainy day; you can also say "at most once a day".
-- Runs at the scheduled time in the original conversation and sends the result back. The scheduled tasks page lets you pause, reschedule, run now or delete.
+- Runs at the scheduled time in the original conversation and sends the result back. The scheduled tasks page lets you create, edit, pause, run now or delete, with a preview of the next three occurrences. A daily or weekly plan can use several local times (e.g. `08:00, 12:30, 20:00`) under one identity and pause switch. In its original conversation, you can also ask to edit its content, condition, reminder or recurrence.
 
 ## Interrupt or stop anytime
 
