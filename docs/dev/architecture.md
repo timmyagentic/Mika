@@ -77,7 +77,9 @@
 
 渠道任务只发一次受理确认,不转发运行阶段或步数。任务持久化登记后,以 `accepted:<运行编号>` 的 `Notice` 进入 `Outbox`,发送不阻塞任务执行;同一渠道消息编号的重投不建任务也不再确认,不同编号即使文字相同也分别登记,并在同一对话里按先后顺序执行。提问、确认与接管仍只走 `ChannelInteraction`。结果链路另记主循环完成到送出、Outbox 加发送、微信 HTTP 各段毫秒数,不记消息内容。
 
-本机渠道是 `LocalChannel`(`app/task/LocalChannel.kt`):本机界面加系统通知。`WechatChannel`(`app/wechat/`)是第二渠道:单账号、本人私聊文本,凭证加密保存在本机,独立前台服务长轮询,不建中继服务器,也不另建任务状态机。入站消息先写待处理账本再推进同步游标,`TaskCenter` 按渠道消息编号持久化去重后才确认;进程重启会先补交未登记消息。任务记录保存来源 `ChannelPeer`,提问、结果与 `RunRecovery` 都按来源路由。渠道接口 `Channel`、`ChannelGateway`(主人身份、提问编号对应、付款确认只能在能确认的渠道上做,`Channel.confirms`)在 `core/run/`;微信 `confirms=false`,付款确认与手机接管仍走手机。
+本机渠道是 `LocalChannel`(`app/task/LocalChannel.kt`):本机界面加系统通知。`WechatChannel`(`app/wechat/`)是第二渠道:单账号、本人私聊文字和图片,凭证加密保存在本机,独立前台服务长轮询,不建中继服务器,也不另建任务状态机。入站消息先写待处理账本再推进同步游标,`TaskCenter` 按渠道消息编号持久化去重后才确认;进程重启会先补交未登记消息。任务记录保存来源 `ChannelPeer`,提问、结果与 `RunRecovery` 都按来源路由。渠道接口 `Channel`、`ChannelGateway`(主人身份、提问编号对应、付款确认只能在能确认的渠道上做,`Channel.confirms`)在 `core/run/`;微信 `confirms=false`,付款确认与手机接管仍走手机。
+
+微信图片收发复用现有工作区附件和任务导出文件：入站图片整批下载、解密并导入后，附件路径与原话先记入 pending，再交任务；出站只发送本任务明确导出的图片，每张图片与文字都有独立的 Outbox 记录。截图工具可用 `savePath` 保存到工作区，再经 `share_file` 交付。图片限额、失败与恢复语义、验证入口见 [微信图片收发](wechat-images.md)。
 
 微信任务的自动亮屏与解锁另由 `WechatStore.allowUnlock` 授权,默认关闭;授权独立保存在 `unlock.json`,绑定当前 owner 与 bot,缺失、损坏或账号不符都按关闭处理。撤销只删除授权文件,不改消息账本;关闭接收写盘失败时也撤销授权,避免重启恢复可解锁状态。关闭接收时不能解锁,解绑或每次扫码重绑都会撤销授权,同账号重绑仍保留消息账本。`canUnlock` 每次核对当前绑定、微信渠道、主人与线程映射。`taskUnlockAuthorization`(`app/task/TaskUnlockPolicy.kt`)只为定时任务及开跑时已获授权的本人微信任务提供 `TaskGate` 解锁回调;其他来源或未授权任务仍等手动解锁。微信回调在实际解锁时动态复核授权,不会沿用已撤销的权限。此开关不修改 `DeviceAccessSettings.enabled` 或锁屏凭据,仍须满足已有本机设备访问许可,也不改变 `RunOrigin.Channel` 及付款、接管规则。
 
@@ -209,7 +211,7 @@
 
 - 基于 PRoot 和 Alpine 3.22 的运行环境,随 APK 自带,App 启动时在后台离线解包(`app/cap/sandbox/RuntimePreparer.kt`、`RootfsInstaller.kt`);Mika 升级后自动重新解包。沙箱程序只有 arm64 版本,其他设备显示「此设备不支持(需要 arm64)」,模型也被告知不用这组工具。来源与构建见 `tools/sandbox/README.md`。
 - 每个对话一个工作区,沙箱里是 `/workspace`,跨消息保留;聊天里附加的文件放进 `/workspace/inbox/`;`share_file` 把文件存到手机的「下载/Mika」并在对话里显示为文件卡片;点卡片时网页、Markdown、PDF、图片和文本类文件在 App 里的查看页打开(`FileViewerActivity`,见第 15 节),其余交给系统里能打开它的 App。
-- 默认断网,设置 → 高级 → 文件与计算环境里「允许脚本联网」打开后才联网;设备无法隔离网络时,只有打开「允许脚本联网」才能运行(`AndroidSandbox`、`AdvancedSection` 的提示)。每个任务有累计运行时间预算,同一条命令反复失败会被叫停(`core/cap/sandbox/SandboxGuard.kt`)。
+- 默认联网,设置 → 高级 → 文件与计算环境里关闭「允许脚本联网」后才断网;设备无法隔离网络时,只有打开「允许脚本联网」才能运行(`AndroidSandbox`、`AdvancedSection` 的提示)。每个任务有累计运行时间预算,同一条命令反复失败会被叫停(`core/cap/sandbox/SandboxGuard.kt`)。
 - **网络代理**:用的是设置 › 高级与其他的「网络代理」(见第 12 节「网络代理」),这一页不再重复显示。只在允许联网的命令里给(`AndroidSandbox` 不联网时传空),经 `ProcRunner.env` 放进 `http_proxy`/`https_proxy`/`all_proxy`(大小写各一份)和 `no_proxy`(`LocalHosts.NO_PROXY`:本机、局域网网段和后缀直连);`https://` 代理只有这里的命令用得上。
 - **已用空间**:同一页下面一组(`SandboxUsageReader`,`app/cap/sandbox/SandboxUsage.kt`):合计、运行环境、技能、对话的工作区各占多少,再按对话列出工作区(按对话标题,对话已删掉的写「已删除的对话」,大的在前)。大小按目录树里的普通文件算,不跟进链接(`AndroidSandbox.treeBytes`)。点一行先确认再清掉那个工作区,最后一行清空所有;和删对话一样经文件闸门按句柄删、不跟进链接,拿着树锁的独占许可(`SandboxDirs.exclusiveWrite`,删、换整棵目录都走它)、和命令、导入、重置互斥,拿到许可后才查对话忙不忙(清空所有时每删一个前都再查);删大目录的这段时间里所有对话的沙箱命令都要等;有任务在跑或排队的对话写明「暂时不能清理」,清空所有时跳过它们。运行环境和技能随 App 自带,不在这里清(要从头准备用「重置运行环境」)。容器里不挂手机存储。
 - 工具:`run_command`、`run_bundled_script`(运行知识、技能自带的脚本,见 `docs/dev/skill-scripts.md`)、`read_file`、`write_file`、`search_files`、`share_file`。
