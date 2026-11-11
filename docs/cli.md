@@ -44,6 +44,8 @@ mika doctor --device SERIAL --json
 
 每次调用重新读取当前令牌、端口和开机编号,申请自己的 `adb forward tcp:0` 临时端口,完成后只删除该转发。令牌只保存在进程内存中,启动脚本的原始输出不转发到终端。CLI 退出不关闭手机服务,也不停止正在执行的任务。
 
+同一台手机并排装了调试版时，可以用 `mika connect --package com.wangzan101.mika.dev` 连接。后续用 `doctor`、`task` 或 `ui` 时继续指定同一个包名。省略 `--package` 时连接 `com.wangzan101.mika`。如果两个版本都开启电脑连接，请为它们设置不同的监听端口。`--package` 用于 ADB 连接，不能与 `--url` 同用。
+
 CLI 会处理端口转发，无需照 MCP 步骤手工转发固定端口。拔插后先让同一台手机重新出现在 ADB 中；手机重启或电脑连接开关被关闭后，再运行 `connect`。
 
 也可以使用手机设置里显式开启的局域网/私有网络连接:

@@ -25,9 +25,7 @@ import uuid
 
 VERSION = "0.1.0"
 API = "/api/v1"
-PHONE_FILES = "/sdcard/Android/data/com.wangzan101.mika/files"
-INFO_FILE = PHONE_FILES + "/mcp-usb.json"
-CONNECT_SCRIPT = PHONE_FILES + "/connect-computer.sh"
+DEFAULT_PACKAGE = "com.wangzan101.mika"
 MAX_RESPONSE = 4 * 1024 * 1024
 FILE_CHUNK = 128 * 1024
 MAX_ATTACH_BYTES = 200 * 1024 * 1024
@@ -275,19 +273,21 @@ def connection(args, secrets):
     if args.token_file:
         raise CliError("arguments", "--token-file requires --url; ADB reads the current token from the phone.")
     adb = Adb(args.adb, args.device or os.environ.get("ANDROID_SERIAL"))
+    package = getattr(args, "mika_package", DEFAULT_PACKAGE)
+    phone_files = f"/sdcard/Android/data/{package}/files"
     progress(args, "starting ADB server...")
     adb.start_server()
     adb.select()
     if args.command == "connect":
         progress(args, "running phone bootstrap...")
         try:
-            adb.run("shell", "sh", CONNECT_SCRIPT, timeout=60)
+            adb.run("shell", "sh", phone_files + "/connect-computer.sh", timeout=60)
         except CliError as exc:
             if exc.code != "adb":
                 raise
             raise CliError("adb", "Mika's phone bootstrap did not complete. " + RETRY_HINT) from None
     try:
-        info = json.loads(adb.run("shell", "cat", INFO_FILE))
+        info = json.loads(adb.run("shell", "cat", phone_files + "/mcp-usb.json"))
         if not isinstance(info, dict):
             raise ValueError()
     except ValueError:
@@ -648,6 +648,12 @@ def request_timeout(value):
     return number
 
 
+def application_id(value):
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+", value):
+        raise argparse.ArgumentTypeError("must be an Android application ID")
+    return value
+
+
 def parser():
     common = Parser(add_help=False)
     for flag, help_text in [
@@ -659,36 +665,39 @@ def parser():
         common.add_argument(flag, help=help_text, default=argparse.SUPPRESS)
     common.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help="Compact JSON output, including errors")
     common.add_argument("--request-timeout", type=request_timeout, default=argparse.SUPPRESS, help="HTTP timeout in seconds (default: 15; bounded waits get at least timeout + 5)")
-    p = Parser(prog="mika", description="Delegate tasks to Mika on Android using task API v1.", parents=[common])
+    connection_options = Parser(add_help=False, parents=[common])
+    connection_options.add_argument("--package", dest="mika_package", type=application_id, default=argparse.SUPPRESS,
+                                    help=f"Mika application ID for ADB (default: {DEFAULT_PACKAGE})")
+    p = Parser(prog="mika", description="Delegate tasks to Mika on Android using task API v1.",
+               parents=[connection_options])
     p.add_argument("--version", action="version", version="mika " + VERSION)
     sub = p.add_subparsers(dest="command", required=True)
-    for name, help_text in [("connect", "Enable ADB computer access and verify task API"),
-                            ("doctor", "Read connection and phone state without starting a task"),
-                            ("devices", "List ADB devices")]:
-        sub.add_parser(name, help=help_text, parents=[common])
+    sub.add_parser("connect", help="Enable ADB computer access and verify task API", parents=[connection_options])
+    sub.add_parser("doctor", help="Read connection and phone state without starting a task", parents=[connection_options])
+    sub.add_parser("devices", help="List ADB devices", parents=[common])
     diagnostics = sub.add_parser("notification-doctor", parents=[common],
                                 help="Inspect Android notification configuration without opening apps or reading message text")
     diagnostics.add_argument("--package", required=True, help="Android app whose notifications need investigation")
     diagnostics.add_argument("--dependency", action="append", default=[], help="Related package to check; repeat when needed")
     diagnostics.add_argument("--listener", help="Optional notification listener in package/class form")
     diagnostics.add_argument("--user", type=int, default=0, help="Android user/profile ID (default: 0)")
-    ui = sub.add_parser("ui", help="Open the phone owner's local task desk", parents=[common])
+    ui = sub.add_parser("ui", help="Open the phone owner's local task desk", parents=[connection_options])
     ui.add_argument("--no-open", action="store_true", help="Print the desk URL instead of opening a browser")
-    task = sub.add_parser("task", help="Run and inspect phone tasks", parents=[common])
+    task = sub.add_parser("task", help="Run and inspect phone tasks", parents=[connection_options])
     actions = task.add_subparsers(dest="action", required=True)
-    run = actions.add_parser("run", parents=[common], help="Submit once; return the task ID immediately")
+    run = actions.add_parser("run", parents=[connection_options], help="Submit once; return the task ID immediately")
     goal = run.add_mutually_exclusive_group()
     goal.add_argument("--goal")
     goal.add_argument("--goal-file", help="UTF-8 file, or - for stdin")
     run.add_argument("--attach", action="append", default=[], metavar="FILE", help="Attach a local file (repeatable)")
-    download = actions.add_parser("download", parents=[common], help="Save one file exported by a task")
+    download = actions.add_parser("download", parents=[connection_options], help="Save one file exported by a task")
     download.add_argument("task_id")
     download.add_argument("file_id", help="ID in the task's files list")
     download.add_argument("--output", required=True, help="New file path on this computer")
     run.add_argument("--conversation", help="Continue a conversation returned by a previous remote task")
     run.add_argument("--request-id", help="A lowercase UUID chosen before submission. Query it as the task ID after a lost receipt.")
     for name in ["status", "wait", "answer", "steer", "cancel"]:
-        cmd = actions.add_parser(name, parents=[common])
+        cmd = actions.add_parser(name, parents=[connection_options])
         cmd.add_argument("task_id")
         if name == "wait":
             cmd.add_argument("--timeout", type=bounded_int(1, 50), default=30, help="One bounded wait, 1–50 seconds; never cancels the task")
@@ -696,9 +705,9 @@ def parser():
             answer = cmd.add_mutually_exclusive_group(required=True)
             answer.add_argument("--text")
             answer.add_argument("--text-file", help="UTF-8 file, or - for stdin")
-    listing = actions.add_parser("list", parents=[common])
+    listing = actions.add_parser("list", parents=[connection_options])
     listing.add_argument("--limit", type=bounded_int(1, 50), default=10)
-    export = actions.add_parser("export", parents=[common], help="Export a redacted run by task ID or run ID")
+    export = actions.add_parser("export", parents=[connection_options], help="Export a redacted run by task ID or run ID")
     export.add_argument("task_id", help="Task ID or run ID")
     export.add_argument("--events", action="store_true", help="Write the header followed by JSONL events")
     return p
@@ -728,6 +737,11 @@ def main(argv=None):
         for key, default in {"device": None, "url": None, "token_file": None, "adb": "adb", "request_timeout": 15}.items():
             if not hasattr(args, key):
                 setattr(args, key, default)
+        if hasattr(args, "mika_package"):
+            if args.command in {"devices", "notification-doctor"}:
+                raise CliError("arguments", "Put the Mika --package option on connect, doctor, task or ui.")
+            if args.url:
+                raise CliError("arguments", "The Mika --package option cannot be used with --url.")
         if args.command == "ui":
             if compact:
                 raise CliError("arguments", "The desk is interactive. Use mika ui without --json.")

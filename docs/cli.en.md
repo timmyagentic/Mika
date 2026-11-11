@@ -44,6 +44,8 @@ You may omit `--device` when exactly one device is online; the existing ANDROID_
 
 Each invocation reads the current token, port and boot number, allocates its own temporary `adb forward tcp:0` mapping, then removes only that mapping. Tokens stay in process memory; bootstrap output is captured instead of printed. Exiting the CLI leaves the phone service and ongoing tasks running.
 
+If a debug build is installed alongside Mika, connect with `mika connect --package com.wangzan101.mika.dev`. Use the same package for subsequent `doctor`, `task` and `ui` commands. Omitting `--package` selects `com.wangzan101.mika`. Set different listening ports if both builds have computer access enabled. `--package` selects an ADB target and cannot be used with `--url`.
+
 The CLI handles forwarding; you do not need the MCP instructions for manually forwarding a fixed port. After reconnecting the cable, make sure the same phone is back in ADB. After a phone reboot or turning off computer access, run `connect` again.
 
 For LAN/private-network access explicitly enabled in the phone's settings:
