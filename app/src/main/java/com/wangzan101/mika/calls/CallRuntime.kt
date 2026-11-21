@@ -1,5 +1,8 @@
 package com.wangzan101.mika.calls
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.provider.ContactsContract.PhoneLookup
 import android.annotation.SuppressLint
 import android.app.KeyguardManager
 import android.media.AudioManager
@@ -19,6 +22,8 @@ import android.telecom.VideoProfile
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import android.view.accessibility.AccessibilityEvent
+import com.wangzan101.mika.cap.phone.a11y.ScreenAccessibility
 import com.wangzan101.mika.BuildConfig
 import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.R
@@ -144,6 +149,16 @@ class CallRuntime(private val app: MikaApp) {
     init {
         scope.launch { loadVoiceProfiles() }
         scope.launch {
+            ScreenAccessibility.instance.collect { service ->
+                if (settings.state.value.incomingScope == IncomingScope.TYPES) {
+                    if (service == null && work?.let { it.automatic && !it.answerSent } == true) {
+                        cancelWork(app.getString(R.string.calls_type_accessibility))
+                    }
+                    publish()
+                }
+            }
+        }
+        scope.launch {
             var previousRevision = -1L
             voiceProfiles.revision.collect { current ->
                 if (previousRevision >= 0 && current > previousRevision) {
@@ -179,7 +194,7 @@ class CallRuntime(private val app: MikaApp) {
                 val active = work
                 if (active != null && (!config.enabled || !config.credentialsConfigured ||
                         config.audioMode != active.config.audioMode || config.activeVoiceProfileId != active.config.activeVoiceProfileId ||
-                        (active.automatic && !active.answerSent && !CallPolicy.callerAllowed(config, active.track?.number)))) {
+                        (active.automatic && !active.answerSent && !CallPolicy.callerAllowed(config, active.track?.number, type = active.track?.type, isStranger = confirmedStranger(active.track))))) {
                     cancelWork("AI 电话设置已变更，电话由系统处理")
                 }
                 if (config.audioMode != previousMode || config.enabled != previousEnabled) {
@@ -945,6 +960,7 @@ class CallRuntime(private val app: MikaApp) {
         if (t.phase == CallPhase.RINGING && t.initialRingPolicy == null) {
             t.initialRingPolicy = settings.state.value
             t.ringObservedAt = SystemClock.elapsedRealtime()
+            t.ringUptime = SystemClock.uptimeMillis()
             t.ringObservedWallMs = System.currentTimeMillis()
             if (autoPauseWriting || !canAutomaticallyAnswerHere()) t.autoTried = true
         }
@@ -974,7 +990,7 @@ class CallRuntime(private val app: MikaApp) {
                     (t.direction != CallDirection.INCOMING || !carrierCall(t.call)) ->
                     cancelWork("来电已变化，AI 未接听")
                 target === t && active.automatic && !active.answerSent &&
-                    !CallPolicy.callerAllowed(settings.state.value, t.number) -> cancelWork("来电已不符合自动接听规则")
+                    !CallPolicy.callerAllowed(settings.state.value, t.number, type = t.type, isStranger = confirmedStranger(t)) -> cancelWork("来电已不符合自动接听规则")
                 target === t && t.phase != CallPhase.ACTIVE && active.bridging ->
                     cancelWork("通话已切换，AI 音频已停止")
             }
@@ -983,16 +999,65 @@ class CallRuntime(private val app: MikaApp) {
         maybeStartAutoAnswer()
     }
 
+    internal fun onCallerLabelEvent(service: ScreenAccessibility, event: AccessibilityEvent) {
+        if (tracked.isEmpty()) return
+        val config = settings.state.value
+        if (!config.enabled || !config.autoAnswer || config.incomingScope != IncomingScope.TYPES) return
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED, AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+            AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED -> Unit
+            else -> return
+        }
+        val t = liveCalls().singleOrNull() ?: return
+        val initial = t.initialRingPolicy ?: return
+        if (!initial.enabled || !initial.autoAnswer || initial.incomingScope != IncomingScope.TYPES ||
+            t.phase != CallPhase.RINGING || t.direction != CallDirection.INCOMING || t.suppressed ||
+            event.eventTime < t.ringUptime || t.number == null || !carrierCall(t.call) ||
+            CallPolicy.isBypassed(config, t.number) || CallPolicy.isBypassed(initial, t.number)) return
+        val pending = work?.let { it.automatic && it.track === t && !it.answerSent } == true
+        if (!pending && (t.autoTried || SystemClock.elapsedRealtime() - t.ringObservedAt > CallPolicy.AUTO_START_WINDOW_MS)) return
+        val changed = try {
+            if (t.labelService !== service) {
+                t.labelService = service
+                t.evidence = IncomingTypeEvidence()
+            }
+            val reader = t.labelReader ?: IncomingCallLabels(app).also { t.labelReader = it }
+            reader.read(service, event, t.number, t.evidence)
+        } catch (_: RuntimeException) {
+            // The dialer can remove its window while accessibility is reading it.
+            false
+        }
+        if (changed) {
+            onCallChanged(t.service, t.call)
+        }
+    }
+
     private fun maybeStartAutoAnswer() {
         if (work != null || lockedDial != null || autoPauseWriting || !canAutomaticallyAnswerHere()) return
         val t = liveCalls().singleOrNull() ?: return
         val initial = t.initialRingPolicy ?: return
         if (t.phase != CallPhase.RINGING || t.direction != CallDirection.INCOMING || t.suppressed || t.autoTried) return
         val config = settings.state.value
+        val needsLookup = initial.incomingScope == IncomingScope.STRANGERS || config.incomingScope == IncomingScope.STRANGERS
         if (!CallPolicy.canStartAutoAnswer(initial, config, t.number,
                 SystemClock.elapsedRealtime() - t.ringObservedAt,
-                ringObservedWallMs = t.ringObservedWallMs)) return
+                ringObservedWallMs = t.ringObservedWallMs, type = t.type, isStranger = needsLookup)) return
         if (autoAnswerBlocker(config) != null || !t.service.tracks(t.call) || !carrierCall(t.call)) return
+        if (needsLookup && !confirmedStranger(t)) {
+            val number = t.number ?: return
+            if (t.lookupNumber != number && hasContactsAccess()) {
+                t.contactLookup?.cancel()
+                t.lookupNumber = number
+                t.unsavedNumber = null
+                t.contactLookup = scope.launch {
+                    if (isUnsavedNumber(number) && tracked[t.call] === t && t.number == number) {
+                        t.unsavedNumber = number
+                        maybeStartAutoAnswer()
+                    }
+                }
+            }
+            return
+        }
         t.autoTried = true
         startWork(Work(CallDirection.INCOMING, config, track = t, auto = true))
     }
@@ -1000,6 +1065,7 @@ class CallRuntime(private val app: MikaApp) {
     internal fun onCallRemoved(service: MikaInCallService, call: Call) {
         val removed = tracked[call]?.takeIf { it.service === service } ?: return
         removed.taskBinding.end()
+        removed.contactLookup?.cancel()
         tracked.remove(call)
         if (work?.track === removed) cancelWork(
             if (confirmedEnded(removed)) callEndMessage(removed) else "Android 通话状态已断开，电话由系统处理",
@@ -1113,6 +1179,14 @@ class CallRuntime(private val app: MikaApp) {
                         throw CallProblem("系统通话管理权限不可用，未由 AI 操作电话")
                     }
                     prerequisite(ignoreWork = true)?.let { throw CallProblem(it) }
+                    val ringingCall = w.track
+                    if (w.automatic && ringingCall != null && (ringingCall.initialRingPolicy?.incomingScope == IncomingScope.STRANGERS ||
+                            settings.state.value.incomingScope == IncomingScope.STRANGERS)) {
+                        val number = ringingCall.number
+                        if (number == null || !isUnsavedNumber(number) || ringingCall.number != number) {
+                            throw CallProblem(app.getString(R.string.calls_strangers_note))
+                        }
+                    }
                     validateTarget(w)
                     w.mediaStage = MediaStage.TELECOM_CONNECT
                     if (w.direction == CallDirection.INCOMING) {
@@ -1379,15 +1453,29 @@ class CallRuntime(private val app: MikaApp) {
             !settings.state.value.enabled || !mute.isConfirmed(target.service.telecomMuted, microphoneMuted())) {
             throw CallProblem("通话状态或静音已变更，未发送语音")
         }
-        val remaining = (w.config.maxCallSeconds * 1_000L - (SystemClock.elapsedRealtime() - w.activeElapsed)).coerceAtLeast(1)
+        // 0 = 不限时长:超时长按「永不触发」给(库对 Long.MAX_VALUE 的等待有特判,不会排闹钟)
+        val remaining = w.config.maxCallSeconds.takeIf { it > 0 }
+            ?.let { (it * 1_000L - (SystemClock.elapsedRealtime() - w.activeElapsed)).coerceAtLeast(1) }
         w.mediaStage = MediaStage.PCM_BRIDGE
-        withTimeoutOrNull(remaining) {
+        withTimeoutOrNull(remaining ?: Long.MAX_VALUE) {
             coroutineScope {
+                // 到点前让 AI 先说句道别(两家供应商都照字面播);道别走自然挂断时这里提前收尾
+                val closingJob = CallPolicy.closingDelayMs(remaining)?.let { closingAt ->
+                    launch {
+                        delay(closingAt)
+                        if (work === w && w.stopReason.value == null && w.aiActive &&
+                            !target.suppressed && sameActiveMuteTarget(w, target)) {
+                            runCatching { session.sendGreeting(CallPolicy.CLOSING_LINE) }
+                        }
+                    }
+                }
                 val watchdog = launch {
                     var lastBytes = -1L
                     var stalled = 0
                     while (true) {
                         delay(if (w.aiActive) 1_500 else 350)
+                        // 锁有自然到期(尤其不限时长按时长档拿的预算),到期就重新拿,通话没完不能放
+                        if (w.wakeLock?.isHeld == false) acquireCallWakeLock(w)
                         val stats = withContext(Dispatchers.IO) {
                             runCatching { helper.callAudioStats(w.audioOwner) }.getOrNull()
                         }
@@ -1454,11 +1542,14 @@ class CallRuntime(private val app: MikaApp) {
                     )
                 } finally {
                     watchdog.cancel()
+                    closingJob?.cancel()
                 }
             }
         }
         // A natural ending already issued the owner-bound disconnect with media still running.
         if (w.stopReason.value == FAREWELL_ENDING) return
+        // 不限时长:桥正常返回只可能是自然结束(上面已接住),到这里就是异常之外的兜底,别谎报时长上限
+        if (w.config.maxCallSeconds <= 0) return
         val ending = "已达到 AI 通话时长上限"
         if (!w.stopReason.record(ending)) return
         w.mediaStage = MediaStage.RELEASE
@@ -1467,8 +1558,13 @@ class CallRuntime(private val app: MikaApp) {
         w.aiActive = false
         w.bridging = false
         if (!restored || work !== w || target.suppressed || !sameActiveMuteTarget(w, target)) return
-        val ended = runCatching { target.call.disconnect() }.isSuccess &&
-            (waitFor(CallPolicy.CONTROL_TIMEOUT_MS) { confirmedEnded(target) } || confirmedEnded(target))
+        // 挂断可能没被确认:多试几次,别头一次没确认就把活电话塞回用户手里
+        var ended = false
+        repeat(CallPolicy.HANGUP_ATTEMPTS) {
+            if (ended || work !== w || target.suppressed || !sameActiveMuteTarget(w, target)) return@repeat
+            ended = runCatching { target.call.disconnect() }.isSuccess &&
+                (waitFor(CallPolicy.CONTROL_TIMEOUT_MS) { confirmedEnded(target) } || confirmedEnded(target))
+        }
         w.stopReason.refine(ending, if (ended) "达到时长上限，Android 已挂断"
             else "达到时长上限，Android 未确认挂断，已交还系统")
     }
@@ -1596,6 +1692,8 @@ class CallRuntime(private val app: MikaApp) {
                 playbackHeadFrames = stats.getLong("upPlaybackHeadFrames", -1L),
                 flushMaxMs = stats.getLong("upFlushMaxMs", -1L),
                 captureSilencedMs = if (stats.getBoolean("clientSilencedKnown")) stats.getLong("clientSilencedMaxMs", -1L) else -1L,
+                playbackRebuilds = stats.getLong("upPlaybackRebuilds", -1L),
+                rebuildDroppedBytes = stats.getLong("upRebuildDroppedBytes", -1L),
             )
             !stats.getBoolean("active") && stats.getBoolean("microphoneRestored")
         }.onFailure { debugMediaException(w, it) }.getOrDefault(false).also {
@@ -1647,8 +1745,8 @@ class CallRuntime(private val app: MikaApp) {
                 val config = settings.state.value
                 val initial = t.initialRingPolicy
                 if (autoPauseWriting || initial == null ||
-                    !CallPolicy.callerAllowed(initial, t.number, t.ringObservedWallMs) ||
-                    !CallPolicy.callerAllowed(config, t.number) || config.audioMode != w.config.audioMode ||
+                    !CallPolicy.callerAllowed(initial, t.number, t.ringObservedWallMs, t.type, confirmedStranger(t)) ||
+                    !CallPolicy.callerAllowed(config, t.number, type = t.type, isStranger = confirmedStranger(t)) || config.audioMode != w.config.audioMode ||
                     SystemClock.elapsedRealtime() - t.ringObservedAt > CallPolicy.AUTO_ANSWER_WINDOW_MS) {
                     throw CallProblem("来电已超时或不再符合自动接听规则")
                 }
@@ -1666,9 +1764,32 @@ class CallRuntime(private val app: MikaApp) {
         w.automatic && w.track === target && target.phase == CallPhase.RINGING && !target.suppressed &&
             !w.answerSent && w.stopReason.value == null
 
+    private fun hasContactsAccess() =
+        app.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+
+    private fun confirmedStranger(t: Tracked?): Boolean =
+        t?.unsavedNumber != null && t.unsavedNumber == t.number && hasContactsAccess() &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || t.call.details.contactDisplayName.isNullOrBlank())
+
+    /** Only a successful, empty phone lookup qualifies. Never infer contact status from a missing name. */
+    private suspend fun isUnsavedNumber(number: String): Boolean = withContext(Dispatchers.IO) {
+        if (!hasContactsAccess()) return@withContext false
+        val uri = Uri.withAppendedPath(PhoneLookup.ENTERPRISE_CONTENT_FILTER_URI, Uri.encode(number))
+        try {
+            app.contentResolver.query(uri, arrayOf(PhoneLookup._ID), null, null, null)
+                ?.use { !it.moveToFirst() } == true
+        } catch (_: RuntimeException) {
+            false
+        }
+    }
+
     private fun autoAnswerBlocker(config: CallConfig, notificationReady: Boolean? = null): String? = when {
         !config.audioVerified -> "请先确认当前模式的双向通话音频"
-        !config.allowAllIncoming && config.allowedIncomingNumbers.isEmpty() -> "自动接听名单为空"
+        config.incomingScope == IncomingScope.STRANGERS && !hasContactsAccess() -> app.getString(R.string.calls_strangers_note)
+        !config.hasIncomingSelection -> if (config.incomingScope == IncomingScope.TYPES)
+            app.getString(R.string.calls_pick_types) else "自动接听名单为空"
+        config.incomingScope == IncomingScope.TYPES && ScreenAccessibility.instance.value == null ->
+            app.getString(R.string.calls_type_accessibility)
         else -> prerequisite(ignoreWork = true, notificationReady = notificationReady)
             ?: if (!audioReady) audioDetail ?: "设备通话音频尚未准备好" else null
     }
@@ -1762,7 +1883,8 @@ class CallRuntime(private val app: MikaApp) {
         val manualReady = deviceReady && serviceReady && prerequisite(ignoreWork = true, notificationReady = notificationReady) == null
         val dialReady = manualReady && sims.isNotEmpty()
         val autoAnswerReady = manualReady && config.audioVerified && CallStandbyService.notificationsAvailable(app) &&
-            (config.allowAllIncoming || config.allowedIncomingNumbers.isNotEmpty())
+            config.hasIncomingSelection && (config.incomingScope != IncomingScope.STRANGERS || hasContactsAccess()) &&
+            (config.incomingScope != IncomingScope.TYPES || ScreenAccessibility.instance.value != null)
         mutable.value = CallRuntimeState(
             prepared = enabled && armed && !configuring,
             phase = current?.phase ?: when {
@@ -1919,6 +2041,14 @@ class CallRuntime(private val app: MikaApp) {
         val createdAt = System.currentTimeMillis()
         var initialRingPolicy: CallConfig? = null
         var ringObservedAt: Long = 0L
+        var lookupNumber: String? = null
+        var unsavedNumber: String? = null
+        var contactLookup: Job? = null
+        var ringUptime: Long = 0L
+        var evidence = IncomingTypeEvidence()
+        var labelService: ScreenAccessibility? = null
+        var labelReader: IncomingCallLabels? = null
+        val type get() = if (labelService != null && labelService === ScreenAccessibility.instance.value) evidence.typeFor(number) else null
         var ringObservedWallMs: Long = 0L
         var autoTried = false
         var suppressed = false

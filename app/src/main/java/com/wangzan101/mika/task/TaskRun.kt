@@ -563,6 +563,8 @@ class TaskRun(
         runState._pipSoundOn.value = false
         runState._appShown.value = false
         if (c.connection != null) phoneServices.sharedShell.release()
+        // 这次运行解锁过手机才挂着回锁义务;还有别的任务在跑就等,都结束了在这里锁回去(没有义务时立即返回)
+        withContext(Dispatchers.Main + NonCancellable) { service.finishTaskRelock(this@TaskRun) }
     }
 
     suspend fun execute(priorTurns: List<Turn>): TaskState {
@@ -793,12 +795,35 @@ class TaskRun(
                 refreshLocked = states::refresh,
                 unattendedUnlock = unlockAuthorized?.let { authorized ->
                     {
-                        val result = app.deviceAccess.access.unlock(authorized)
-                        states.refresh()
-                        Log.i(TAG, "${provenance.origin} unlock finished: ${result.status}")
-                        result.status
+                        // 回锁走无障碍的全局动作、守卫走通知;两样都不在就立不住「锁回去」的义务,不去解锁
+                        if (ScreenAccessibility.instance.value == null) {
+                            states.refresh()
+                            "accessibility_unavailable"
+                        } else if (!service.startUnlockGuard()) {
+                            states.refresh()
+                            "notification_unavailable"
+                        } else {
+                            val result = try {
+                                app.deviceAccess.access.unlock(authorized)
+                            } catch (e: CancellationException) {
+                                // 取消后系统仍可能完成已注入的输入:换常驻警告,提醒用户检查锁屏
+                                service.notifyRelockFailed()
+                                throw e
+                            } catch (e: Exception) {
+                                service.notifyRelockFailed()
+                                throw e
+                            }
+                            // 真的解开了才挂上回锁义务;本来就没锁(用户在用)的,摘掉刚挂的守卫
+                            if (result.performedUnlock) service.noteTaskUnlock() else service.clearUnlockGuardIfSafe()
+                            states.refresh()
+                            Log.i(TAG, "${provenance.origin} unlock finished: ${result.status}")
+                            result.status
+                        }
                     }
                 },
+                // 本地授权(本机存着的授权)的任务解锁失败后不杀:转为等用户手动解锁
+                recoverUnlockFailure = { unlockAuthorized != null },
+                onRecoveryFailure = { status -> service.notifyUnlockRecoveryNeeded(conversationId, status) },
                 unlockFailureMessage = {
                     tr(if (provenance.origin == RunOrigin.Channel) R.string.wechat_unlock_failed else R.string.trigger_unlock_failed)
                 },
@@ -897,19 +922,22 @@ class TaskRun(
             }
             // 这个对话里用户发来的屏幕(跟着对话存在工作区里)
             val userScreens = (service.application as MikaApp).userScreens.source(conversationId)
-            // 人格只属于这个对话;条件检查是内部只读 JSON 检查,不继承人格。
-            // 人格被删除时 get 返回 null,按无人格跑;界面另行提示。
-            val persona = if (conditionCheck || !FeatureFlags.get(service).persona()) null else {
-                val app = service.application as MikaApp
-                app.conversations.persona(conversationId)?.personaId?.let(app.personas::get)
-            }
+            // 人格是设置里选的在用的那一套,对所有对话一样;条件检查是内部只读 JSON 检查,不继承人格。
+            // 评测换掉模型来源时也不带(和备援链一样):这台设备上选了什么人格不该改变评测结果。
+            // 对话旁文件里以前存的绑定不再读。
+            val persona = if (conditionCheck || !FeatureFlags.get(service).persona() ||
+                env.modelFactory !== TaskEnvironment.defaultModelFactory) null
+            else (service.application as MikaApp).personas.active()
+            // 称呼是助理的自称(默认 Mika):身份句和人格层的固定头都用它。
+            val assistant = PersonaPrompt.nickname(persona?.nickname)
             // 人格拼在身份、准则、通用规则之后;子任务和主任务用同一份。
-            // 正文为空时没有可拼的层,也不记成「这一轮用了某个人格」。
-            val personaLayer = persona?.let { PersonaPrompt.layer(it.name, it.prompt) }
+            // 选项全默认、正文也为空时没有可拼的层。
+            val personaLayer = persona?.let { PersonaPrompt.layer(it.name, it.prompt, it.style, assistant) }
             val appLang = AppLanguage.current(service)
-            val promptWithPersona = SystemPrompt.withPersona(SystemPrompt.identity(), personaLayer)
+            val promptWithPersona = SystemPrompt.withPersona(SystemPrompt.identity(assistant), personaLayer)
             val basePrompt = SystemPrompt.withLanguage(promptWithPersona, appLang.tag)
-            val personaLabel = if (personaLayer != null && persona != null) {
+            // 这一轮用了人格:拼出了人格层,或者只改了称呼;两样都没有就不记
+            val personaLabel = if (persona != null && (personaLayer != null || assistant != PersonaPrompt.DEFAULT_NICKNAME)) {
                 Redactor.text("${persona.name} · v${persona.revision}")
             } else null
             val stepLimit = if (conditionCheck) null else FeatureFlags.get(service).taskStepLimit()
@@ -943,6 +971,8 @@ class TaskRun(
             val promptHook = com.wangzan101.mika.plugin.PluginPromptHook(
                 (service.application as MikaApp).plugins, pluginRunner, { model.name },
                 { com.wangzan101.mika.settings.EnvVarStore.get(service).all() })
+            // 一个任务里沙箱命令累计时长上限(设置 › 干活时,默认 30 分钟);主任务和它派的子任务同档,各自独立累计
+            val sandboxBudgetMs = FeatureFlags.get(service).sandboxBudgetMinutes() * 60_000L
             val childRunner = if (provenance.origin == RunOrigin.Ui && web != null) ChildAgentRunner(
                 create = { childSpec, childResources ->
                     val childWeb = if (childSpec.parallelChild) {
@@ -955,6 +985,7 @@ class TaskRun(
                         appPacing = { pace.appPacing() }, appTempo = { pace.of(it).tempo }, appCapped = { pace.capped(it) }, appIdleScroll = { IdleScroll(Random.Default) },
                         sandbox = sandbox, workspace = { workspaceKey.wire }, runSpec = childSpec,
                         conversationId = conversationId, inlineScreen = speed.inlineScreen,
+                        sandboxBudgetMs = sandboxBudgetMs,
                         adaptiveVision = speed.adaptiveVision)
                     AgentLoop(model, childTools, basePrompt, maxSteps = childSpec.stepBudget ?: AgentLoop.UNLIMITED_STEPS,
                         // 子任务跟着询问 / 自主;询问时它也过关卡,子任务里花钱的一步一律不做
@@ -1007,6 +1038,7 @@ class TaskRun(
                 workspacePath = web?.let { { p: String -> sandbox.uploadCheck(workspaceKey, p) } },
                 // 同项目对话共用 p:<projectId>,其余按对话隔离
                 sandbox = sandbox, workspace = { workspaceKey.wire },
+                sandboxBudgetMs = sandboxBudgetMs,
                 deviceFiles = if (provenance.origin == RunOrigin.Ui && !conditionCheck && FeatureFlags.get(service).deviceFiles()) {
                     AndroidDeviceFiles(phoneServices.hub, com.wangzan101.mika.cap.sandbox.SandboxDirs(service), sandbox,
                         com.wangzan101.mika.settings.DeviceDirectoryStore.get(service), DeviceImportStore.get(service),
@@ -1075,7 +1107,9 @@ class TaskRun(
                 // 助手断开、被挪走只在这一步用的是手机时才查
                 gate = { w ->
                     if (phoneScreen.acquired && dispatcher?.surface != WEB) phone?.screen?.let { phoneRuntime.awaitUserPick(it, taskGate, w) }
-                    taskGate.pass({ phoneScreen.acquired && dispatcher?.surface != WEB }, w)
+                    // 等关卡期间发生过锁屏周期:按旧屏幕准备好的动作作废,执行入口换成说明结果喂回模型
+                    if (taskGate.pass({ phoneScreen.acquired && dispatcher?.surface != WEB }, w))
+                        throw com.wangzan101.mika.core.gate.ScreenRecoveryRequired()
                 }, knowledge = knowledge, screenMaps = memoryRuntime.screenMaps(), sink = sink, trace = trace, installedApps = { apps },
                 // 选渠道用的事实:装了哪些 App、在 Mika 里登录过哪些网站、有没有内置浏览器
                 channelFacts = {
