@@ -192,6 +192,7 @@ fun ModelSetupScreen(
                 remove = { vm.removeProvider(provider.id); openProvider = null; allModels = false },
                 use = { r, model -> vm.pick(r, provider.id, model) },
                 setVision = { model, sees -> vm.setModelVision(provider.id, model, sees) },
+                setServiceTier = { model, tier -> vm.setModelServiceTier(provider.id, model, tier) },
                 showAll = { allModels = true },
                 retest = { vm.retest(provider.id) },
                 // ChatGPT 照旧直接去浏览器登录;xAI、OpenRouter 先打开说明面板
